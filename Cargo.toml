@@ -1,0 +1,13 @@
+[package]
+name = "rsmarp"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+printpdf = "0.7"
+tera = "1"
+zip = "2"
+anyhow = "1"

@@ -1,0 +1,26 @@
+title: rsmarp Demo
+theme: default
+paginate: true
+
+slides:
+  - title: Welcome to rsmarp
+    class: lead
+    content: A fast, pure-Rust presentation tool. No browser required.
+
+  - title: Key Features
+    bullets:
+      - Written in Rust
+      - Pure PDF generation via printpdf
+      - YAML input format
+      - No headless browser
+
+  - title: Code Example
+    code:
+      language: rust
+      source: |
+        fn main() {
+            println!("Hello from rsmarp!");
+        }
+
+  - title: Thank You
+    content: Questions?
