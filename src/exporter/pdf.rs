@@ -227,7 +227,7 @@ fn render_code_block(
                 // simple-icons viewBox is 0 0 24 24 (24 user units wide).
                 // At dpi=72 one user unit = 1pt, so Px(24).into_pt(72) = Pt(24).
                 // scale = target_pt / natural_pt  →  icon renders at exactly ICON_SIZE_MM.
-                let scale = Mm(ICON_SIZE_MM).into_pt().0 / 24.0;
+                let scale = Mm(ICON_SIZE_MM).into_pt().0 / svg.width.into_pt(72.0).0;
 
                 // Box right edge is SLIDE_W - MARGIN_X + CODE_PADDING.
                 // Place icon flush to that edge minus ICON_INSET_MM.
