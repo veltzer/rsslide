@@ -47,7 +47,7 @@ slides:
 ## Usage
 
 ```
-rsmarp [OPTIONS] <INPUT>
+rsslide [OPTIONS] <INPUT>
 
 Options:
   -o, --output <FILE>        Output file [default: <input stem>.<format>]
@@ -55,7 +55,6 @@ Options:
       --theme <THEME>        Built-in theme: default | gaia | uncover  [default: default]
       --theme-set <CSS>      Path to a custom CSS theme file
   -h, --help
-  -V, --version
 ```
 
 ## Output formats
@@ -91,7 +90,27 @@ YAML file
 | `tera`          | HTML slide templating          |
 | `printpdf`      | Pure-Rust PDF generation       |
 | `zip`           | PPTX (Open XML) packaging      |
+| `syntect`       | Syntax highlighting in PDF     |
 | `anyhow`        | Error handling                 |
+
+## PDF code rendering
+
+Code blocks are syntax-highlighted in the PDF output using `syntect` with the `InspiredGitHub` theme. Each token is coloured individually by advancing the X cursor by the Courier glyph width (0.6 × font-size × mm-per-pt). Font size is 10 pt; line spacing is 5.5 mm.
+
+### Model fields and PDF support
+
+Some slide fields defined in the YAML schema are not yet rendered by the PDF exporter and are reserved for future use:
+
+| Field        | PDF support |
+|--------------|-------------|
+| `title`      | ✅ rendered  |
+| `content`    | ✅ rendered  |
+| `bullets`    | ✅ rendered  |
+| `code`       | ✅ rendered (syntax-highlighted) |
+| `image`      | 🔜 planned   |
+| `class`      | 🔜 planned   |
+| `background` | 🔜 planned   |
+| `theme`      | 🔜 planned   |
 
 ## Roadmap
 
