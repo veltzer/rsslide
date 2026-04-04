@@ -310,7 +310,12 @@ fn content_height(slide: &Slide) -> f32 {
         h += bullets.len() as f32 * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
     }
     if let Some(code) = &slide.code {
-        let n = LinesWithEndings::from(code.source.as_str()).count() as f32;
+        let src = if code.trim {
+            code.source.trim_end_matches('\n').trim_end_matches('\r')
+        } else {
+            code.source.as_str()
+        };
+        let n = LinesWithEndings::from(src).count() as f32;
         h += n * CODE_LINE_HEIGHT + 2.0 * CODE_PADDING;
     }
     h

@@ -17,7 +17,7 @@ slides:
   - title: Code Example
     code:
       language: rust
-      source: |
+      source: |-
         fn main() {
             println!("Hello from rsslide!");
         }
@@ -43,7 +43,7 @@ slides:
   - title: Python Example
     code:
       language: python
-      source: |
+      source: |-
         def greet(name: str) -> str:
             return f"Hello, {name}!"
 
@@ -52,14 +52,14 @@ slides:
   - title: JavaScript Example
     code:
       language: javascript
-      source: |
+      source: |-
         const greet = (name) => `Hello, ${name}!`;
         console.log(greet("rsslide"));
 
   - title: Go Example
     code:
       language: go
-      source: |
+      source: |-
         package main
 
         import "fmt"
@@ -71,7 +71,7 @@ slides:
   - title: Bash Example
     code:
       language: bash
-      source: |
+      source: |-
         #!/usr/bin/env bash
         echo "Hello from rsslide!"
 
