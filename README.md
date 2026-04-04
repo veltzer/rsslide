@@ -34,15 +34,25 @@ slides:
 
 ### Slide fields
 
-| Field        | Type                    | Description                         |
-|--------------|-------------------------|-------------------------------------|
-| `title`      | string                  | Slide heading                       |
-| `content`    | string                  | Body text                           |
-| `bullets`    | list of strings         | Bullet point list                   |
-| `code`       | `{language, source}`    | Syntax-highlighted code block       |
-| `image`      | string                  | Path to image file                  |
-| `class`      | string                  | CSS class (e.g. `lead`)             |
-| `background` | string                  | CSS background value or color       |
+| Field        | Type                              | Description                         |
+|--------------|-----------------------------------|-------------------------------------|
+| `title`      | string                            | Slide heading                       |
+| `content`    | string                            | Body text                           |
+| `bullets`    | list of strings                   | Bullet point list                   |
+| `code`       | `{language, source, trim?}`       | Syntax-highlighted code block       |
+| `align`      | `left` \| `center` \| `right`    | Horizontal text alignment           |
+| `valign`     | `top` \| `middle` \| `bottom`    | Vertical content alignment          |
+| `image`      | string                            | Path to image file                  |
+| `class`      | string                            | CSS class (e.g. `lead`)             |
+| `background` | string                            | CSS background value or color       |
+
+#### Code block fields
+
+| Field      | Type    | Default | Description |
+|------------|---------|---------|-------------|
+| `language` | string  | —       | Language token for syntax highlighting (e.g. `rust`, `python`) |
+| `source`   | string  | —       | Source code. Use `|-` (YAML strip chomping) to avoid a trailing blank line |
+| `trim`     | bool    | `false` | Strip trailing newlines in code; prefer `|-` in YAML instead |
 
 ## Usage
 
@@ -88,14 +98,18 @@ YAML file
 | `clap`          | CLI argument parsing           |
 | `serde_yaml`    | YAML input parsing             |
 | `tera`          | HTML slide templating          |
-| `printpdf`      | Pure-Rust PDF generation       |
+| `printpdf`      | Pure-Rust PDF generation (svg feature for icons) |
 | `zip`           | PPTX (Open XML) packaging      |
 | `syntect`       | Syntax highlighting in PDF     |
 | `anyhow`        | Error handling                 |
 
 ## PDF code rendering
 
-Code blocks are syntax-highlighted in the PDF output using `syntect` with the `InspiredGitHub` theme. Each token is coloured individually by advancing the X cursor by the Courier glyph width (0.6 × font-size × mm-per-pt). Font size is 12 pt; line spacing is 6.5 mm. A light-gray background box is drawn behind the block with 4 mm padding.
+Code blocks are syntax-highlighted using `syntect` with the `InspiredGitHub` theme. Each token is coloured individually by advancing the X cursor by the Courier glyph width (0.6 × font-size × mm/pt). Font size is 12 pt; line spacing is 6.5 mm. A light-gray background box is drawn behind the block with 4 mm padding on all sides.
+
+When a `language` is recognised, a language icon (SVG via `printpdf`'s `svg` feature) is placed in the top-right corner of the code box at 16 mm. Supported languages: Rust, Python, JavaScript, TypeScript, Go (Gopher), Java, C++, Ruby, Bash, HTML, CSS.
+
+See [`docs/code-highlighting.md`](docs/code-highlighting.md) for full implementation details.
 
 ### Model fields and PDF support
 
@@ -106,7 +120,9 @@ Some slide fields defined in the YAML schema are not yet rendered by the PDF exp
 | `title`      | ✅ rendered  |
 | `content`    | ✅ rendered  |
 | `bullets`    | ✅ rendered  |
-| `code`       | ✅ rendered (syntax-highlighted) |
+| `code`       | ✅ rendered (syntax-highlighted, language icon) |
+| `align`      | ✅ rendered (`left` / `center` / `right`) |
+| `valign`     | ✅ rendered (`top` / `middle` / `bottom`) |
 | `image`      | 🔜 planned   |
 | `class`      | 🔜 planned   |
 | `background` | 🔜 planned   |
