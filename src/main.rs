@@ -15,7 +15,7 @@ enum Format {
 }
 
 #[derive(Debug, Parser)]
-#[command(name = "rsmarp", about = "Convert YAML presentations to HTML, PDF or PPTX")]
+#[command(name = "rsslide", about = "Convert YAML presentations to HTML, PDF or PPTX")]
 struct Cli {
     /// Input YAML file
     input: PathBuf,

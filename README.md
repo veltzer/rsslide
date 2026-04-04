@@ -1,7 +1,6 @@
-# rsmarp
+# rsslide
 
 A fast, pure-Rust presentation tool inspired by [Marp](https://marp.app/).
-Write your slides in YAML, export to HTML, PDF, or PPTX — no browser required.
 
 ## Input format
 

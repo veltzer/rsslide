@@ -1,9 +1,9 @@
-title: rsmarp Demo
+title: rsslide Demo
 theme: default
 paginate: true
 
 slides:
-  - title: Welcome to rsmarp
+  - title: Welcome to rsslide
     class: lead
     content: A fast, pure-Rust presentation tool. No browser required.
 
@@ -19,7 +19,7 @@ slides:
       language: rust
       source: |
         fn main() {
-            println!("Hello from rsmarp!");
+            println!("Hello from rsslide!");
         }
 
   - title: Thank You
