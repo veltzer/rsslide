@@ -171,6 +171,7 @@ fn render_slide(
             &layer,
             &code.source,
             code.language.as_deref(),
+            code.trim,
             &mut cursor_y,
             font_mono,
             syntax_set,
@@ -196,14 +197,17 @@ fn render_code_block(
     layer: &PdfLayerReference,
     source: &str,
     language: Option<&str>,
+    trim: bool,
     cursor_y: &mut f32,
     font_mono: &IndirectFontRef,
     syntax_set: &SyntaxSet,
     theme: &syntect::highlighting::Theme,
 ) {
-    // YAML block scalars (|) always append a trailing newline; strip it so we
-    // don't render a blank line at the bottom of the code box.
-    let source = source.trim_end_matches('\n').trim_end_matches('\r');
+    let source: &str = if trim {
+        source.trim_end_matches('\n').trim_end_matches('\r')
+    } else {
+        source
+    };
     let line_count = LinesWithEndings::from(source).count();
     if line_count == 0 {
         return;

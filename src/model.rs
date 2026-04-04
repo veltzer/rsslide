@@ -29,4 +29,8 @@ pub struct Slide {
 pub struct CodeBlock {
     pub language: Option<String>,
     pub source: String,
+    /// When true, trailing whitespace/newlines are stripped from `source`
+    /// before rendering. Defaults to false — use `|-` in YAML instead.
+    #[serde(default)]
+    pub trim: bool,
 }
