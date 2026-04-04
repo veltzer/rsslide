@@ -224,13 +224,15 @@ fn render_code_block(
     if let Some(lang) = language {
         if let Some(svg_str) = crate::assets::language_icon(lang) {
             if let Ok(svg) = Svg::parse(svg_str) {
-                // simple-icons viewBox is 0 0 24 24; native width in user units = 24.
-                // Scale so the rendered size equals ICON_SIZE_MM.
-                let svg_units: f32 = 24.0;
-                let scale = Mm(ICON_SIZE_MM).into_pt().0 / svg_units;
+                // simple-icons viewBox is 0 0 24 24 (24 user units wide).
+                // At dpi=72 one user unit = 1pt, so Px(24).into_pt(72) = Pt(24).
+                // scale = target_pt / natural_pt  →  icon renders at exactly ICON_SIZE_MM.
+                let scale = Mm(ICON_SIZE_MM).into_pt().0 / 24.0;
 
-                // Position: right-aligned inside the box, top-aligned with CODE_PADDING inset.
-                let icon_x = Mm(SLIDE_W - MARGIN_X - ICON_INSET_MM - ICON_SIZE_MM);
+                // Box right edge is SLIDE_W - MARGIN_X + CODE_PADDING.
+                // Place icon flush to that edge minus ICON_INSET_MM.
+                // translate_y is the BOTTOM of the rendered icon in page coords.
+                let icon_x = Mm(SLIDE_W - MARGIN_X + CODE_PADDING - ICON_INSET_MM - ICON_SIZE_MM);
                 let icon_y = Mm(box_top - ICON_INSET_MM - ICON_SIZE_MM);
 
                 let transform = SvgTransform {
@@ -238,6 +240,7 @@ fn render_code_block(
                     translate_y: Some(icon_y.into_pt()),
                     scale_x: Some(scale),
                     scale_y: Some(scale),
+                    dpi: Some(72.0), // SVG user units map 1:1 to pt at 72 dpi
                     ..Default::default()
                 };
                 svg.add_to_layer(layer, transform);
