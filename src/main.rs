@@ -1,6 +1,7 @@
 mod exporter;
 mod model;
 mod parser;
+mod assets;
 
 use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};

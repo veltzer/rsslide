@@ -35,6 +35,10 @@ const CODE_LINE_HEIGHT: f32 = 6.5;
 const CODE_PADDING: f32 = 4.0; // padding inside the background box (top & bottom)
 const CODE_BG: f32 = 0.94;     // light-gray background fill
 
+// Language icon placed at the top-right corner of the code box
+const ICON_SIZE_MM: f32 = 8.0;
+const ICON_INSET_MM: f32 = 2.0; // gap between icon and box edges
+
 const MM_PER_PT: f32 = 25.4 / 72.0;
 const COURIER_CHAR_WIDTH_MM: f32 = 0.6 * CODE_FONT_SIZE * MM_PER_PT;
 
@@ -215,6 +219,31 @@ fn render_code_block(
         )
         .with_mode(PaintMode::Fill),
     );
+
+    // Render language icon at top-right corner of the code box.
+    if let Some(lang) = language {
+        if let Some(svg_str) = crate::assets::language_icon(lang) {
+            if let Ok(svg) = Svg::parse(svg_str) {
+                // simple-icons viewBox is 0 0 24 24; native width in user units = 24.
+                // Scale so the rendered size equals ICON_SIZE_MM.
+                let svg_units: f32 = 24.0;
+                let scale = Mm(ICON_SIZE_MM).into_pt().0 / svg_units;
+
+                // Position: right-aligned inside the box, top-aligned with CODE_PADDING inset.
+                let icon_x = Mm(SLIDE_W - MARGIN_X - ICON_INSET_MM - ICON_SIZE_MM);
+                let icon_y = Mm(box_top - ICON_INSET_MM - ICON_SIZE_MM);
+
+                let transform = SvgTransform {
+                    translate_x: Some(icon_x.into_pt()),
+                    translate_y: Some(icon_y.into_pt()),
+                    scale_x: Some(scale),
+                    scale_y: Some(scale),
+                    ..Default::default()
+                };
+                svg.add_to_layer(layer, transform);
+            }
+        }
+    }
 
     let syntax = language
         .and_then(|lang| syntax_set.find_syntax_by_token(lang))
