@@ -24,3 +24,19 @@ slides:
 
   - title: Thank You
     content: Questions?
+
+  - title: Centered Title Card
+    align: center
+    valign: middle
+    content: align center + valign middle — great for section breaks.
+
+  - title: Vertically Centered
+    valign: middle
+    bullets:
+      - Content is centred vertically in the slide area
+      - Horizontal alignment stays at the default (left)
+      - Useful for slides with little content
+
+  - title: Right Aligned
+    align: right
+    content: Title and body text flow from the right margin.

@@ -21,6 +21,8 @@ pub struct Slide {
     pub class: Option<String>,
     #[allow(dead_code)]
     pub background: Option<String>,
+    pub align: Option<String>,  // "left" (default) | "center" | "right"
+    pub valign: Option<String>, // "top" (default) | "middle" | "bottom"
 }
 
 #[derive(Debug, Deserialize)]

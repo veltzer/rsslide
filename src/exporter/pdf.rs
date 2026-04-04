@@ -103,20 +103,38 @@ fn render_slide(
 ) {
     let Some(slide) = slide else { return };
 
-    let mut cursor_y = MARGIN_TOP;
+    let align = slide.align.as_deref().unwrap_or("left");
+    let valign = slide.valign.as_deref().unwrap_or("top");
+
+    const PAGE_BOTTOM: f32 = 10.0; // mm reserved for page numbers
+    let mut cursor_y = match valign {
+        "middle" => {
+            let h = content_height(slide);
+            ((PAGE_BOTTOM + MARGIN_TOP + h) / 2.0).min(MARGIN_TOP)
+        }
+        "bottom" => {
+            let h = content_height(slide);
+            (PAGE_BOTTOM + h).min(MARGIN_TOP)
+        }
+        _ => MARGIN_TOP,
+    };
 
     // Title
     if let Some(title) = &slide.title {
         layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
-        layer.use_text(title.as_str(), TITLE_FONT_SIZE, Mm(MARGIN_X), Mm(cursor_y), font_bold);
+        let x = text_x(title.as_str(), TITLE_FONT_SIZE, align);
+        layer.use_text(title.as_str(), TITLE_FONT_SIZE, Mm(x), Mm(cursor_y), font_bold);
         cursor_y -= TITLE_RULE_OFFSET;
-        layer.add_line(Line {
-            points: vec![
-                (Point::new(Mm(MARGIN_X), Mm(cursor_y + 2.0)), false),
-                (Point::new(Mm(SLIDE_W - MARGIN_X), Mm(cursor_y + 2.0)), false),
-            ],
-            is_closed: false,
-        });
+        // Skip the rule for centered layouts — it looks odd under a centred heading.
+        if align != "center" {
+            layer.add_line(Line {
+                points: vec![
+                    (Point::new(Mm(MARGIN_X), Mm(cursor_y + 2.0)), false),
+                    (Point::new(Mm(SLIDE_W - MARGIN_X), Mm(cursor_y + 2.0)), false),
+                ],
+                is_closed: false,
+            });
+        }
         cursor_y -= TITLE_CONTENT_GAP;
     }
 
@@ -124,7 +142,8 @@ fn render_slide(
     if let Some(content) = &slide.content {
         layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
         for line in wrap_text(content, 60) {
-            layer.use_text(line.as_str(), BODY_FONT_SIZE, Mm(MARGIN_X), Mm(cursor_y), font);
+            let x = text_x(line.as_str(), BODY_FONT_SIZE, align);
+            layer.use_text(line.as_str(), BODY_FONT_SIZE, Mm(x), Mm(cursor_y), font);
             cursor_y -= BODY_LINE_HEIGHT;
         }
         cursor_y -= BODY_SECTION_GAP;
@@ -135,7 +154,8 @@ fn render_slide(
         layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
         for bullet in bullets {
             let text = format!("• {}", bullet);
-            layer.use_text(text.as_str(), BODY_FONT_SIZE, Mm(MARGIN_X), Mm(cursor_y), font);
+            let x = text_x(text.as_str(), BODY_FONT_SIZE, align);
+            layer.use_text(text.as_str(), BODY_FONT_SIZE, Mm(x), Mm(cursor_y), font);
             cursor_y -= BODY_LINE_HEIGHT;
         }
         cursor_y -= BODY_SECTION_GAP;
@@ -234,6 +254,43 @@ fn render_code_block(
 
     // Skip past the bottom padding of the box.
     *cursor_y -= CODE_PADDING;
+}
+
+/// Compute the total vertical space (mm) consumed by all content on a slide.
+/// Used to calculate the cursor_y starting position for valign: middle/bottom.
+fn content_height(slide: &Slide) -> f32 {
+    let mut h = 0.0;
+    if slide.title.is_some() {
+        h += TITLE_RULE_OFFSET + TITLE_CONTENT_GAP;
+    }
+    if let Some(content) = &slide.content {
+        let n = wrap_text(content, 60).len() as f32;
+        h += n * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
+    }
+    if let Some(bullets) = &slide.bullets {
+        h += bullets.len() as f32 * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
+    }
+    if let Some(code) = &slide.code {
+        let n = LinesWithEndings::from(code.source.as_str()).count() as f32;
+        h += n * CODE_LINE_HEIGHT + 2.0 * CODE_PADDING;
+    }
+    h
+}
+
+/// Return the x position (mm from left) for a text item given horizontal alignment.
+/// Uses 0.5 × em as an average Helvetica character advance.
+fn text_x(text: &str, font_size: f32, align: &str) -> f32 {
+    match align {
+        "center" => {
+            let w = text.chars().count() as f32 * 0.5 * font_size * MM_PER_PT;
+            (SLIDE_W / 2.0 - w / 2.0).max(MARGIN_X)
+        }
+        "right" => {
+            let w = text.chars().count() as f32 * 0.5 * font_size * MM_PER_PT;
+            (SLIDE_W - MARGIN_X - w).max(MARGIN_X)
+        }
+        _ => MARGIN_X,
+    }
 }
 
 /// Naive word-wrap: splits text into lines of at most `max_chars` characters.
