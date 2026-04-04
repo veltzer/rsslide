@@ -201,6 +201,9 @@ fn render_code_block(
     syntax_set: &SyntaxSet,
     theme: &syntect::highlighting::Theme,
 ) {
+    // YAML block scalars (|) always append a trailing newline; strip it so we
+    // don't render a blank line at the bottom of the code box.
+    let source = source.trim_end_matches('\n').trim_end_matches('\r');
     let line_count = LinesWithEndings::from(source).count();
     if line_count == 0 {
         return;
