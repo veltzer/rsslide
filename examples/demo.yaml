@@ -37,6 +37,41 @@ slides:
       - Horizontal alignment stays at the default (left)
       - Useful for slides with little content
 
-  - title: Right Aligned
-    align: right
-    content: Title and body text flow from the right margin.
+  - title: Language Icons
+    content: Code blocks now show the language icon at the top-right corner.
+
+  - title: Python Example
+    code:
+      language: python
+      source: |
+        def greet(name: str) -> str:
+            return f"Hello, {name}!"
+
+        print(greet("rsslide"))
+
+  - title: JavaScript Example
+    code:
+      language: javascript
+      source: |
+        const greet = (name) => `Hello, ${name}!`;
+        console.log(greet("rsslide"));
+
+  - title: Go Example
+    code:
+      language: go
+      source: |
+        package main
+
+        import "fmt"
+
+        func main() {
+            fmt.Println("Hello from rsslide!")
+        }
+
+  - title: Bash Example
+    code:
+      language: bash
+      source: |
+        #!/usr/bin/env bash
+        echo "Hello from rsslide!"
+
