@@ -36,7 +36,7 @@ const CODE_PADDING: f32 = 4.0; // padding inside the background box (top & botto
 const CODE_BG: f32 = 0.94;     // light-gray background fill
 
 // Language icon placed at the top-right corner of the code box
-const ICON_SIZE_MM: f32 = 8.0;
+const ICON_SIZE_MM: f32 = 16.0;
 const ICON_INSET_MM: f32 = 2.0; // gap between icon and box edges
 
 const MM_PER_PT: f32 = 25.4 / 72.0;
