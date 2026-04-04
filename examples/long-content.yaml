@@ -1,0 +1,98 @@
+title: Long Content Stress Test
+theme: default
+paginate: true
+
+slides:
+
+  # ── Long titles ───────────────────────────────────────────────────────────
+
+  - title: "This is a moderately long title that might just fit on one line"
+    content: Short body.
+
+  - title: "This is a very long title that is almost certainly going to overflow the available horizontal space on the slide and cause problems"
+    content: Short body.
+
+  - title: "An Extremely Long Title With Many Words That Goes On And On And On And On And Will Definitely Need Wrapping Or Will Overflow"
+    content: Short body.
+
+  # ── Long bullets ─────────────────────────────────────────────────────────
+
+  - title: Long Bullets
+    bullets:
+      - Short bullet
+      - A medium-length bullet that takes up a fair amount of horizontal space on the slide
+      - This is a very long bullet point that contains a lot of words and will almost certainly overflow the right margin of the slide without wrapping support
+      - "Another extremely long bullet: The quick brown fox jumps over the lazy dog and then keeps running all the way to the end of the slide and beyond"
+
+  # ── Many bullets (overflow below the slide bottom) ───────────────────────
+
+  - title: Too Many Bullets
+    bullets:
+      - Bullet one
+      - Bullet two
+      - Bullet three
+      - Bullet four
+      - Bullet five
+      - Bullet six
+      - Bullet seven
+      - Bullet eight
+      - Bullet nine
+      - Bullet ten
+      - Bullet eleven
+      - Bullet twelve
+      - Bullet thirteen
+      - Bullet fourteen
+      - Bullet fifteen
+
+  # ── Long content paragraph ───────────────────────────────────────────────
+
+  - title: Long Paragraph
+    content: >-
+      This is a very long paragraph of body text that goes on and on for many
+      words. It is intended to test whether the text wrapping logic correctly
+      breaks the content into multiple lines and whether those lines fit within
+      the slide boundaries without overflowing to the right or disappearing off
+      the bottom of the page.
+
+  # ── Long title + long bullets combined ───────────────────────────────────
+
+  - title: "A Very Long Title Combined With Several Long Bullet Points That All Need Wrapping"
+    bullets:
+      - This first bullet is quite long and pushes the right-hand margin considerably
+      - The second bullet is even longer and goes into great detail about a topic that probably deserves its own slide in a real presentation
+      - Third bullet which is also rather long for testing purposes and keeps going to see what happens at the right edge
+      - Fourth and final long bullet to push the content beyond the bottom of the slide if there are too many lines
+
+  # ── Long code block ───────────────────────────────────────────────────────
+
+  - title: Long Code Block
+    code:
+      language: rust
+      source: |-
+        // A deliberately long code block with many lines and some long lines
+        use std::collections::HashMap;
+
+        fn very_long_function_name_that_goes_near_the_right_margin(input: &str) -> HashMap<String, usize> {
+            let mut counts: HashMap<String, usize> = HashMap::new();
+            for word in input.split_whitespace() {
+                let entry = counts.entry(word.to_string()).or_insert(0);
+                *entry += 1;
+            }
+            counts
+        }
+
+        fn main() {
+            let text = "the quick brown fox jumps over the lazy dog the fox";
+            let result = very_long_function_name_that_goes_near_the_right_margin(text);
+            for (word, count) in &result {
+                println!("{word}: {count}");
+            }
+        }
+
+  # ── Edge: no title, only long content ────────────────────────────────────
+
+  - content: >-
+      A slide with no title but very long body content that wraps across many
+      lines. This tests the layout when the title section is absent and the body
+      starts at the top margin and continues downward for many lines, possibly
+      overflowing the bottom of the slide.
