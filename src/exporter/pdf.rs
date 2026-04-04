@@ -214,8 +214,11 @@ fn render_code_block(
     }
 
     // Draw light-gray background box sized to fit all lines plus padding.
+    // box_top  = first-line baseline + CODE_PADDING
+    // box_bottom = last-line baseline - CODE_PADDING
+    // Last-line baseline = cursor_y - (N-1) × CODE_LINE_HEIGHT, so:
     let box_top = *cursor_y + CODE_PADDING;
-    let box_bottom = *cursor_y - (line_count as f32 * CODE_LINE_HEIGHT) - CODE_PADDING;
+    let box_bottom = *cursor_y - ((line_count - 1) as f32 * CODE_LINE_HEIGHT) - CODE_PADDING;
     layer.set_fill_color(Color::Rgb(Rgb::new(CODE_BG, CODE_BG, CODE_BG, None)));
     layer.add_rect(
         Rect::new(
@@ -291,8 +294,8 @@ fn render_code_block(
         *cursor_y -= CODE_LINE_HEIGHT;
     }
 
-    // Skip past the bottom padding of the box.
-    *cursor_y -= CODE_PADDING;
+    // Leave cursor at box_bottom so subsequent content starts just below the box.
+    *cursor_y = box_bottom;
 }
 
 /// Compute the total vertical space (mm) consumed by all content on a slide.
@@ -316,7 +319,7 @@ fn content_height(slide: &Slide) -> f32 {
             code.source.as_str()
         };
         let n = LinesWithEndings::from(src).count() as f32;
-        h += n * CODE_LINE_HEIGHT + 2.0 * CODE_PADDING;
+        h += (n - 1.0).max(0.0) * CODE_LINE_HEIGHT + 2.0 * CODE_PADDING;
     }
     h
 }
