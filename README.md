@@ -95,7 +95,7 @@ YAML file
 
 ## PDF code rendering
 
-Code blocks are syntax-highlighted in the PDF output using `syntect` with the `InspiredGitHub` theme. Each token is coloured individually by advancing the X cursor by the Courier glyph width (0.6 × font-size × mm-per-pt). Font size is 10 pt; line spacing is 5.5 mm.
+Code blocks are syntax-highlighted in the PDF output using `syntect` with the `InspiredGitHub` theme. Each token is coloured individually by advancing the X cursor by the Courier glyph width (0.6 × font-size × mm-per-pt). Font size is 12 pt; line spacing is 6.5 mm. A light-gray background box is drawn behind the block with 4 mm padding.
 
 ### Model fields and PDF support
 

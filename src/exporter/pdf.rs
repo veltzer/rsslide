@@ -1,6 +1,7 @@
 use crate::model::{Presentation, Slide};
 use anyhow::Result;
 use printpdf::*;
+use printpdf::path::PaintMode;
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
@@ -13,13 +14,27 @@ use syntect::util::LinesWithEndings;
 const SLIDE_W: f32 = 254.0;
 const SLIDE_H: f32 = 143.0;
 
-// Margins
+// Layout
 const MARGIN_X: f32 = 14.0;
-const MARGIN_TOP: f32 = 120.0;
+const MARGIN_TOP: f32 = 126.0; // title baseline: 17mm from top of slide
 
-// Courier is monospace: each glyph = 0.6 × em.
-// At 10pt: 0.6 × 10pt × (25.4mm / 72pt) ≈ 2.117mm per character.
-const CODE_FONT_SIZE: f32 = 10.0;
+// Title
+const TITLE_FONT_SIZE: f32 = 36.0;
+const TITLE_RULE_OFFSET: f32 = 14.0; // mm below title baseline to the rule
+const TITLE_CONTENT_GAP: f32 = 8.0;  // mm below rule to first content line
+
+// Body text and bullets
+const BODY_FONT_SIZE: f32 = 18.0;
+const BODY_LINE_HEIGHT: f32 = 9.0;
+const BODY_SECTION_GAP: f32 = 5.0;
+
+// Code block
+// Courier glyph advance = 0.6 × em; at 12pt: 0.6 × 12pt × (25.4mm/72pt) ≈ 2.54mm
+const CODE_FONT_SIZE: f32 = 12.0;
+const CODE_LINE_HEIGHT: f32 = 6.5;
+const CODE_PADDING: f32 = 4.0; // padding inside the background box (top & bottom)
+const CODE_BG: f32 = 0.94;     // light-gray background fill
+
 const MM_PER_PT: f32 = 25.4 / 72.0;
 const COURIER_CHAR_WIDTH_MM: f32 = 0.6 * CODE_FONT_SIZE * MM_PER_PT;
 
@@ -92,8 +107,9 @@ fn render_slide(
 
     // Title
     if let Some(title) = &slide.title {
-        layer.use_text(title.as_str(), 28.0, Mm(MARGIN_X), Mm(cursor_y), font_bold);
-        cursor_y -= 12.0;
+        layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
+        layer.use_text(title.as_str(), TITLE_FONT_SIZE, Mm(MARGIN_X), Mm(cursor_y), font_bold);
+        cursor_y -= TITLE_RULE_OFFSET;
         layer.add_line(Line {
             points: vec![
                 (Point::new(Mm(MARGIN_X), Mm(cursor_y + 2.0)), false),
@@ -101,26 +117,28 @@ fn render_slide(
             ],
             is_closed: false,
         });
-        cursor_y -= 8.0;
+        cursor_y -= TITLE_CONTENT_GAP;
     }
 
     // Body content
     if let Some(content) = &slide.content {
-        for line in wrap_text(content, 80) {
-            layer.use_text(line.as_str(), 14.0, Mm(MARGIN_X), Mm(cursor_y), font);
-            cursor_y -= 7.0;
+        layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
+        for line in wrap_text(content, 60) {
+            layer.use_text(line.as_str(), BODY_FONT_SIZE, Mm(MARGIN_X), Mm(cursor_y), font);
+            cursor_y -= BODY_LINE_HEIGHT;
         }
-        cursor_y -= 4.0;
+        cursor_y -= BODY_SECTION_GAP;
     }
 
     // Bullet list
     if let Some(bullets) = &slide.bullets {
+        layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
         for bullet in bullets {
             let text = format!("• {}", bullet);
-            layer.use_text(text.as_str(), 14.0, Mm(MARGIN_X), Mm(cursor_y), font);
-            cursor_y -= 7.0;
+            layer.use_text(text.as_str(), BODY_FONT_SIZE, Mm(MARGIN_X), Mm(cursor_y), font);
+            cursor_y -= BODY_LINE_HEIGHT;
         }
-        cursor_y -= 4.0;
+        cursor_y -= BODY_SECTION_GAP;
     }
 
     // Syntax-highlighted code block
@@ -149,7 +167,7 @@ fn render_slide(
     }
 }
 
-/// Render a syntax-highlighted code block onto the PDF layer.
+/// Render a syntax-highlighted code block onto the PDF layer, with a gray background box.
 fn render_code_block(
     layer: &PdfLayerReference,
     source: &str,
@@ -159,6 +177,25 @@ fn render_code_block(
     syntax_set: &SyntaxSet,
     theme: &syntect::highlighting::Theme,
 ) {
+    let line_count = LinesWithEndings::from(source).count();
+    if line_count == 0 {
+        return;
+    }
+
+    // Draw light-gray background box sized to fit all lines plus padding.
+    let box_top = *cursor_y + CODE_PADDING;
+    let box_bottom = *cursor_y - (line_count as f32 * CODE_LINE_HEIGHT) - CODE_PADDING;
+    layer.set_fill_color(Color::Rgb(Rgb::new(CODE_BG, CODE_BG, CODE_BG, None)));
+    layer.add_rect(
+        Rect::new(
+            Mm(MARGIN_X - CODE_PADDING),
+            Mm(box_bottom),
+            Mm(SLIDE_W - MARGIN_X + CODE_PADDING),
+            Mm(box_top),
+        )
+        .with_mode(PaintMode::Fill),
+    );
+
     let syntax = language
         .and_then(|lang| syntax_set.find_syntax_by_token(lang))
         .unwrap_or_else(|| syntax_set.find_syntax_plain_text());
@@ -191,10 +228,12 @@ fn render_code_block(
             x += text.chars().count() as f32 * COURIER_CHAR_WIDTH_MM;
         }
 
-        // Reset fill color to black for next non-code text
         layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
-        *cursor_y -= 5.5;
+        *cursor_y -= CODE_LINE_HEIGHT;
     }
+
+    // Skip past the bottom padding of the box.
+    *cursor_y -= CODE_PADDING;
 }
 
 /// Naive word-wrap: splits text into lines of at most `max_chars` characters.
