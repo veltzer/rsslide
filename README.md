@@ -32,6 +32,15 @@ slides:
     image: assets/diagram.png
 ```
 
+### Presentation fields
+
+| Field      | Type   | Default | Description |
+|------------|--------|---------|-------------|
+| `title`    | string | —       | Presentation title (used in PDF metadata) |
+| `theme`    | string | `default` | Built-in theme name |
+| `paginate` | bool   | `false` | Show `N / total` page numbers on each slide |
+| `slides`   | list   | —       | List of slide objects (see below) |
+
 ### Slide fields
 
 | Field        | Type                              | Description                         |
