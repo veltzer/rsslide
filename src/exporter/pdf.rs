@@ -108,6 +108,8 @@ fn render_slide(
     let Some(slide) = slide else { return };
 
     let align = slide.align.as_deref().unwrap_or("left");
+    let title_align = slide.title_align.as_deref().unwrap_or(align);
+    let content_align = slide.content_align.as_deref().unwrap_or(align);
     let valign = slide.valign.as_deref().unwrap_or("top");
 
     const PAGE_BOTTOM: f32 = 10.0; // mm reserved for page numbers
@@ -126,11 +128,11 @@ fn render_slide(
     // Title
     if let Some(title) = &slide.title {
         layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
-        let x = text_x(title.as_str(), TITLE_FONT_SIZE, align);
+        let x = text_x(title.as_str(), TITLE_FONT_SIZE, title_align);
         layer.use_text(title.as_str(), TITLE_FONT_SIZE, Mm(x), Mm(cursor_y), font_bold);
         cursor_y -= TITLE_RULE_OFFSET;
         // Skip the rule for centered layouts — it looks odd under a centred heading.
-        if align != "center" {
+        if title_align != "center" {
             layer.add_line(Line {
                 points: vec![
                     (Point::new(Mm(MARGIN_X), Mm(cursor_y + 2.0)), false),
@@ -146,7 +148,7 @@ fn render_slide(
     if let Some(content) = &slide.content {
         layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
         for line in wrap_text(content, 60) {
-            let x = text_x(line.as_str(), BODY_FONT_SIZE, align);
+            let x = text_x(line.as_str(), BODY_FONT_SIZE, content_align);
             layer.use_text(line.as_str(), BODY_FONT_SIZE, Mm(x), Mm(cursor_y), font);
             cursor_y -= BODY_LINE_HEIGHT;
         }
@@ -158,7 +160,7 @@ fn render_slide(
         layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
         for bullet in bullets {
             let text = format!("• {}", bullet);
-            let x = text_x(text.as_str(), BODY_FONT_SIZE, align);
+            let x = text_x(text.as_str(), BODY_FONT_SIZE, content_align);
             layer.use_text(text.as_str(), BODY_FONT_SIZE, Mm(x), Mm(cursor_y), font);
             cursor_y -= BODY_LINE_HEIGHT;
         }

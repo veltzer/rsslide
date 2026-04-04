@@ -2,86 +2,124 @@ title: Alignment Examples
 theme: default
 paginate: true
 
-# NOTE: 'align' and 'valign' are slide-level properties — they apply to all
-# content on the slide (title, body text, and bullets) uniformly.
-# Per-element alignment (e.g. centred title with left-aligned bullets) is not
-# yet supported.
+# align, title_align, content_align are all independent:
+#   align         — slide-level default (applies to title + content + bullets)
+#   title_align   — overrides alignment for the title only
+#   content_align — overrides alignment for content text and bullets only
 #
-# This file demonstrates all 9 combinations of:
-#   align:  left (default) | center | right
-#   valign: top (default)  | middle | bottom
+# Resolution order: title_align > align > "left"
+#                   content_align > align > "left"
 
 slides:
 
-  # ── Row 1: valign top ────────────────────────────────────────────────────
+  # ── Slide-level align (all 9 combinations) ───────────────────────────────
 
-  - title: align left · valign top (default)
-    # This is the default — no properties needed.
+  - title: "Slide-level: left + top (default)"
     bullets:
-      - First bullet
-      - Second bullet
-      - Third bullet
+      - Both title and bullets follow align
+      - Default — no properties needed
 
-  - title: align center · valign top
+  - title: "Slide-level: center + top"
     align: center
     bullets:
-      - First bullet
-      - Second bullet
-      - Third bullet
+      - Title and bullets both centered
+      - Horizontal rule is suppressed for centered titles
 
-  - title: align right · valign top
+  - title: "Slide-level: right + top"
     align: right
     bullets:
-      - First bullet
-      - Second bullet
-      - Third bullet
+      - Title and bullets both right-aligned
 
-  # ── Row 2: valign middle ─────────────────────────────────────────────────
-
-  - title: align left · valign middle
+  - title: "Slide-level: left + middle"
     valign: middle
     bullets:
-      - First bullet
-      - Second bullet
-      - Third bullet
+      - Content block centred vertically
+      - Horizontal alignment is left
 
-  - title: align center · valign middle
+  - title: "Slide-level: center + middle"
     align: center
     valign: middle
     bullets:
-      - First bullet
-      - Second bullet
-      - Third bullet
+      - Everything centred horizontally and vertically
+      - Great for section-break cards
 
-  - title: align right · valign middle
+  - title: "Slide-level: right + middle"
     align: right
     valign: middle
     bullets:
-      - First bullet
-      - Second bullet
-      - Third bullet
+      - Right-aligned, vertically centred
 
-  # ── Row 3: valign bottom ─────────────────────────────────────────────────
-
-  - title: align left · valign bottom
+  - title: "Slide-level: left + bottom"
     valign: bottom
     bullets:
-      - First bullet
-      - Second bullet
-      - Third bullet
+      - Content pushed to the bottom of the slide
 
-  - title: align center · valign bottom
+  - title: "Slide-level: center + bottom"
     align: center
     valign: bottom
     bullets:
-      - First bullet
-      - Second bullet
-      - Third bullet
+      - Centred and at the bottom
 
-  - title: align right · valign bottom
+  - title: "Slide-level: right + bottom"
     align: right
     valign: bottom
     bullets:
-      - First bullet
-      - Second bullet
-      - Third bullet
+      - Right-aligned at the bottom
+
+  # ── Per-element overrides ─────────────────────────────────────────────────
+
+  - title: "title_align: center · content_align: left (default)"
+    title_align: center
+    bullets:
+      - Title is centred; bullets stay left
+      - Horizontal rule is suppressed under the centred title
+
+  - title: "title_align: left · content_align: center"
+    content_align: center
+    bullets:
+      - Title is left-aligned (default)
+      - Bullets are centred independently
+
+  - title: "title_align: right · content_align: left"
+    title_align: right
+    bullets:
+      - Title pushed to the right
+      - Bullets remain left-aligned
+
+  - title: "title_align: left · content_align: right"
+    content_align: right
+    bullets:
+      - Title on the left
+      - Bullets on the right
+
+  - title: "title_align: center · content_align: right"
+    title_align: center
+    content_align: right
+    bullets:
+      - Centred title
+      - Right-aligned bullets
+
+  - title: "title_align: right · content_align: center"
+    title_align: right
+    content_align: center
+    bullets:
+      - Right-aligned title
+      - Centred bullets
+
+  # ── align as default, overridden per element ──────────────────────────────
+
+  - title: "align: center · title_align: left"
+    align: center
+    title_align: left
+    bullets:
+      - Slide default is center
+      - title_align overrides title to left
+      - Bullets inherit slide align (center)
+
+  - title: "align: right · content_align: left"
+    align: right
+    content_align: left
+    bullets:
+      - Slide default is right
+      - Bullets overridden to left
+      - Title inherits slide align (right)
