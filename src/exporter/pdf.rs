@@ -17,6 +17,12 @@ const SLIDE_H: f32 = 143.0;
 const MARGIN_X: f32 = 14.0;
 const MARGIN_TOP: f32 = 120.0;
 
+// Courier is monospace: each glyph = 0.6 × em.
+// At 10pt: 0.6 × 10pt × (25.4mm / 72pt) ≈ 2.117mm per character.
+const CODE_FONT_SIZE: f32 = 10.0;
+const MM_PER_PT: f32 = 25.4 / 72.0;
+const COURIER_CHAR_WIDTH_MM: f32 = 0.6 * CODE_FONT_SIZE * MM_PER_PT;
+
 pub fn export(presentation: &Presentation, output_path: &Path) -> Result<()> {
     let title = presentation.title.as_deref().unwrap_or("Presentation");
 
@@ -29,13 +35,13 @@ pub fn export(presentation: &Presentation, output_path: &Path) -> Result<()> {
     // Load syntect syntax/theme sets once, share across all slides.
     let syntax_set = SyntaxSet::load_defaults_newlines();
     let theme_set = ThemeSet::load_defaults();
-    let theme = &theme_set.themes["base16-ocean.dark"];
+    let theme = &theme_set.themes["InspiredGitHub"];
 
     let slides = &presentation.slides;
 
     render_slide(
         doc.get_page(page1).get_layer(layer1),
-        slides.get(0),
+        slides.first(),
         presentation.paginate.unwrap_or(false),
         1,
         slides.len(),
@@ -180,10 +186,9 @@ fn render_code_block(
                 None,
             )));
 
-            layer.use_text(text, 10.0, Mm(x), Mm(*cursor_y), font_mono);
+            layer.use_text(text, CODE_FONT_SIZE, Mm(x), Mm(*cursor_y), font_mono);
 
-            // Advance x by approximate character width (10pt Courier ≈ 6pt per char)
-            x += text.len() as f32 * 1.8;
+            x += text.chars().count() as f32 * COURIER_CHAR_WIDTH_MM;
         }
 
         // Reset fill color to black for next non-code text

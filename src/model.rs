@@ -3,6 +3,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct Presentation {
     pub title: Option<String>,
+    #[allow(dead_code)]
     pub theme: Option<String>,
     pub paginate: Option<bool>,
     pub slides: Vec<Slide>,
@@ -14,8 +15,11 @@ pub struct Slide {
     pub content: Option<String>,
     pub bullets: Option<Vec<String>>,
     pub code: Option<CodeBlock>,
+    #[allow(dead_code)]
     pub image: Option<String>,
+    #[allow(dead_code)]
     pub class: Option<String>,
+    #[allow(dead_code)]
     pub background: Option<String>,
 }
 
