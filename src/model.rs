@@ -15,8 +15,10 @@ pub struct Slide {
     pub content: Option<String>,
     pub bullets: Option<Vec<String>>,
     pub code: Option<CodeBlock>,
-    #[allow(dead_code)]
+    /// Path to an SVG (or raster image) file on disk.
     pub image: Option<String>,
+    /// Inline SVG content as a string. Takes precedence over `image` if both are set.
+    pub svg: Option<String>,
     #[allow(dead_code)]
     pub class: Option<String>,
     #[allow(dead_code)]

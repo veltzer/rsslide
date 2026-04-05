@@ -181,6 +181,23 @@ fn render_slide(
         );
     }
 
+    // SVG diagram — inline `svg` takes precedence over file `image`
+    let svg_source: Option<String> = if let Some(inline) = &slide.svg {
+        Some(inline.clone())
+    } else if let Some(path) = &slide.image {
+        if path.to_lowercase().ends_with(".svg") {
+            std::fs::read_to_string(path).ok()
+        } else {
+            None // raster images not yet supported
+        }
+    } else {
+        None
+    };
+
+    if let Some(svg_str) = svg_source {
+        render_svg(&layer, &svg_str, &mut cursor_y);
+    }
+
     // Page number
     if paginate {
         let page_str = format!("{} / {}", page_num, total_pages);
@@ -300,7 +317,45 @@ fn render_code_block(
     *cursor_y = box_bottom;
 }
 
-/// Compute the total vertical space (mm) consumed by all content on a slide.
+/// Render an SVG diagram onto the PDF layer.
+/// The SVG is scaled to fill the available slide width (between margins)
+/// while preserving aspect ratio. It is placed at `cursor_y` (top edge)
+/// and `cursor_y` is decremented by the rendered height plus a small gap.
+fn render_svg(layer: &PdfLayerReference, svg_str: &str, cursor_y: &mut f32) {
+    let svg = match Svg::parse(svg_str) {
+        Ok(s) => s,
+        Err(_) => return, // silently skip unparseable SVG
+    };
+
+    let dpi = 72.0;
+    let available_width_pt = Mm(SLIDE_W - 2.0 * MARGIN_X).into_pt().0;
+    let natural_w_pt = svg.width.into_pt(dpi).0;
+    let natural_h_pt = svg.height.into_pt(dpi).0;
+
+    if natural_w_pt <= 0.0 || natural_h_pt <= 0.0 {
+        return;
+    }
+
+    let scale = (available_width_pt / natural_w_pt).min(1.0); // never upscale
+    let rendered_h_mm = Mm::from(Pt(natural_h_pt * scale)).0;
+
+    // translate_y is the BOTTOM of the rendered SVG in page coords.
+    let bottom_y = *cursor_y - rendered_h_mm;
+
+    let transform = SvgTransform {
+        translate_x: Some(Mm(MARGIN_X).into_pt()),
+        translate_y: Some(Mm(bottom_y).into_pt()),
+        scale_x: Some(scale),
+        scale_y: Some(scale),
+        dpi: Some(dpi),
+        ..Default::default()
+    };
+    svg.add_to_layer(layer, transform);
+
+    *cursor_y = bottom_y - BODY_SECTION_GAP;
+}
+
+
 /// Used to calculate the cursor_y starting position for valign: middle/bottom.
 fn content_height(slide: &Slide) -> f32 {
     let mut h = 0.0;
