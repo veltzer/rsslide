@@ -421,3 +421,112 @@ fn wrap_text(text: &str, max_chars: usize) -> Vec<String> {
     lines
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── wrap_text ────────────────────────────────────────────────────────────
+
+    #[test]
+    fn wrap_text_short_fits_one_line() {
+        let lines = wrap_text("hello world", 20);
+        assert_eq!(lines, vec!["hello world"]);
+    }
+
+    #[test]
+    fn wrap_text_breaks_at_max_chars() {
+        // "one two" = 7 ≤ 10, "three four" = 10 ≤ 10, "five" = 4
+        let lines = wrap_text("one two three four five", 10);
+        assert_eq!(lines, vec!["one two", "three four", "five"]);
+    }
+
+    #[test]
+    fn wrap_text_empty_input() {
+        assert!(wrap_text("", 20).is_empty());
+    }
+
+    #[test]
+    fn wrap_text_single_word_longer_than_limit() {
+        // A word longer than max_chars still gets its own line (no panic)
+        let lines = wrap_text("superlongwordthatexceedslimit", 10);
+        assert_eq!(lines, vec!["superlongwordthatexceedslimit"]);
+    }
+
+    #[test]
+    fn wrap_text_preserves_paragraph_breaks() {
+        let lines = wrap_text("line one\nline two", 40);
+        assert_eq!(lines, vec!["line one", "line two"]);
+    }
+
+    // ── text_x ───────────────────────────────────────────────────────────────
+
+    #[test]
+    fn text_x_left_returns_margin() {
+        assert_eq!(text_x("anything", 18.0, "left"), MARGIN_X);
+        assert_eq!(text_x("anything", 18.0, "unknown"), MARGIN_X);
+    }
+
+    #[test]
+    fn text_x_center_is_between_margins() {
+        let x = text_x("Hello", 18.0, "center");
+        assert!(x >= MARGIN_X, "center x should be at least MARGIN_X");
+        assert!(x < SLIDE_W / 2.0 + 1.0, "center x should be near mid-slide");
+    }
+
+    #[test]
+    fn text_x_right_is_greater_than_center() {
+        let center = text_x("Hello", 18.0, "center");
+        let right  = text_x("Hello", 18.0, "right");
+        assert!(right > center, "right x should be further right than center");
+    }
+
+    #[test]
+    fn text_x_never_below_margin() {
+        // Even a very long string should not return x < MARGIN_X
+        let long: String = "a".repeat(200);
+        for align in &["left", "center", "right"] {
+            let x = text_x(&long, 18.0, align);
+            assert!(x >= MARGIN_X, "text_x({align}) went below MARGIN_X for long string");
+        }
+    }
+
+    // ── content_height ───────────────────────────────────────────────────────
+
+    #[test]
+    fn content_height_empty_slide_is_zero() {
+        let slide = crate::model::Slide {
+            title: None, content: None, bullets: None,
+            code: None, image: None, svg: None,
+            class: None, background: None,
+            align: None, title_align: None, content_align: None, valign: None,
+        };
+        assert_eq!(content_height(&slide), 0.0);
+    }
+
+    #[test]
+    fn content_height_title_only() {
+        let slide = crate::model::Slide {
+            title: Some("Hello".into()),
+            content: None, bullets: None,
+            code: None, image: None, svg: None,
+            class: None, background: None,
+            align: None, title_align: None, content_align: None, valign: None,
+        };
+        assert_eq!(content_height(&slide), TITLE_RULE_OFFSET + TITLE_CONTENT_GAP);
+    }
+
+    #[test]
+    fn content_height_bullets_add_lines() {
+        let slide = crate::model::Slide {
+            title: None,
+            content: None,
+            bullets: Some(vec!["a".into(), "b".into(), "c".into()]),
+            code: None, image: None, svg: None,
+            class: None, background: None,
+            align: None, title_align: None, content_align: None, valign: None,
+        };
+        let expected = 3.0 * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
+        assert!((content_height(&slide) - expected).abs() < 0.001);
+    }
+}
