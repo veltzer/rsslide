@@ -361,7 +361,7 @@ fn render_svg(layer: &PdfLayerReference, svg_str: &str, cursor_y: &mut f32) {
 }
 
 
-/// Render a two-column bullet layout. Each column occupies half the available width.
+/// Render a multi-column bullet layout. Columns share the available width equally.
 fn render_columns(
     layer: &PdfLayerReference,
     columns: &[crate::model::Column],
@@ -369,16 +369,21 @@ fn render_columns(
     font: &IndirectFontRef,
     font_bold: &IndirectFontRef,
 ) {
-    let col_width = (SLIDE_W - 2.0 * MARGIN_X) / 2.0;
-    let col_starts = [MARGIN_X, MARGIN_X + col_width + 4.0]; // 4mm gutter
+    let n = columns.len();
+    if n == 0 {
+        return;
+    }
+    let gutter = 4.0; // mm between columns
+    let total_width = SLIDE_W - 2.0 * MARGIN_X - gutter * (n - 1) as f32;
+    let col_width = total_width / n as f32;
 
     // Track each column's cursor independently, start from the same y.
     let start_y = *cursor_y;
     let mut min_y = start_y;
 
-    for (i, col) in columns.iter().enumerate().take(2) {
+    for (i, col) in columns.iter().enumerate() {
         let mut cy = start_y;
-        let x = col_starts[i];
+        let x = MARGIN_X + i as f32 * (col_width + gutter);
 
         // Column header (bold, slightly larger)
         if let Some(header) = &col.header {
@@ -417,7 +422,7 @@ fn content_height(slide: &Slide) -> f32 {
         h += bullets.len() as f32 * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
     }
     if let Some(columns) = &slide.columns {
-        let max_lines = columns.iter().take(2).map(|col| {
+        let max_lines = columns.iter().map(|col| {
             let header_lines = if col.header.is_some() { 1.0 } else { 0.0 };
             header_lines + col.bullets.len() as f32
         }).fold(0.0_f32, f32::max);

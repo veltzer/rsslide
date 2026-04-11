@@ -1,0 +1,40 @@
+title: Three-Column Bullets
+theme: default
+paginate: true
+
+slides:
+  - title: Development Lifecycle
+    columns:
+      - header: Plan
+        bullets:
+          - Gather requirements
+          - Write user stories
+          - Estimate effort
+      - header: Build
+        bullets:
+          - Write code
+          - Code review
+          - Unit tests
+      - header: Ship
+        bullets:
+          - Integration tests
+          - Stage deployment
+          - Production release
+
+  - title: Team Responsibilities
+    columns:
+      - header: Frontend
+        bullets:
+          - React components
+          - CSS styling
+          - Accessibility
+      - header: Backend
+        bullets:
+          - API endpoints
+          - Database schema
+          - Authentication
+      - header: DevOps
+        bullets:
+          - CI/CD pipelines
+          - Monitoring
+          - Infrastructure
