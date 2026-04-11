@@ -1,0 +1,15 @@
+title: Simple Bullet Example
+theme: default
+
+slides:
+  - title: Project Goals
+    bullets:
+      - Deliver the MVP by end of quarter
+      - Improve test coverage to 80%
+      - Reduce build times by 50%
+
+  - title: Next Steps
+    bullets:
+      - Review the design document
+      - Set up CI/CD pipeline
+      - Schedule the kick-off meeting
