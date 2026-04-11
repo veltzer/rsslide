@@ -167,6 +167,11 @@ fn render_slide(
         cursor_y -= BODY_SECTION_GAP;
     }
 
+    // Two-column bullet layout
+    if let Some(columns) = &slide.columns {
+        render_columns(&layer, columns, &mut cursor_y, font, font_bold);
+    }
+
     // Syntax-highlighted code block
     if let Some(code) = &slide.code {
         render_code_block(
@@ -356,6 +361,48 @@ fn render_svg(layer: &PdfLayerReference, svg_str: &str, cursor_y: &mut f32) {
 }
 
 
+/// Render a two-column bullet layout. Each column occupies half the available width.
+fn render_columns(
+    layer: &PdfLayerReference,
+    columns: &[crate::model::Column],
+    cursor_y: &mut f32,
+    font: &IndirectFontRef,
+    font_bold: &IndirectFontRef,
+) {
+    let col_width = (SLIDE_W - 2.0 * MARGIN_X) / 2.0;
+    let col_starts = [MARGIN_X, MARGIN_X + col_width + 4.0]; // 4mm gutter
+
+    // Track each column's cursor independently, start from the same y.
+    let start_y = *cursor_y;
+    let mut min_y = start_y;
+
+    for (i, col) in columns.iter().enumerate().take(2) {
+        let mut cy = start_y;
+        let x = col_starts[i];
+
+        // Column header (bold, slightly larger)
+        if let Some(header) = &col.header {
+            layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
+            layer.use_text(header.as_str(), BODY_FONT_SIZE + 2.0, Mm(x), Mm(cy), font_bold);
+            cy -= BODY_LINE_HEIGHT + 2.0;
+        }
+
+        // Bullets
+        layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
+        for bullet in &col.bullets {
+            let text = format!("• {}", bullet);
+            layer.use_text(text.as_str(), BODY_FONT_SIZE, Mm(x), Mm(cy), font);
+            cy -= BODY_LINE_HEIGHT;
+        }
+
+        if cy < min_y {
+            min_y = cy;
+        }
+    }
+
+    *cursor_y = min_y - BODY_SECTION_GAP;
+}
+
 /// Used to calculate the cursor_y starting position for valign: middle/bottom.
 fn content_height(slide: &Slide) -> f32 {
     let mut h = 0.0;
@@ -368,6 +415,13 @@ fn content_height(slide: &Slide) -> f32 {
     }
     if let Some(bullets) = &slide.bullets {
         h += bullets.len() as f32 * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
+    }
+    if let Some(columns) = &slide.columns {
+        let max_lines = columns.iter().take(2).map(|col| {
+            let header_lines = if col.header.is_some() { 1.0 } else { 0.0 };
+            header_lines + col.bullets.len() as f32
+        }).fold(0.0_f32, f32::max);
+        h += max_lines * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
     }
     if let Some(code) = &slide.code {
         let src = if code.trim {
@@ -499,7 +553,7 @@ mod tests {
             title: None, content: None, bullets: None,
             code: None, image: None, svg: None,
             class: None, background: None,
-            align: None, title_align: None, content_align: None, valign: None,
+            align: None, title_align: None, content_align: None, valign: None, columns: None,
         };
         assert_eq!(content_height(&slide), 0.0);
     }
@@ -511,7 +565,7 @@ mod tests {
             content: None, bullets: None,
             code: None, image: None, svg: None,
             class: None, background: None,
-            align: None, title_align: None, content_align: None, valign: None,
+            align: None, title_align: None, content_align: None, valign: None, columns: None,
         };
         assert_eq!(content_height(&slide), TITLE_RULE_OFFSET + TITLE_CONTENT_GAP);
     }
@@ -524,7 +578,7 @@ mod tests {
             bullets: Some(vec!["a".into(), "b".into(), "c".into()]),
             code: None, image: None, svg: None,
             class: None, background: None,
-            align: None, title_align: None, content_align: None, valign: None,
+            align: None, title_align: None, content_align: None, valign: None, columns: None,
         };
         let expected = 3.0 * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
         assert!((content_height(&slide) - expected).abs() < 0.001);

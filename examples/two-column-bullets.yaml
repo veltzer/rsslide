@@ -1,0 +1,39 @@
+title: Two-Column Bullets
+theme: default
+paginate: true
+
+slides:
+  - title: Pros and Cons
+    columns:
+      - header: Pros
+        bullets:
+          - Fast performance
+          - Easy to learn
+          - Great documentation
+      - header: Cons
+        bullets:
+          - Limited themes
+          - No animations
+          - Small community
+
+  - title: Before and After
+    columns:
+      - header: Before
+        bullets:
+          - Manual deployments
+          - No test coverage
+          - Monolithic architecture
+      - header: After
+        bullets:
+          - CI/CD pipeline
+          - 90% test coverage
+          - Microservices
+
+  - title: Columns Without Headers
+    columns:
+      - bullets:
+          - First column item A
+          - First column item B
+      - bullets:
+          - Second column item A
+          - Second column item B

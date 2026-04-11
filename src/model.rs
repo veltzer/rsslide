@@ -27,6 +27,13 @@ pub struct Slide {
     pub title_align: Option<String>,   // overrides align for the title only
     pub content_align: Option<String>, // overrides align for content text and bullets
     pub valign: Option<String>,        // "top" (default) | "middle" | "bottom"
+    pub columns: Option<Vec<Column>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Column {
+    pub header: Option<String>,
+    pub bullets: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
