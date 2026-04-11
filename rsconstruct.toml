@@ -1,0 +1,7 @@
+[processor.generator.yaml2pdf]
+command = "scripts/yaml2pdf.sh"
+src_dirs = ["examples"]
+src_extensions = [".yaml"]
+output_dir = "out"
+output_extension = "pdf"
+batch = false
