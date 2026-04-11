@@ -155,21 +155,29 @@ fn render_slide(
         cursor_y -= BODY_SECTION_GAP;
     }
 
-    // Bullet list
-    if let Some(bullets) = &slide.bullets {
-        layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
-        for bullet in bullets {
-            let text = format!("• {}", bullet);
-            let x = text_x(text.as_str(), BODY_FONT_SIZE, content_align);
-            layer.use_text(text.as_str(), BODY_FONT_SIZE, Mm(x), Mm(cursor_y), font);
-            cursor_y -= BODY_LINE_HEIGHT;
+    let render_bullets = |layer: &PdfLayerReference, cursor_y: &mut f32| {
+        if let Some(bullets) = &slide.bullets {
+            layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
+            for bullet in bullets {
+                let text = format!("• {}", bullet);
+                let x = text_x(text.as_str(), BODY_FONT_SIZE, content_align);
+                layer.use_text(text.as_str(), BODY_FONT_SIZE, Mm(x), Mm(*cursor_y), font);
+                *cursor_y -= BODY_LINE_HEIGHT;
+            }
+            *cursor_y -= BODY_SECTION_GAP;
         }
-        cursor_y -= BODY_SECTION_GAP;
-    }
+    };
 
-    // Two-column bullet layout
-    if let Some(columns) = &slide.columns {
-        render_columns(&layer, columns, &mut cursor_y, font, font_bold);
+    if slide.bullets_first {
+        render_bullets(&layer, &mut cursor_y);
+        if let Some(columns) = &slide.columns {
+            render_columns(&layer, columns, &mut cursor_y, font, font_bold);
+        }
+    } else {
+        if let Some(columns) = &slide.columns {
+            render_columns(&layer, columns, &mut cursor_y, font, font_bold);
+        }
+        render_bullets(&layer, &mut cursor_y);
     }
 
     // Syntax-highlighted code block
@@ -418,15 +426,15 @@ fn content_height(slide: &Slide) -> f32 {
         let n = wrap_text(content, 60).len() as f32;
         h += n * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
     }
-    if let Some(bullets) = &slide.bullets {
-        h += bullets.len() as f32 * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
-    }
     if let Some(columns) = &slide.columns {
         let max_lines = columns.iter().map(|col| {
             let header_lines = if col.header.is_some() { 1.0 } else { 0.0 };
             header_lines + col.bullets.len() as f32
         }).fold(0.0_f32, f32::max);
         h += max_lines * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
+    }
+    if let Some(bullets) = &slide.bullets {
+        h += bullets.len() as f32 * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
     }
     if let Some(code) = &slide.code {
         let src = if code.trim {
@@ -558,7 +566,7 @@ mod tests {
             title: None, content: None, bullets: None,
             code: None, image: None, svg: None,
             class: None, background: None,
-            align: None, title_align: None, content_align: None, valign: None, columns: None,
+            align: None, title_align: None, content_align: None, valign: None, columns: None, bullets_first: false,
         };
         assert_eq!(content_height(&slide), 0.0);
     }
@@ -570,7 +578,7 @@ mod tests {
             content: None, bullets: None,
             code: None, image: None, svg: None,
             class: None, background: None,
-            align: None, title_align: None, content_align: None, valign: None, columns: None,
+            align: None, title_align: None, content_align: None, valign: None, columns: None, bullets_first: false,
         };
         assert_eq!(content_height(&slide), TITLE_RULE_OFFSET + TITLE_CONTENT_GAP);
     }
@@ -583,7 +591,7 @@ mod tests {
             bullets: Some(vec!["a".into(), "b".into(), "c".into()]),
             code: None, image: None, svg: None,
             class: None, background: None,
-            align: None, title_align: None, content_align: None, valign: None, columns: None,
+            align: None, title_align: None, content_align: None, valign: None, columns: None, bullets_first: false,
         };
         let expected = 3.0 * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
         assert!((content_height(&slide) - expected).abs() < 0.001);

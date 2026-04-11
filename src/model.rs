@@ -28,6 +28,9 @@ pub struct Slide {
     pub content_align: Option<String>, // overrides align for content text and bullets
     pub valign: Option<String>,        // "top" (default) | "middle" | "bottom"
     pub columns: Option<Vec<Column>>,
+    /// When true, render bullets before columns instead of after.
+    #[serde(default)]
+    pub bullets_first: bool,
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,0 +1,39 @@
+title: Columns and Bullets Combined
+theme: default
+paginate: true
+
+slides:
+  - title: Project Status
+    columns:
+      - header: Done
+        bullets:
+          - Authentication
+          - User profiles
+          - Dashboard
+      - header: Pending
+        bullets:
+          - Notifications
+          - Analytics
+          - Export
+    bullets:
+      - Next sprint starts Monday
+      - All pending items are estimated
+      - Design review scheduled for Friday
+
+  - title: Release Checklist
+    bullets_first: true
+    bullets:
+      - All tests passing
+      - Documentation updated
+      - Changelog reviewed
+    columns:
+      - header: Backend
+        bullets:
+          - API versioned
+          - Migrations applied
+          - Cache invalidated
+      - header: Frontend
+        bullets:
+          - Bundle optimized
+          - Assets deployed
+          - CDN purged
