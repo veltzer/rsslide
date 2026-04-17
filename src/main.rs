@@ -55,6 +55,12 @@ enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Convert many (input, output) pairs. Format inferred from each output extension.
+    Generate {
+        /// Alternating input/output paths: IN1 OUT1 IN2 OUT2 ...
+        #[arg(required = true, num_args = 2..)]
+        paths: Vec<PathBuf>,
+    },
     /// Print version information
     Version,
 }
@@ -67,6 +73,7 @@ fn main() -> Result<()> {
             run_process(input, output, format, theme, theme_set)
         }
         Some(Command::Import { input, output }) => run_import(input, output),
+        Some(Command::Generate { paths }) => run_generate(paths),
         Some(Command::Version) => {
             print_version();
             Ok(())
@@ -86,12 +93,6 @@ fn run_process(
     _theme: String,
     _theme_set: Option<PathBuf>,
 ) -> Result<()> {
-    let input_str = fs::read_to_string(&input)
-        .with_context(|| format!("Failed to read {}", input.display()))?;
-
-    let presentation = parser::parse(&input_str)
-        .with_context(|| format!("Failed to parse {}", input.display()))?;
-
     let output_path = output.unwrap_or_else(|| {
         let stem = input.file_stem().unwrap_or_default();
         let ext = match format {
@@ -101,23 +102,57 @@ fn run_process(
         };
         PathBuf::from(stem).with_extension(ext)
     });
+    convert_one(&input, &output_path, format)
+}
 
+fn run_generate(paths: Vec<PathBuf>) -> Result<()> {
+    if paths.len() % 2 != 0 {
+        anyhow::bail!(
+            "generate requires an even number of arguments (input/output pairs), got {}",
+            paths.len()
+        );
+    }
+    for pair in paths.chunks_exact(2) {
+        let input = &pair[0];
+        let output = &pair[1];
+        let format = format_from_extension(output)?;
+        convert_one(input, output, format)?;
+    }
+    Ok(())
+}
+
+fn format_from_extension(path: &std::path::Path) -> Result<Format> {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_ascii_lowercase())
+        .with_context(|| format!("cannot infer format: {} has no extension", path.display()))?;
+    match ext.as_str() {
+        "html" => Ok(Format::Html),
+        "pdf" => Ok(Format::Pdf),
+        "pptx" => Ok(Format::Pptx),
+        other => anyhow::bail!(
+            "cannot infer format from extension .{} (expected html, pdf, or pptx)",
+            other
+        ),
+    }
+}
+
+fn convert_one(input: &std::path::Path, output: &std::path::Path, format: Format) -> Result<()> {
+    let input_str = fs::read_to_string(input)
+        .with_context(|| format!("Failed to read {}", input.display()))?;
+    let presentation = parser::parse(&input_str)
+        .with_context(|| format!("Failed to parse {}", input.display()))?;
     match format {
-        Format::Html => {
-            anyhow::bail!("HTML export not yet implemented")
-        }
+        Format::Html => anyhow::bail!("HTML export not yet implemented"),
         Format::Pdf => {
-            exporter::pdf::export(&presentation, &output_path)
-                .context("PDF export failed")?;
-            println!("Written: {}", output_path.display());
+            exporter::pdf::export(&presentation, output).context("PDF export failed")?;
         }
         Format::Pptx => {
-            exporter::pptx::export(&presentation, &output_path)
-                .context("PPTX export failed")?;
-            println!("Written: {}", output_path.display());
+            exporter::pptx::export(&presentation, output).context("PPTX export failed")?;
         }
     }
-
+    println!("Written: {}", output.display());
     Ok(())
 }
 
