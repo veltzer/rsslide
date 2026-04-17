@@ -29,6 +29,8 @@ icon_inset_mm = 2.0
 [svg]
 filter_scale = 2.0
 flatten_css_vars = true
+top_gap_mm = 4.0       # extra gap above the SVG
+margin_x_mm = 4.0      # side margin for SVGs (smaller = bigger SVG)
 
 [fonts]
 title = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"

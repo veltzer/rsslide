@@ -444,15 +444,19 @@ fn render_svg(
         anyhow::bail!("SVG has non-positive dimensions: {natural_w}x{natural_h}");
     }
 
-    // Fit to both remaining width and remaining height; centre horizontally.
-    let available_w_pt = (cfg.slide.width_mm - 2.0 * cfg.slide.margin_x_mm) * PT_PER_MM;
+    // Push the SVG down a bit below the preceding content.
+    *cursor_y += cfg.svg.top_gap_mm;
+
+    // Fit to both remaining width (using the SVG-specific side margin) and
+    // remaining height; centre horizontally.
+    let available_w_pt = (cfg.slide.width_mm - 2.0 * cfg.svg.margin_x_mm) * PT_PER_MM;
     let available_h_pt =
         (cfg.slide.height_mm - cfg.slide.page_bottom_reserved_mm - *cursor_y) * PT_PER_MM;
     let scale = (available_w_pt / natural_w).min(available_h_pt / natural_h);
     let rendered_w_pt = natural_w * scale;
     let rendered_h_pt = natural_h * scale;
 
-    let tx = (cfg.slide.margin_x_mm * PT_PER_MM) + (available_w_pt - rendered_w_pt) * 0.5;
+    let tx = (cfg.svg.margin_x_mm * PT_PER_MM) + (available_w_pt - rendered_w_pt) * 0.5;
     let ty = *cursor_y * PT_PER_MM;
     let tr = krilla::geom::Transform::from_row(scale, 0.0, 0.0, scale, tx, ty);
     surface.push_transform(&tr);

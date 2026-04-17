@@ -66,6 +66,12 @@ pub struct Code {
 pub struct Svg {
     pub filter_scale: f32,
     pub flatten_css_vars: bool,
+    /// Extra vertical gap above embedded SVGs, in mm. Pushes the diagram
+    /// down from the title rule.
+    pub top_gap_mm: f32,
+    /// Horizontal margin for embedded SVGs specifically. Smaller than
+    /// `slide.margin_x_mm` lets the SVG fill more width.
+    pub margin_x_mm: f32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -154,7 +160,12 @@ impl Default for Code {
 
 impl Default for Svg {
     fn default() -> Self {
-        Self { filter_scale: 2.0, flatten_css_vars: true }
+        Self {
+            filter_scale: 2.0,
+            flatten_css_vars: true,
+            top_gap_mm: 4.0,
+            margin_x_mm: 4.0,
+        }
     }
 }
 
