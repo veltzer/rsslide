@@ -1,5 +1,5 @@
 use crate::model::{Presentation, Slide};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use printpdf::*;
 use printpdf::path::PaintMode;
 use std::fs::File;
@@ -69,7 +69,8 @@ pub fn export(presentation: &Presentation, output_path: &Path) -> Result<()> {
         &font_mono,
         &syntax_set,
         theme,
-    );
+    )
+    .with_context(|| format!("slide 1/{}", slides.len()))?;
 
     for (i, slide) in slides.iter().enumerate().skip(1) {
         let (page, layer) = doc.add_page(Mm(SLIDE_W), Mm(SLIDE_H), "Layer 1");
@@ -84,7 +85,8 @@ pub fn export(presentation: &Presentation, output_path: &Path) -> Result<()> {
             &font_mono,
             &syntax_set,
             theme,
-        );
+        )
+        .with_context(|| format!("slide {}/{}", i + 1, slides.len()))?;
     }
 
     let file = File::create(output_path)?;
@@ -104,8 +106,8 @@ fn render_slide(
     font_mono: &IndirectFontRef,
     syntax_set: &SyntaxSet,
     theme: &syntect::highlighting::Theme,
-) {
-    let Some(slide) = slide else { return };
+) -> Result<()> {
+    let Some(slide) = slide else { return Ok(()) };
 
     let align = slide.align.as_deref().unwrap_or("left");
     let title_align = slide.title_align.as_deref().unwrap_or(align);
@@ -198,17 +200,22 @@ fn render_slide(
     let svg_source: Option<String> = if let Some(inline) = &slide.svg {
         Some(inline.clone())
     } else if let Some(path) = &slide.image {
-        if path.to_lowercase().ends_with(".svg") {
-            std::fs::read_to_string(path).ok()
-        } else {
-            None // raster images not yet supported
+        if !path.to_lowercase().ends_with(".svg") {
+            anyhow::bail!(
+                "image path {:?} is not an .svg (raster images not yet supported)",
+                path
+            );
         }
+        Some(
+            std::fs::read_to_string(path)
+                .with_context(|| format!("failed to read SVG file {:?}", path))?,
+        )
     } else {
         None
     };
 
     if let Some(svg_str) = svg_source {
-        render_svg(&layer, &svg_str, &mut cursor_y);
+        render_svg(&layer, &svg_str, &mut cursor_y)?;
     }
 
     // Page number
@@ -222,6 +229,7 @@ fn render_slide(
             font,
         );
     }
+    Ok(())
 }
 
 /// Render a syntax-highlighted code block onto the PDF layer, with a gray background box.
@@ -265,7 +273,9 @@ fn render_code_block(
     // Render language icon at top-right corner of the code box.
     if let Some(lang) = language {
         if let Some(svg_str) = crate::assets::language_icon(lang) {
-            if let Ok(svg) = Svg::parse(svg_str) {
+            let svg = Svg::parse(svg_str)
+                .unwrap_or_else(|e| panic!("bundled icon for {lang} failed to parse: {e}"));
+            {
                 // simple-icons viewBox is 0 0 24 24 (24 user units wide).
                 // At dpi=72 one user unit = 1pt, so Px(24).into_pt(72) = Pt(24).
                 // scale = target_pt / natural_pt  →  icon renders at exactly ICON_SIZE_MM.
@@ -334,11 +344,8 @@ fn render_code_block(
 /// The SVG is scaled to fill the available slide width (between margins)
 /// while preserving aspect ratio. It is placed at `cursor_y` (top edge)
 /// and `cursor_y` is decremented by the rendered height plus a small gap.
-fn render_svg(layer: &PdfLayerReference, svg_str: &str, cursor_y: &mut f32) {
-    let svg = match Svg::parse(svg_str) {
-        Ok(s) => s,
-        Err(_) => return, // silently skip unparseable SVG
-    };
+fn render_svg(layer: &PdfLayerReference, svg_str: &str, cursor_y: &mut f32) -> Result<()> {
+    let svg = Svg::parse(svg_str).map_err(|e| anyhow::anyhow!("failed to parse SVG: {e}"))?;
 
     let dpi = 72.0;
     let available_width_pt = Mm(SLIDE_W - 2.0 * MARGIN_X).into_pt().0;
@@ -346,7 +353,7 @@ fn render_svg(layer: &PdfLayerReference, svg_str: &str, cursor_y: &mut f32) {
     let natural_h_pt = svg.height.into_pt(dpi).0;
 
     if natural_w_pt <= 0.0 || natural_h_pt <= 0.0 {
-        return;
+        anyhow::bail!("SVG has non-positive dimensions: {natural_w_pt}x{natural_h_pt}");
     }
 
     let scale = (available_width_pt / natural_w_pt).min(1.0); // never upscale
@@ -366,6 +373,7 @@ fn render_svg(layer: &PdfLayerReference, svg_str: &str, cursor_y: &mut f32) {
     svg.add_to_layer(layer, transform);
 
     *cursor_y = bottom_y - BODY_SECTION_GAP;
+    Ok(())
 }
 
 
