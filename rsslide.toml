@@ -8,7 +8,7 @@
 # Tighten margins so slide content fills more of the page.
 margin_x_mm = 4.0
 margin_top_mm = 6.0
-page_bottom_reserved_mm = 4.0
+page_bottom_reserved_mm = 1.0
 
 [title]
 # Tighter spacing under the title → more room for SVGs / content below.
@@ -16,6 +16,7 @@ rule_offset_mm = 7.0
 content_gap_mm = 2.0
 
 [svg]
-# SVG gets almost the full slide width and a small top gap.
-top_gap_mm = 8.0
-margin_x_mm = 2.0
+# Push the SVG well below the title rule AND let it extend almost to the
+# slide edges so the diagram dominates the page.
+top_gap_mm = 20.0
+margin_x_mm = 0.0
