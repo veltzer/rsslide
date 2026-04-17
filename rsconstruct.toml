@@ -1,6 +1,6 @@
 [processor.generator.rssslide]
 command = "rsslide"
-args = ["generate"]
+args = ["generate", "--format=pdf"]
 src_dirs = ["examples"]
 src_extensions = [".yaml"]
 output_dir = "out"

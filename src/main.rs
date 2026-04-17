@@ -51,8 +51,12 @@ enum Command {
         #[arg(required = true, num_args = 2..)]
         paths: Vec<PathBuf>,
     },
-    /// Convert many (input, output) pairs. Format inferred from each output extension.
+    /// Convert many (input, output) pairs.
     Generate {
+        /// Output format for all pairs
+        #[arg(short, long, value_enum)]
+        format: Format,
+
         /// Alternating input/output paths: IN1 OUT1 IN2 OUT2 ...
         #[arg(required = true, num_args = 2..)]
         paths: Vec<PathBuf>,
@@ -69,7 +73,7 @@ fn main() -> Result<()> {
             run_process(input, output, format, theme, theme_set)
         }
         Some(Command::Import { paths }) => run_import(paths),
-        Some(Command::Generate { paths }) => run_generate(paths),
+        Some(Command::Generate { format, paths }) => run_generate(format, paths),
         Some(Command::Version) => {
             print_version();
             Ok(())
@@ -101,7 +105,7 @@ fn run_process(
     convert_one(&input, &output_path, format)
 }
 
-fn run_generate(paths: Vec<PathBuf>) -> Result<()> {
+fn run_generate(format: Format, paths: Vec<PathBuf>) -> Result<()> {
     if paths.len() % 2 != 0 {
         anyhow::bail!(
             "generate requires an even number of arguments (input/output pairs), got {}",
@@ -109,29 +113,9 @@ fn run_generate(paths: Vec<PathBuf>) -> Result<()> {
         );
     }
     for pair in paths.chunks_exact(2) {
-        let input = &pair[0];
-        let output = &pair[1];
-        let format = format_from_extension(output)?;
-        convert_one(input, output, format)?;
+        convert_one(&pair[0], &pair[1], format.clone())?;
     }
     Ok(())
-}
-
-fn format_from_extension(path: &std::path::Path) -> Result<Format> {
-    let ext = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(|s| s.to_ascii_lowercase())
-        .with_context(|| format!("cannot infer format: {} has no extension", path.display()))?;
-    match ext.as_str() {
-        "html" => Ok(Format::Html),
-        "pdf" => Ok(Format::Pdf),
-        "pptx" => Ok(Format::Pptx),
-        other => anyhow::bail!(
-            "cannot infer format from extension .{} (expected html, pdf, or pptx)",
-            other
-        ),
-    }
 }
 
 fn convert_one(input: &std::path::Path, output: &std::path::Path, format: Format) -> Result<()> {
