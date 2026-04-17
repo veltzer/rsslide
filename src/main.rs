@@ -21,29 +21,31 @@ enum Format {
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
-
-    /// Input YAML file (when no subcommand is given)
-    input: Option<PathBuf>,
-
-    /// Output file [default: <input stem>.<format>]
-    #[arg(short, long)]
-    output: Option<PathBuf>,
-
-    /// Output format
-    #[arg(short, long, value_enum, default_value = "html")]
-    format: Format,
-
-    /// Built-in theme: default | gaia | uncover
-    #[arg(long, default_value = "default")]
-    theme: String,
-
-    /// Path to a custom CSS theme file
-    #[arg(long)]
-    theme_set: Option<PathBuf>,
 }
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Convert a YAML presentation to HTML, PDF or PPTX
+    Process {
+        /// Input YAML file
+        input: PathBuf,
+
+        /// Output file [default: <input stem>.<format>]
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "html")]
+        format: Format,
+
+        /// Built-in theme: default | gaia | uncover
+        #[arg(long, default_value = "default")]
+        theme: String,
+
+        /// Path to a custom CSS theme file
+        #[arg(long)]
+        theme_set: Option<PathBuf>,
+    },
     /// Import a Marp Markdown file and emit rsslide YAML
     Import {
         /// Input Marp .md file
@@ -61,28 +63,38 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Command::Import { input, output }) => return run_import(input, output),
+        Some(Command::Process { input, output, format, theme, theme_set }) => {
+            run_process(input, output, format, theme, theme_set)
+        }
+        Some(Command::Import { input, output }) => run_import(input, output),
         Some(Command::Version) => {
             print_version();
-            return Ok(());
+            Ok(())
         }
-        None => {}
+        None => {
+            Cli::command().print_help()?;
+            println!();
+            Ok(())
+        }
     }
+}
 
-    let Some(input) = cli.input else {
-        Cli::command().print_help()?;
-        println!();
-        return Ok(());
-    };
+fn run_process(
+    input: PathBuf,
+    output: Option<PathBuf>,
+    format: Format,
+    _theme: String,
+    _theme_set: Option<PathBuf>,
+) -> Result<()> {
     let input_str = fs::read_to_string(&input)
         .with_context(|| format!("Failed to read {}", input.display()))?;
 
     let presentation = parser::parse(&input_str)
         .with_context(|| format!("Failed to parse {}", input.display()))?;
 
-    let output_path = cli.output.unwrap_or_else(|| {
+    let output_path = output.unwrap_or_else(|| {
         let stem = input.file_stem().unwrap_or_default();
-        let ext = match cli.format {
+        let ext = match format {
             Format::Html => "html",
             Format::Pdf => "pdf",
             Format::Pptx => "pptx",
@@ -90,7 +102,7 @@ fn main() -> Result<()> {
         PathBuf::from(stem).with_extension(ext)
     });
 
-    match cli.format {
+    match format {
         Format::Html => {
             anyhow::bail!("HTML export not yet implemented")
         }
