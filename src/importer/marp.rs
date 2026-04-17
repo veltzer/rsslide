@@ -257,7 +257,6 @@ fn parse_image(line: &str) -> Option<String> {
 fn emit_yaml(pres: &OutPresentation) -> String {
     let mut out = String::new();
     out.push_str("---\n");
-    out.push_str("# yamllint disable rule:line-length\n");
     if let Some(title) = &pres.title {
         out.push_str(&format!("title: {}\n", scalar(title)));
     }
