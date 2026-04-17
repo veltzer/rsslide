@@ -1,4 +1,5 @@
 mod assets;
+mod config;
 mod exporter;
 mod importer;
 mod model;
@@ -39,13 +40,9 @@ enum Command {
         #[arg(short, long, value_enum, default_value = "html")]
         format: Format,
 
-        /// Built-in theme: default | gaia | uncover
-        #[arg(long, default_value = "default")]
-        theme: String,
-
-        /// Path to a custom CSS theme file
+        /// Path to a rsslide.toml config file (overrides auto-discovery)
         #[arg(long)]
-        theme_set: Option<PathBuf>,
+        config: Option<PathBuf>,
     },
     /// Import Marp Markdown files. Alternating input/output paths: IN1 OUT1 IN2 OUT2 ...
     Import {
@@ -57,6 +54,10 @@ enum Command {
         /// Output format for all pairs
         #[arg(short, long, value_enum)]
         format: Format,
+
+        /// Path to a rsslide.toml config file (overrides auto-discovery)
+        #[arg(long)]
+        config: Option<PathBuf>,
 
         /// Alternating input/output paths: IN1 OUT1 IN2 OUT2 ...
         #[arg(required = true, num_args = 2..)]
@@ -70,11 +71,11 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Command::Process { input, output, format, theme, theme_set }) => {
-            run_process(input, output, format, theme, theme_set)
+        Some(Command::Process { input, output, format, config }) => {
+            run_process(input, output, format, config)
         }
         Some(Command::Import { paths }) => run_import(paths),
-        Some(Command::Generate { format, paths }) => run_generate(format, paths),
+        Some(Command::Generate { format, config, paths }) => run_generate(format, config, paths),
         Some(Command::Version) => {
             print_version();
             Ok(())
@@ -91,8 +92,7 @@ fn run_process(
     input: PathBuf,
     output: Option<PathBuf>,
     format: Format,
-    _theme: String,
-    _theme_set: Option<PathBuf>,
+    config_path: Option<PathBuf>,
 ) -> Result<()> {
     let output_path = output.unwrap_or_else(|| {
         let stem = input.file_stem().unwrap_or_default();
@@ -103,23 +103,34 @@ fn run_process(
         };
         PathBuf::from(stem).with_extension(ext)
     });
-    convert_one(&input, &output_path, format)
+    let cfg = config::Config::load(config_path.as_deref())?;
+    convert_one(&input, &output_path, format, &cfg)
 }
 
-fn run_generate(format: Format, paths: Vec<PathBuf>) -> Result<()> {
+fn run_generate(
+    format: Format,
+    config_path: Option<PathBuf>,
+    paths: Vec<PathBuf>,
+) -> Result<()> {
     if !paths.len().is_multiple_of(2) {
         anyhow::bail!(
             "generate requires an even number of arguments (input/output pairs), got {}",
             paths.len()
         );
     }
+    let cfg = config::Config::load(config_path.as_deref())?;
     for pair in paths.chunks_exact(2) {
-        convert_one(&pair[0], &pair[1], format.clone())?;
+        convert_one(&pair[0], &pair[1], format.clone(), &cfg)?;
     }
     Ok(())
 }
 
-fn convert_one(input: &std::path::Path, output: &std::path::Path, format: Format) -> Result<()> {
+fn convert_one(
+    input: &std::path::Path,
+    output: &std::path::Path,
+    format: Format,
+    cfg: &config::Config,
+) -> Result<()> {
     let input_str = fs::read_to_string(input)
         .with_context(|| format!("Failed to read {}", input.display()))?;
     let presentation = parser::parse(&input_str)
@@ -127,7 +138,7 @@ fn convert_one(input: &std::path::Path, output: &std::path::Path, format: Format
     match format {
         Format::Html => anyhow::bail!("HTML export not yet implemented"),
         Format::Pdf => {
-            exporter::pdf::export(&presentation, output).context("PDF export failed")?;
+            exporter::pdf::export(&presentation, output, cfg).context("PDF export failed")?;
         }
         Format::Pptx => {
             exporter::pptx::export(&presentation, output).context("PPTX export failed")?;

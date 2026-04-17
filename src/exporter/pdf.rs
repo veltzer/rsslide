@@ -1,3 +1,4 @@
+use crate::config::{Color, Config};
 use crate::model::{Presentation, Slide};
 use anyhow::{Context, Result};
 use fontdb::Database;
@@ -17,58 +18,19 @@ use syntect::highlighting::{Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
-// 16:9 slide dimensions in mm
-const SLIDE_W_MM: f32 = 254.0;
-const SLIDE_H_MM: f32 = 143.0;
-
-// Layout (all in mm, measured from top of slide)
-const MARGIN_X: f32 = 14.0;
-const MARGIN_TOP: f32 = 17.0;
-const PAGE_BOTTOM_RESERVED: f32 = 10.0; // mm reserved at bottom for page numbers
-
-// Title
-const TITLE_FONT_SIZE: f32 = 36.0;
-const TITLE_RULE_OFFSET: f32 = 14.0; // mm below title baseline to the rule
-const TITLE_CONTENT_GAP: f32 = 8.0;
-
-// Body
-const BODY_FONT_SIZE: f32 = 18.0;
-const BODY_LINE_HEIGHT: f32 = 9.0;
-const BODY_SECTION_GAP: f32 = 5.0;
-
-// Code
-const CODE_FONT_SIZE: f32 = 12.0;
-const CODE_LINE_HEIGHT: f32 = 6.5;
-const CODE_PADDING: f32 = 4.0;
-const CODE_BG: u8 = 240; // light gray
-
-// Language icon placed at the top-right corner of the code box
-const ICON_SIZE_MM: f32 = 16.0;
-const ICON_INSET_MM: f32 = 2.0;
-
-// Conversion
+// Unit conversion — hardcoded; these never change.
 const MM_PER_PT: f32 = 25.4 / 72.0;
 const PT_PER_MM: f32 = 72.0 / 25.4;
 
-// Courier glyph advance = 0.6 × em
-const COURIER_CHAR_WIDTH_MM: f32 = 0.6 * CODE_FONT_SIZE * MM_PER_PT;
-
-/// Pre-resolve CSS `var(--x)` references in embedded SVGs before handing
-/// them to usvg. Works around a usvg 0.45 limitation where unresolved
-/// custom properties silently drop stroke/fill on that element (e.g. arrow
-/// lines vanish). Set to `false` to disable — the underlying usvg/krilla
-/// stack will then skip any CSS-var-dependent drawing.
-const FLATTEN_SVG_CSS_VARS: bool = true;
-
 struct Fonts {
-    sans: Font,
-    sans_bold: Font,
-    mono: Font,
+    title: Font,
+    body: Font,
+    code: Font,
 }
 
-pub fn export(presentation: &Presentation, output_path: &StdPath) -> Result<()> {
-    let fontdb = build_fontdb()?;
-    let fonts = load_fonts()?;
+pub fn export(presentation: &Presentation, output_path: &StdPath, cfg: &Config) -> Result<()> {
+    let fontdb = build_fontdb(cfg)?;
+    let fonts = load_fonts(cfg)?;
 
     let mut doc = Document::new();
     if let Some(title) = &presentation.title {
@@ -78,7 +40,7 @@ pub fn export(presentation: &Presentation, output_path: &StdPath) -> Result<()> 
     let theme_set = ThemeSet::load_defaults();
     let theme = &theme_set.themes["InspiredGitHub"];
     let svg_settings = SvgSettings {
-        filter_scale: 2.0,
+        filter_scale: cfg.svg.filter_scale,
         ..SvgSettings::default()
     };
 
@@ -87,9 +49,9 @@ pub fn export(presentation: &Presentation, output_path: &StdPath) -> Result<()> 
     let paginate = presentation.paginate.unwrap_or(false);
 
     if slides.is_empty() {
-        // Emit a single blank page so the output file still exists.
-        let page_size = Size::from_wh(SLIDE_W_MM * PT_PER_MM, SLIDE_H_MM * PT_PER_MM)
-            .context("invalid page size")?;
+        let page_size =
+            Size::from_wh(cfg.slide.width_mm * PT_PER_MM, cfg.slide.height_mm * PT_PER_MM)
+                .context("invalid page size")?;
         let mut page = doc.start_page_with(PageSettings::new(page_size));
         page.surface().finish();
         page.finish();
@@ -107,6 +69,7 @@ pub fn export(presentation: &Presentation, output_path: &StdPath) -> Result<()> 
             &svg_settings,
             &syntax_set,
             theme,
+            cfg,
         )
         .with_context(|| format!("slide {}/{}", i + 1, total))?;
     }
@@ -119,37 +82,43 @@ pub fn export(presentation: &Presentation, output_path: &StdPath) -> Result<()> 
     Ok(())
 }
 
-/// Load a minimal fontdb — one sans + one mono — and set generic family
-/// aliases so SVGs that reference `Arial, sans-serif` / `Courier New,
-/// monospace` resolve to the loaded faces.
-fn build_fontdb() -> Result<Arc<Database>> {
+fn build_fontdb(cfg: &Config) -> Result<Arc<Database>> {
     let mut db = Database::new();
-    let sans = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
-    let mono = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf";
-    db.load_font_file(sans)
-        .with_context(|| format!("failed to load {sans}"))?;
-    db.load_font_file(mono)
-        .with_context(|| format!("failed to load {mono}"))?;
-    db.set_sans_serif_family("DejaVu Sans");
-    db.set_monospace_family("DejaVu Sans Mono");
-    db.set_serif_family("DejaVu Sans");
+    // Load the body and code fonts. The title font is loaded separately
+    // (only used as a krilla Font, not for usvg resolution).
+    db.load_font_file(&cfg.fonts.body)
+        .with_context(|| format!("failed to load body font {}", cfg.fonts.body.display()))?;
+    db.load_font_file(&cfg.fonts.code)
+        .with_context(|| format!("failed to load code font {}", cfg.fonts.code.display()))?;
+    // Use the first loaded face's family for generic aliases. Matters only
+    // for SVGs that request "sans-serif" / "monospace" by family.
+    let body_family = db
+        .faces()
+        .next()
+        .and_then(|f| f.families.first().map(|(n, _)| n.clone()))
+        .unwrap_or_else(|| "DejaVu Sans".into());
+    let code_family = db
+        .faces()
+        .find(|f| f.monospaced)
+        .and_then(|f| f.families.first().map(|(n, _)| n.clone()))
+        .unwrap_or_else(|| "DejaVu Sans Mono".into());
+    db.set_sans_serif_family(&body_family);
+    db.set_serif_family(&body_family);
+    db.set_monospace_family(&code_family);
     Ok(Arc::new(db))
 }
 
-/// Load the three krilla `Font` values we use directly (for title / body /
-/// code text rendering). These are separate from the `fontdb::Database`,
-/// which is used only for SVG text resolution.
-fn load_fonts() -> Result<Fonts> {
-    fn read(path: &str) -> Result<Font> {
+fn load_fonts(cfg: &Config) -> Result<Fonts> {
+    fn read(path: &StdPath) -> Result<Font> {
         let bytes = std::fs::read(path)
-            .with_context(|| format!("failed to read font {path}"))?;
+            .with_context(|| format!("failed to read font {}", path.display()))?;
         Font::new(bytes.into(), 0)
-            .ok_or_else(|| anyhow::anyhow!("failed to parse font {path}"))
+            .ok_or_else(|| anyhow::anyhow!("failed to parse font {}", path.display()))
     }
     Ok(Fonts {
-        sans: read("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")?,
-        sans_bold: read("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")?,
-        mono: read("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf")?,
+        title: read(&cfg.fonts.title)?,
+        body: read(&cfg.fonts.body)?,
+        code: read(&cfg.fonts.code)?,
     })
 }
 
@@ -165,9 +134,11 @@ fn render_slide(
     svg_settings: &SvgSettings,
     syntax_set: &SyntaxSet,
     theme: &syntect::highlighting::Theme,
+    cfg: &Config,
 ) -> Result<()> {
-    let page_size = Size::from_wh(SLIDE_W_MM * PT_PER_MM, SLIDE_H_MM * PT_PER_MM)
-        .context("invalid page size")?;
+    let page_size =
+        Size::from_wh(cfg.slide.width_mm * PT_PER_MM, cfg.slide.height_mm * PT_PER_MM)
+            .context("invalid page size")?;
     let mut page = doc.start_page_with(PageSettings::new(page_size));
     let mut surface = page.surface();
 
@@ -176,59 +147,64 @@ fn render_slide(
     let content_align = slide.content_align.as_deref().unwrap_or(align);
     let valign = slide.valign.as_deref().unwrap_or("top");
 
-    let content_h = content_height(slide);
-    let available = SLIDE_H_MM - MARGIN_TOP - PAGE_BOTTOM_RESERVED;
+    let content_h = content_height(slide, cfg);
+    let available = cfg.slide.height_mm - cfg.slide.margin_top_mm - cfg.slide.page_bottom_reserved_mm;
     let mut cursor_y = match valign {
-        "middle" => MARGIN_TOP + ((available - content_h).max(0.0)) / 2.0,
-        "bottom" => MARGIN_TOP + (available - content_h).max(0.0),
-        _ => MARGIN_TOP,
+        "middle" => cfg.slide.margin_top_mm + ((available - content_h).max(0.0)) / 2.0,
+        "bottom" => cfg.slide.margin_top_mm + (available - content_h).max(0.0),
+        _ => cfg.slide.margin_top_mm,
     };
 
     // Title
     if let Some(title) = &slide.title {
-        set_fill(&mut surface, 0, 0, 0);
-        let x = text_x(title, TITLE_FONT_SIZE, title_align);
-        draw_text_mm(&mut surface, title, TITLE_FONT_SIZE, x, cursor_y, &fonts.sans_bold);
-        cursor_y += TITLE_RULE_OFFSET;
+        set_fill(&mut surface, cfg.colors.text);
+        let x = text_x(title, cfg.title.font_size_pt, title_align, cfg);
+        draw_text_mm(&mut surface, title, cfg.title.font_size_pt, x, cursor_y, &fonts.title);
+        cursor_y += cfg.title.rule_offset_mm;
         if title_align != "center" {
-            draw_hline_mm(&mut surface, MARGIN_X, SLIDE_W_MM - MARGIN_X, cursor_y - 2.0);
+            set_fill(&mut surface, cfg.colors.title_rule);
+            draw_rect_mm(
+                &mut surface,
+                cfg.slide.margin_x_mm,
+                cursor_y - 2.0 - 0.15,
+                cfg.slide.width_mm - cfg.slide.margin_x_mm,
+                cursor_y - 2.0 + 0.15,
+            );
         }
-        cursor_y += TITLE_CONTENT_GAP;
+        cursor_y += cfg.title.content_gap_mm;
     }
 
     // Content
     if let Some(content) = &slide.content {
-        set_fill(&mut surface, 0, 0, 0);
+        set_fill(&mut surface, cfg.colors.text);
         for line in wrap_text(content, 60) {
-            let x = text_x(&line, BODY_FONT_SIZE, content_align);
-            draw_text_mm(&mut surface, &line, BODY_FONT_SIZE, x, cursor_y, &fonts.sans);
-            cursor_y += BODY_LINE_HEIGHT;
+            let x = text_x(&line, cfg.body.font_size_pt, content_align, cfg);
+            draw_text_mm(&mut surface, &line, cfg.body.font_size_pt, x, cursor_y, &fonts.body);
+            cursor_y += cfg.body.line_height_mm;
         }
-        cursor_y += BODY_SECTION_GAP;
+        cursor_y += cfg.body.section_gap_mm;
     }
 
     // Bullets + columns, in requested order
     let render_bullets = |surface: &mut Surface<'_>, cy: &mut f32| {
         if let Some(bullets) = &slide.bullets {
-            set_fill(surface, 0, 0, 0);
             for bullet in bullets {
-                let line = format!("• {}", bullet);
-                let x = text_x(&line, BODY_FONT_SIZE, content_align);
-                draw_text_mm(surface, &line, BODY_FONT_SIZE, x, *cy, &fonts.sans);
-                *cy += BODY_LINE_HEIGHT;
+                let x = text_x(bullet, cfg.body.font_size_pt, content_align, cfg);
+                draw_bullet_line(surface, bullet, x, *cy, &fonts.body, cfg);
+                *cy += cfg.body.line_height_mm;
             }
-            *cy += BODY_SECTION_GAP;
+            *cy += cfg.body.section_gap_mm;
         }
     };
 
     if slide.bullets_first {
         render_bullets(&mut surface, &mut cursor_y);
         if let Some(columns) = &slide.columns {
-            render_columns(&mut surface, columns, &mut cursor_y, &fonts.sans, &fonts.sans_bold);
+            render_columns(&mut surface, columns, &mut cursor_y, fonts, cfg);
         }
     } else {
         if let Some(columns) = &slide.columns {
-            render_columns(&mut surface, columns, &mut cursor_y, &fonts.sans, &fonts.sans_bold);
+            render_columns(&mut surface, columns, &mut cursor_y, fonts, cfg);
         }
         render_bullets(&mut surface, &mut cursor_y);
     }
@@ -241,15 +217,16 @@ fn render_slide(
             code.language.as_deref(),
             code.trim,
             &mut cursor_y,
-            &fonts.mono,
+            &fonts.code,
             syntax_set,
             theme,
             fontdb,
             svg_settings,
+            cfg,
         );
     }
 
-    // SVG — inline `svg` takes precedence over `image`
+    // SVG — inline takes precedence over file path
     let svg_source: Option<String> = if let Some(inline) = &slide.svg {
         Some(inline.clone())
     } else if let Some(path) = &slide.image {
@@ -268,21 +245,40 @@ fn render_slide(
     };
 
     if let Some(svg_str) = svg_source {
-        render_svg(&mut surface, &svg_str, &mut cursor_y, fontdb, svg_settings)?;
+        render_svg(&mut surface, &svg_str, &mut cursor_y, fontdb, svg_settings, cfg)?;
     }
 
     // Page number
     if paginate {
-        set_fill(&mut surface, 0, 0, 0);
+        set_fill(&mut surface, cfg.colors.text);
         let label = format!("{} / {}", page_num, total_pages);
-        let x = SLIDE_W_MM - MARGIN_X - 12.0;
-        let y = SLIDE_H_MM - 4.0;
-        draw_text_mm(&mut surface, &label, 9.0, x, y, &fonts.sans);
+        let x = cfg.slide.width_mm - cfg.slide.margin_x_mm - 12.0;
+        let y = cfg.slide.height_mm - 4.0;
+        draw_text_mm(&mut surface, &label, 9.0, x, y, &fonts.body);
     }
 
     surface.finish();
     page.finish();
     Ok(())
+}
+
+/// Draw one bullet: the `•` glyph in `cfg.colors.bullet`, then the text in
+/// `cfg.colors.text`. Two draw calls because each call can only use one fill.
+fn draw_bullet_line(
+    surface: &mut Surface<'_>,
+    text: &str,
+    x_mm: f32,
+    y_mm: f32,
+    font: &Font,
+    cfg: &Config,
+) {
+    set_fill(surface, cfg.colors.bullet);
+    draw_text_mm(surface, "•", cfg.body.font_size_pt, x_mm, y_mm, font);
+    // Approximate advance of "• " at this font size. Using 0.4 × em is a
+    // close match for DejaVu Sans and avoids needing real glyph metrics.
+    let offset = cfg.body.font_size_pt * MM_PER_PT * 0.8;
+    set_fill(surface, cfg.colors.text);
+    draw_text_mm(surface, text, cfg.body.font_size_pt, x_mm + offset, y_mm, font);
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -297,6 +293,7 @@ fn render_code_block(
     theme: &syntect::highlighting::Theme,
     fontdb: &Arc<Database>,
     svg_settings: &SvgSettings,
+    cfg: &Config,
 ) {
     let source: &str = if trim {
         source.trim_end_matches('\n').trim_end_matches('\r')
@@ -307,37 +304,41 @@ fn render_code_block(
     if line_count == 0 {
         return;
     }
+    // Courier glyph advance = 0.6 × em at the configured size.
+    let char_width_mm = 0.6 * cfg.code.font_size_pt * MM_PER_PT;
 
-    // Background rectangle. Top = first line baseline - padding (above first line);
-    // bottom = last line baseline + padding.
-    let box_top = *cursor_y - CODE_PADDING;
-    let box_bottom = *cursor_y + ((line_count - 1) as f32 * CODE_LINE_HEIGHT) + CODE_PADDING;
-    set_fill(surface, CODE_BG, CODE_BG, CODE_BG);
+    let box_top = *cursor_y - cfg.code.padding_mm;
+    let box_bottom =
+        *cursor_y + ((line_count - 1) as f32 * cfg.code.line_height_mm) + cfg.code.padding_mm;
+    set_fill(surface, cfg.colors.code_background);
     draw_rect_mm(
         surface,
-        MARGIN_X - CODE_PADDING,
+        cfg.slide.margin_x_mm - cfg.code.padding_mm,
         box_top,
-        SLIDE_W_MM - MARGIN_X + CODE_PADDING,
+        cfg.slide.width_mm - cfg.slide.margin_x_mm + cfg.code.padding_mm,
         box_bottom,
     );
 
     // Language icon at the top-right corner of the background box.
     if let Some(lang) = language
-        && let Some(icon_svg) = crate::assets::language_icon(lang) {
-            let icon_right = SLIDE_W_MM - MARGIN_X + CODE_PADDING - ICON_INSET_MM;
-            let icon_left = icon_right - ICON_SIZE_MM;
-            let icon_top = box_top + ICON_INSET_MM;
-            draw_svg_fixed_box(
-                surface,
-                icon_svg,
-                icon_left,
-                icon_top,
-                ICON_SIZE_MM,
-                ICON_SIZE_MM,
-                fontdb,
-                svg_settings,
-            );
-        }
+        && let Some(icon_svg) = crate::assets::language_icon(lang)
+    {
+        let icon_right =
+            cfg.slide.width_mm - cfg.slide.margin_x_mm + cfg.code.padding_mm - cfg.code.icon_inset_mm;
+        let icon_left = icon_right - cfg.code.icon_size_mm;
+        let icon_top = box_top + cfg.code.icon_inset_mm;
+        draw_svg_fixed_box(
+            surface,
+            icon_svg,
+            icon_left,
+            icon_top,
+            cfg.code.icon_size_mm,
+            cfg.code.icon_size_mm,
+            fontdb,
+            svg_settings,
+            cfg,
+        );
+    }
 
     let syntax = language
         .and_then(|lang| syntax_set.find_syntax_by_token(lang))
@@ -348,27 +349,22 @@ fn render_code_block(
         let ranges: Vec<(Style, &str)> = highlighter
             .highlight_line(line, syntax_set)
             .unwrap_or_default();
-        let mut x = MARGIN_X + 2.0;
+        let mut x = cfg.slide.margin_x_mm + 2.0;
         for (style, token) in ranges {
             let text = token.trim_end_matches('\n').trim_end_matches('\r');
             if text.is_empty() {
                 continue;
             }
             let fg = style.foreground;
-            set_fill(surface, fg.r, fg.g, fg.b);
-            draw_text_mm(surface, text, CODE_FONT_SIZE, x, *cursor_y, font_mono);
-            x += text.chars().count() as f32 * COURIER_CHAR_WIDTH_MM;
+            set_fill(surface, Color(fg.r, fg.g, fg.b));
+            draw_text_mm(surface, text, cfg.code.font_size_pt, x, *cursor_y, font_mono);
+            x += text.chars().count() as f32 * char_width_mm;
         }
-        *cursor_y += CODE_LINE_HEIGHT;
+        *cursor_y += cfg.code.line_height_mm;
     }
-    *cursor_y = box_bottom + BODY_SECTION_GAP;
+    *cursor_y = box_bottom + cfg.body.section_gap_mm;
 }
 
-/// Draw an SVG into a fixed (x, y, width, height) mm box, preserving aspect
-/// ratio and centering within the box. Used for small fixed-size glyphs like
-/// language icons — never fails; on parse error the icon is silently skipped
-/// (bundled icons are static and should never fail, but we don't want an
-/// icon bug to block an otherwise-valid slide).
 #[allow(clippy::too_many_arguments)]
 fn draw_svg_fixed_box(
     surface: &mut Surface<'_>,
@@ -379,6 +375,7 @@ fn draw_svg_fixed_box(
     h_mm: f32,
     fontdb: &Arc<Database>,
     settings: &SvgSettings,
+    cfg: &Config,
 ) {
     let opts = usvg::Options {
         fontdb: fontdb.clone(),
@@ -386,7 +383,7 @@ fn draw_svg_fixed_box(
         ..Default::default()
     };
     let flattened;
-    let svg_bytes: &[u8] = if FLATTEN_SVG_CSS_VARS {
+    let svg_bytes: &[u8] = if cfg.svg.flatten_css_vars {
         flattened = crate::utils::css_vars::flatten(svg_str);
         flattened.as_bytes()
     } else {
@@ -424,6 +421,7 @@ fn render_svg(
     cursor_y: &mut f32,
     fontdb: &Arc<Database>,
     settings: &SvgSettings,
+    cfg: &Config,
 ) -> Result<()> {
     let opts = usvg::Options {
         fontdb: fontdb.clone(),
@@ -431,7 +429,7 @@ fn render_svg(
         ..Default::default()
     };
     let flattened;
-    let svg_bytes: &[u8] = if FLATTEN_SVG_CSS_VARS {
+    let svg_bytes: &[u8] = if cfg.svg.flatten_css_vars {
         flattened = crate::utils::css_vars::flatten(svg_str);
         flattened.as_bytes()
     } else {
@@ -446,14 +444,15 @@ fn render_svg(
         anyhow::bail!("SVG has non-positive dimensions: {natural_w}x{natural_h}");
     }
 
-    // Fit to available slide width, preserving aspect; never upscale.
-    let available_w_pt = (SLIDE_W_MM - 2.0 * MARGIN_X) * PT_PER_MM;
-    let scale = (available_w_pt / natural_w).min(1.0);
+    // Fit to both remaining width and remaining height; centre horizontally.
+    let available_w_pt = (cfg.slide.width_mm - 2.0 * cfg.slide.margin_x_mm) * PT_PER_MM;
+    let available_h_pt =
+        (cfg.slide.height_mm - cfg.slide.page_bottom_reserved_mm - *cursor_y) * PT_PER_MM;
+    let scale = (available_w_pt / natural_w).min(available_h_pt / natural_h);
     let rendered_w_pt = natural_w * scale;
     let rendered_h_pt = natural_h * scale;
 
-    // Translate to (MARGIN_X, cursor_y) in page coords (top-left of SVG).
-    let tx = MARGIN_X * PT_PER_MM;
+    let tx = (cfg.slide.margin_x_mm * PT_PER_MM) + (available_w_pt - rendered_w_pt) * 0.5;
     let ty = *cursor_y * PT_PER_MM;
     let tr = krilla::geom::Transform::from_row(scale, 0.0, 0.0, scale, tx, ty);
     surface.push_transform(&tr);
@@ -463,9 +462,7 @@ fn render_svg(
         .ok_or_else(|| anyhow::anyhow!("krilla-svg draw_svg returned None"))?;
     surface.pop();
 
-    *cursor_y += rendered_h_pt * MM_PER_PT + BODY_SECTION_GAP;
-    // Silence unused — kept for future overlay logic.
-    let _ = rendered_w_pt;
+    *cursor_y += rendered_h_pt * MM_PER_PT + cfg.body.section_gap_mm;
     Ok(())
 }
 
@@ -473,43 +470,43 @@ fn render_columns(
     surface: &mut Surface<'_>,
     columns: &[crate::model::Column],
     cursor_y: &mut f32,
-    font: &Font,
-    font_bold: &Font,
+    fonts: &Fonts,
+    cfg: &Config,
 ) {
     let n = columns.len();
     if n == 0 {
         return;
     }
     let gutter = 4.0;
-    let total_width = SLIDE_W_MM - 2.0 * MARGIN_X - gutter * (n - 1) as f32;
+    let total_width =
+        cfg.slide.width_mm - 2.0 * cfg.slide.margin_x_mm - gutter * (n - 1) as f32;
     let col_width = total_width / n as f32;
 
     let start_y = *cursor_y;
     let mut max_y = start_y;
     for (i, col) in columns.iter().enumerate() {
         let mut cy = start_y;
-        let x = MARGIN_X + i as f32 * (col_width + gutter);
+        let x = cfg.slide.margin_x_mm + i as f32 * (col_width + gutter);
         if let Some(header) = &col.header {
-            set_fill(surface, 0, 0, 0);
-            draw_text_mm(surface, header, BODY_FONT_SIZE + 2.0, x, cy, font_bold);
-            cy += BODY_LINE_HEIGHT + 2.0;
+            set_fill(surface, cfg.colors.text);
+            draw_text_mm(surface, header, cfg.body.font_size_pt + 2.0, x, cy, &fonts.title);
+            cy += cfg.body.line_height_mm + 2.0;
         }
-        set_fill(surface, 0, 0, 0);
         for bullet in &col.bullets {
-            let line = format!("• {}", bullet);
-            draw_text_mm(surface, &line, BODY_FONT_SIZE, x, cy, font);
-            cy += BODY_LINE_HEIGHT;
+            draw_bullet_line(surface, bullet, x, cy, &fonts.body, cfg);
+            cy += cfg.body.line_height_mm;
         }
         if cy > max_y {
             max_y = cy;
         }
     }
-    *cursor_y = max_y + BODY_SECTION_GAP;
+    *cursor_y = max_y + cfg.body.section_gap_mm;
 }
 
 // ── primitives ────────────────────────────────────────────────────────────
 
-fn set_fill(surface: &mut Surface<'_>, r: u8, g: u8, b: u8) {
+fn set_fill(surface: &mut Surface<'_>, c: Color) {
+    let (r, g, b) = c.rgb();
     surface.set_fill(Some(Fill {
         paint: rgb::Color::new(r, g, b).into(),
         opacity: NormalizedF32::ONE,
@@ -520,9 +517,6 @@ fn set_fill(surface: &mut Surface<'_>, r: u8, g: u8, b: u8) {
 fn draw_text_mm(surface: &mut Surface<'_>, text: &str, size: f32, x_mm: f32, y_mm: f32, font: &Font) {
     let x = x_mm * PT_PER_MM;
     let y = y_mm * PT_PER_MM;
-    // y_mm is measured from the TOP of the slide down to the text baseline,
-    // which matches krilla's native coord system (y grows downward). We need
-    // to offset by the font ascent so the text sits visually at y_mm.
     surface.draw_text(
         Point::from_xy(x, y + size * 0.8),
         font.clone(),
@@ -534,13 +528,12 @@ fn draw_text_mm(surface: &mut Surface<'_>, text: &str, size: f32, x_mm: f32, y_m
 }
 
 fn draw_rect_mm(surface: &mut Surface<'_>, left: f32, top: f32, right: f32, bottom: f32) {
-    let rect = Rect::from_ltrb(
+    let Some(rect) = Rect::from_ltrb(
         left * PT_PER_MM,
         top * PT_PER_MM,
         right * PT_PER_MM,
         bottom * PT_PER_MM,
-    );
-    let Some(rect) = rect else {
+    ) else {
         return;
     };
     let mut pb = PathBuilder::new();
@@ -550,23 +543,16 @@ fn draw_rect_mm(surface: &mut Surface<'_>, left: f32, top: f32, right: f32, bott
     }
 }
 
-fn draw_hline_mm(surface: &mut Surface<'_>, x1: f32, x2: f32, y: f32) {
-    // Draw a thin filled rectangle as a line (krilla requires a Stroke with
-    // explicit width, simpler to use a filled rect of height 0.3mm).
-    set_fill(surface, 0, 0, 0);
-    draw_rect_mm(surface, x1, y - 0.15, x2, y + 0.15);
-}
-
 // ── layout helpers ────────────────────────────────────────────────────────
 
-fn content_height(slide: &Slide) -> f32 {
+fn content_height(slide: &Slide, cfg: &Config) -> f32 {
     let mut h = 0.0;
     if slide.title.is_some() {
-        h += TITLE_RULE_OFFSET + TITLE_CONTENT_GAP;
+        h += cfg.title.rule_offset_mm + cfg.title.content_gap_mm;
     }
     if let Some(content) = &slide.content {
         let n = wrap_text(content, 60).len() as f32;
-        h += n * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
+        h += n * cfg.body.line_height_mm + cfg.body.section_gap_mm;
     }
     if let Some(columns) = &slide.columns {
         let max_lines = columns
@@ -576,10 +562,10 @@ fn content_height(slide: &Slide) -> f32 {
                 header_lines + col.bullets.len() as f32
             })
             .fold(0.0_f32, f32::max);
-        h += max_lines * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
+        h += max_lines * cfg.body.line_height_mm + cfg.body.section_gap_mm;
     }
     if let Some(bullets) = &slide.bullets {
-        h += bullets.len() as f32 * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
+        h += bullets.len() as f32 * cfg.body.line_height_mm + cfg.body.section_gap_mm;
     }
     if let Some(code) = &slide.code {
         let src = if code.trim {
@@ -588,22 +574,18 @@ fn content_height(slide: &Slide) -> f32 {
             code.source.as_str()
         };
         let n = LinesWithEndings::from(src).count() as f32;
-        h += (n - 1.0).max(0.0) * CODE_LINE_HEIGHT + 2.0 * CODE_PADDING;
+        h += (n - 1.0).max(0.0) * cfg.code.line_height_mm + 2.0 * cfg.code.padding_mm;
     }
     h
 }
 
-fn text_x(text: &str, font_size: f32, align: &str) -> f32 {
+fn text_x(text: &str, font_size: f32, align: &str, cfg: &Config) -> f32 {
+    let margin = cfg.slide.margin_x_mm;
+    let w_mm = text.chars().count() as f32 * 0.5 * font_size * MM_PER_PT;
     match align {
-        "center" => {
-            let w = text.chars().count() as f32 * 0.5 * font_size * MM_PER_PT;
-            (SLIDE_W_MM / 2.0 - w / 2.0).max(MARGIN_X)
-        }
-        "right" => {
-            let w = text.chars().count() as f32 * 0.5 * font_size * MM_PER_PT;
-            (SLIDE_W_MM - MARGIN_X - w).max(MARGIN_X)
-        }
-        _ => MARGIN_X,
+        "center" => (cfg.slide.width_mm / 2.0 - w_mm / 2.0).max(margin),
+        "right" => (cfg.slide.width_mm - margin - w_mm).max(margin),
+        _ => margin,
     }
 }
 
@@ -670,29 +652,33 @@ mod tests {
 
     #[test]
     fn text_x_left_returns_margin() {
-        assert_eq!(text_x("anything", 18.0, "left"), MARGIN_X);
-        assert_eq!(text_x("anything", 18.0, "unknown"), MARGIN_X);
+        let cfg = Config::default();
+        assert_eq!(text_x("anything", 18.0, "left", &cfg), cfg.slide.margin_x_mm);
+        assert_eq!(text_x("anything", 18.0, "unknown", &cfg), cfg.slide.margin_x_mm);
     }
 
     #[test]
     fn text_x_center_is_between_margins() {
-        let x = text_x("Hello", 18.0, "center");
-        assert!(x >= MARGIN_X);
-        assert!(x < SLIDE_W_MM / 2.0 + 1.0);
+        let cfg = Config::default();
+        let x = text_x("Hello", 18.0, "center", &cfg);
+        assert!(x >= cfg.slide.margin_x_mm);
+        assert!(x < cfg.slide.width_mm / 2.0 + 1.0);
     }
 
     #[test]
     fn text_x_right_is_greater_than_center() {
-        let center = text_x("Hello", 18.0, "center");
-        let right = text_x("Hello", 18.0, "right");
+        let cfg = Config::default();
+        let center = text_x("Hello", 18.0, "center", &cfg);
+        let right = text_x("Hello", 18.0, "right", &cfg);
         assert!(right > center);
     }
 
     #[test]
     fn text_x_never_below_margin() {
+        let cfg = Config::default();
         let long: String = "a".repeat(200);
         for align in &["left", "center", "right"] {
-            assert!(text_x(&long, 18.0, align) >= MARGIN_X);
+            assert!(text_x(&long, 18.0, align, &cfg) >= cfg.slide.margin_x_mm);
         }
     }
 
@@ -717,21 +703,27 @@ mod tests {
 
     #[test]
     fn content_height_empty_slide_is_zero() {
-        assert_eq!(content_height(&empty_slide()), 0.0);
+        let cfg = Config::default();
+        assert_eq!(content_height(&empty_slide(), &cfg), 0.0);
     }
 
     #[test]
     fn content_height_title_only() {
+        let cfg = Config::default();
         let mut s = empty_slide();
         s.title = Some("Hello".into());
-        assert_eq!(content_height(&s), TITLE_RULE_OFFSET + TITLE_CONTENT_GAP);
+        assert_eq!(
+            content_height(&s, &cfg),
+            cfg.title.rule_offset_mm + cfg.title.content_gap_mm
+        );
     }
 
     #[test]
     fn content_height_bullets_add_lines() {
+        let cfg = Config::default();
         let mut s = empty_slide();
         s.bullets = Some(vec!["a".into(), "b".into(), "c".into()]);
-        let expected = 3.0 * BODY_LINE_HEIGHT + BODY_SECTION_GAP;
-        assert!((content_height(&s) - expected).abs() < 0.001);
+        let expected = 3.0 * cfg.body.line_height_mm + cfg.body.section_gap_mm;
+        assert!((content_height(&s, &cfg) - expected).abs() < 0.001);
     }
 }
