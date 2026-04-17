@@ -1,10 +1,11 @@
 mod exporter;
+mod importer;
 mod model;
 mod parser;
 mod assets;
 
 use anyhow::{Context, Result};
-use clap::{Parser, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::fs;
 use std::path::PathBuf;
 
@@ -18,8 +19,11 @@ enum Format {
 #[derive(Debug, Parser)]
 #[command(name = "rsslide", about = "Convert YAML presentations to HTML, PDF or PPTX")]
 struct Cli {
-    /// Input YAML file
-    input: PathBuf,
+    #[command(subcommand)]
+    command: Option<Command>,
+
+    /// Input YAML file (when no subcommand is given)
+    input: Option<PathBuf>,
 
     /// Output file [default: <input stem>.<format>]
     #[arg(short, long)]
@@ -38,17 +42,35 @@ struct Cli {
     theme_set: Option<PathBuf>,
 }
 
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Import a Marp Markdown file and emit rsslide YAML
+    Import {
+        /// Input Marp .md file
+        input: PathBuf,
+
+        /// Output YAML file [default: stdout]
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let input_str = fs::read_to_string(&cli.input)
-        .with_context(|| format!("Failed to read {}", cli.input.display()))?;
+    if let Some(Command::Import { input, output }) = cli.command {
+        return run_import(input, output);
+    }
+
+    let input = cli.input.context("missing input file")?;
+    let input_str = fs::read_to_string(&input)
+        .with_context(|| format!("Failed to read {}", input.display()))?;
 
     let presentation = parser::parse(&input_str)
-        .with_context(|| format!("Failed to parse {}", cli.input.display()))?;
+        .with_context(|| format!("Failed to parse {}", input.display()))?;
 
     let output_path = cli.output.unwrap_or_else(|| {
-        let stem = cli.input.file_stem().unwrap_or_default();
+        let stem = input.file_stem().unwrap_or_default();
         let ext = match cli.format {
             Format::Html => "html",
             Format::Pdf => "pdf",
@@ -73,5 +95,21 @@ fn main() -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn run_import(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
+    let input_str = fs::read_to_string(&input)
+        .with_context(|| format!("Failed to read {}", input.display()))?;
+    let yaml = importer::marp::import(&input_str)
+        .with_context(|| format!("Failed to import {}", input.display()))?;
+    match output {
+        Some(path) => {
+            fs::write(&path, yaml)
+                .with_context(|| format!("Failed to write {}", path.display()))?;
+            println!("Written: {}", path.display());
+        }
+        None => print!("{}", yaml),
+    }
     Ok(())
 }
