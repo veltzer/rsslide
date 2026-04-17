@@ -1,42 +1,30 @@
 use anyhow::Result;
-use serde::Serialize;
 
-#[derive(Default, Serialize)]
+#[derive(Default)]
 pub struct OutPresentation {
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub theme: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub paginate: Option<bool>,
     pub slides: Vec<OutSlide>,
 }
 
-#[derive(Default, Serialize)]
+#[derive(Default)]
 pub struct OutSlide {
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub content: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub bullets: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_lines: Vec<String>,
+    pub bullets: Vec<String>,
     pub code: Option<OutCode>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub image: Option<String>,
 }
 
-#[derive(Serialize)]
 pub struct OutCode {
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
     pub source: String,
 }
 
 pub fn import(input: &str) -> Result<String> {
     let pres = parse_marp(input);
-    let yaml = serde_yaml::to_string(&pres)?;
-    Ok(yaml)
+    Ok(emit_yaml(&pres))
 }
 
 fn parse_marp(input: &str) -> OutPresentation {
@@ -107,15 +95,22 @@ fn split_slides(body: &str) -> Vec<String> {
     let mut slides: Vec<String> = Vec::new();
     let mut current = String::new();
     let mut in_fence = false;
-    let mut fence_marker: Option<String> = None;
+    let mut fence_marker: Option<&'static str> = None;
 
     for line in body.lines() {
         let trimmed = line.trim_start();
-        if let Some(marker) = fence_start(trimmed) {
+        let fence = if trimmed.starts_with("```") {
+            Some("```")
+        } else if trimmed.starts_with("~~~") {
+            Some("~~~")
+        } else {
+            None
+        };
+        if let Some(f) = fence {
             if !in_fence {
                 in_fence = true;
-                fence_marker = Some(marker);
-            } else if fence_marker.as_deref() == Some(trimmed_fence(trimmed).as_str()) {
+                fence_marker = Some(f);
+            } else if fence_marker == Some(f) {
                 in_fence = false;
                 fence_marker = None;
             }
@@ -143,64 +138,39 @@ fn is_slide_separator(line: &str) -> bool {
     t == "---" || t == "***" || t == "___"
 }
 
-fn fence_start(line: &str) -> Option<String> {
-    if line.starts_with("```") {
-        Some("```".into())
-    } else if line.starts_with("~~~") {
-        Some("~~~".into())
-    } else {
-        None
-    }
-}
-
-fn trimmed_fence(line: &str) -> String {
-    if line.starts_with("```") {
-        "```".into()
-    } else if line.starts_with("~~~") {
-        "~~~".into()
-    } else {
-        String::new()
-    }
-}
-
 fn parse_slide(block: String) -> OutSlide {
-    let mut title: Option<String> = None;
-    let mut bullets: Vec<String> = Vec::new();
-    let mut content_lines: Vec<String> = Vec::new();
-    let mut code: Option<OutCode> = None;
-    let mut image: Option<String> = None;
+    let mut slide = OutSlide::default();
+    let mut paragraph: Vec<String> = Vec::new();
 
     let mut lines = block.lines().peekable();
     while let Some(line) = lines.next() {
         let trimmed = line.trim();
 
         if trimmed.is_empty() {
+            flush_paragraph(&mut paragraph, &mut slide.content_lines);
             continue;
         }
 
         if trimmed.starts_with("<!--") {
-            let mut buf = String::from(line);
             if !trimmed.contains("-->") {
                 for inner in lines.by_ref() {
-                    buf.push('\n');
-                    buf.push_str(inner);
                     if inner.contains("-->") {
                         break;
                     }
                 }
             }
-            let _ = buf;
             continue;
         }
 
-        if title.is_none() {
+        if slide.title.is_none() {
             if let Some(heading) = strip_heading(trimmed) {
-                title = Some(heading.to_string());
+                slide.title = Some(heading.to_string());
                 continue;
             }
         }
 
         if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            flush_paragraph(&mut paragraph, &mut slide.content_lines);
             let fence = &trimmed[..3];
             let language = trimmed[3..].trim().to_string();
             let language = if language.is_empty() { None } else { Some(language) };
@@ -215,38 +185,39 @@ fn parse_slide(block: String) -> OutSlide {
             while source.ends_with('\n') {
                 source.pop();
             }
-            code = Some(OutCode { language, source });
+            slide.code = Some(OutCode { language, source });
             continue;
         }
 
         if let Some(bullet) = strip_bullet(trimmed) {
-            bullets.push(bullet.to_string());
+            flush_paragraph(&mut paragraph, &mut slide.content_lines);
+            slide.bullets.push(bullet.to_string());
             continue;
         }
 
         if let Some(path) = parse_image(trimmed)
-            && image.is_none()
+            && slide.image.is_none()
         {
-            image = Some(path);
+            flush_paragraph(&mut paragraph, &mut slide.content_lines);
+            slide.image = Some(path);
             continue;
         }
 
-        content_lines.push(trimmed.to_string());
+        paragraph.push(trimmed.to_string());
     }
+    flush_paragraph(&mut paragraph, &mut slide.content_lines);
 
-    let content = if content_lines.is_empty() {
-        None
-    } else {
-        Some(content_lines.join(" "))
-    };
+    slide
+}
 
-    OutSlide {
-        title,
-        content,
-        bullets: if bullets.is_empty() { None } else { Some(bullets) },
-        code,
-        image,
+fn flush_paragraph(paragraph: &mut Vec<String>, out: &mut Vec<String>) {
+    if paragraph.is_empty() {
+        return;
     }
+    if !out.is_empty() {
+        out.push(String::new());
+    }
+    out.extend(paragraph.drain(..));
 }
 
 fn strip_heading(line: &str) -> Option<&str> {
@@ -281,6 +252,148 @@ fn parse_image(line: &str) -> Option<String> {
     Some(after_paren[..close].to_string())
 }
 
+// --- YAML emitter ---------------------------------------------------------
+
+fn emit_yaml(pres: &OutPresentation) -> String {
+    let mut out = String::new();
+    out.push_str("---\n");
+    out.push_str("# yamllint disable rule:line-length\n");
+    if let Some(title) = &pres.title {
+        out.push_str(&format!("title: {}\n", scalar(title)));
+    }
+    if let Some(theme) = &pres.theme {
+        out.push_str(&format!("theme: {}\n", scalar(theme)));
+    }
+    if let Some(paginate) = pres.paginate {
+        out.push_str(&format!("paginate: {paginate}\n"));
+    }
+    out.push('\n');
+    out.push_str("slides:\n");
+    for (i, slide) in pres.slides.iter().enumerate() {
+        if i > 0 {
+            out.push('\n');
+        }
+        emit_slide(&mut out, slide);
+    }
+    out
+}
+
+fn emit_slide(out: &mut String, slide: &OutSlide) {
+    let mut first = true;
+    let prefix = |first_flag: &mut bool| {
+        if *first_flag {
+            *first_flag = false;
+            "  - "
+        } else {
+            "    "
+        }
+    };
+
+    if let Some(title) = &slide.title {
+        out.push_str(prefix(&mut first));
+        out.push_str(&format!("title: {}\n", scalar(title)));
+    }
+    if !slide.content_lines.is_empty() {
+        out.push_str(prefix(&mut first));
+        emit_content(out, &slide.content_lines);
+    }
+    if !slide.bullets.is_empty() {
+        out.push_str(prefix(&mut first));
+        out.push_str("bullets:\n");
+        for b in &slide.bullets {
+            out.push_str("      - ");
+            out.push_str(&scalar(b));
+            out.push('\n');
+        }
+    }
+    if let Some(code) = &slide.code {
+        out.push_str(prefix(&mut first));
+        out.push_str("code:\n");
+        if let Some(lang) = &code.language {
+            out.push_str("      language: ");
+            out.push_str(&scalar(lang));
+            out.push('\n');
+        }
+        out.push_str("      source: |-\n");
+        for line in code.source.lines() {
+            let trimmed = line.trim_end();
+            if trimmed.is_empty() {
+                out.push('\n');
+            } else {
+                out.push_str("        ");
+                out.push_str(trimmed);
+                out.push('\n');
+            }
+        }
+    }
+    if let Some(image) = &slide.image {
+        out.push_str(prefix(&mut first));
+        out.push_str("image: ");
+        out.push_str(&scalar(image));
+        out.push('\n');
+    }
+    if first {
+        out.push_str("  - {}\n");
+    }
+}
+
+fn emit_content(out: &mut String, lines: &[String]) {
+    if lines.len() == 1 {
+        let line = &lines[0];
+        if needs_block_scalar(line) {
+            out.push_str("content: |-\n");
+            push_block_lines(out, &[line.clone()]);
+        } else {
+            out.push_str("content: ");
+            out.push_str(&scalar(line));
+            out.push('\n');
+        }
+        return;
+    }
+    out.push_str("content: |-\n");
+    push_block_lines(out, lines);
+}
+
+fn push_block_lines(out: &mut String, lines: &[String]) {
+    for line in lines {
+        let trimmed = line.trim_end();
+        if trimmed.is_empty() {
+            out.push('\n');
+        } else {
+            out.push_str("      ");
+            out.push_str(trimmed);
+            out.push('\n');
+        }
+    }
+}
+
+fn needs_block_scalar(s: &str) -> bool {
+    s.len() > 70 || s.contains('\n')
+}
+
+fn scalar(s: &str) -> String {
+    if s.is_empty() {
+        return "''".into();
+    }
+    let needs_quote = s.chars().next().is_some_and(|c| {
+        matches!(c, '-' | '?' | ':' | ',' | '[' | ']' | '{' | '}' | '#' | '&' |
+            '*' | '!' | '|' | '>' | '\'' | '"' | '%' | '@' | '`')
+    }) || s.contains(": ")
+        || s.contains(" #")
+        || s.ends_with(':')
+        || s == "true"
+        || s == "false"
+        || s == "null"
+        || s == "yes"
+        || s == "no"
+        || s.parse::<f64>().is_ok();
+    if needs_quote {
+        format!("'{}'", s.replace('\'', "''"))
+    } else {
+        s.to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -294,7 +407,7 @@ mod tests {
         assert_eq!(pres.paginate, Some(true));
         assert_eq!(pres.slides.len(), 1);
         assert_eq!(pres.slides[0].title.as_deref(), Some("Hello"));
-        assert_eq!(pres.slides[0].content.as_deref(), Some("some text"));
+        assert_eq!(pres.slides[0].content_lines, vec!["some text".to_string()]);
     }
 
     #[test]
@@ -311,7 +424,7 @@ mod tests {
         let md = "# Slide\n\n- one\n- two\n\n```rust\nfn main() {}\n```\n";
         let pres = parse_marp(md);
         let s = &pres.slides[0];
-        assert_eq!(s.bullets.as_ref().unwrap(), &["one", "two"]);
+        assert_eq!(s.bullets, vec!["one".to_string(), "two".to_string()]);
         let code = s.code.as_ref().unwrap();
         assert_eq!(code.language.as_deref(), Some("rust"));
         assert_eq!(code.source, "fn main() {}");
@@ -332,11 +445,20 @@ mod tests {
     }
 
     #[test]
-    fn yaml_output_is_valid() {
+    fn yaml_output_starts_with_doc_marker() {
         let md = "---\ntitle: T\n---\n\n# S\n\n- a\n- b\n";
         let out = import(md).unwrap();
+        assert!(out.starts_with("---\n"));
         assert!(out.contains("title: T"));
-        assert!(out.contains("slides:"));
-        assert!(out.contains("- a"));
+        assert!(out.contains("  - title: S"));
+        assert!(out.contains("      - a"));
+    }
+
+    #[test]
+    fn long_content_uses_block_scalar() {
+        let long = "x".repeat(200);
+        let md = format!("# S\n\n{long}\n");
+        let out = import(&md).unwrap();
+        assert!(out.contains("content: |-"));
     }
 }

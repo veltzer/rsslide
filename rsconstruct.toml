@@ -15,3 +15,6 @@ src_extensions = [".md"]
 output_dir = "out/import"
 output_extension = "yaml"
 batch = true
+
+[processor.yamllint]
+src_dirs = ["out/import"]
