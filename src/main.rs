@@ -46,14 +46,10 @@ enum Command {
         #[arg(long)]
         theme_set: Option<PathBuf>,
     },
-    /// Import a Marp Markdown file and emit rsslide YAML
+    /// Import Marp Markdown files. Alternating input/output paths: IN1 OUT1 IN2 OUT2 ...
     Import {
-        /// Input Marp .md file
-        input: PathBuf,
-
-        /// Output YAML file [default: stdout]
-        #[arg(short, long)]
-        output: Option<PathBuf>,
+        #[arg(required = true, num_args = 2..)]
+        paths: Vec<PathBuf>,
     },
     /// Convert many (input, output) pairs. Format inferred from each output extension.
     Generate {
@@ -72,7 +68,7 @@ fn main() -> Result<()> {
         Some(Command::Process { input, output, format, theme, theme_set }) => {
             run_process(input, output, format, theme, theme_set)
         }
-        Some(Command::Import { input, output }) => run_import(input, output),
+        Some(Command::Import { paths }) => run_import(paths),
         Some(Command::Generate { paths }) => run_generate(paths),
         Some(Command::Version) => {
             print_version();
@@ -167,18 +163,26 @@ fn print_version() {
     println!("BUILD_TIMESTAMP: {}", env!("BUILD_TIMESTAMP"));
 }
 
-fn run_import(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
-    let input_str = fs::read_to_string(&input)
+fn run_import(paths: Vec<PathBuf>) -> Result<()> {
+    if paths.len() % 2 != 0 {
+        anyhow::bail!(
+            "import requires an even number of arguments (input/output pairs), got {}",
+            paths.len()
+        );
+    }
+    for pair in paths.chunks_exact(2) {
+        import_one(&pair[0], &pair[1])?;
+    }
+    Ok(())
+}
+
+fn import_one(input: &std::path::Path, output: &std::path::Path) -> Result<()> {
+    let input_str = fs::read_to_string(input)
         .with_context(|| format!("Failed to read {}", input.display()))?;
     let yaml = importer::marp::import(&input_str)
         .with_context(|| format!("Failed to import {}", input.display()))?;
-    match output {
-        Some(path) => {
-            fs::write(&path, yaml)
-                .with_context(|| format!("Failed to write {}", path.display()))?;
-            println!("Written: {}", path.display());
-        }
-        None => print!("{}", yaml),
-    }
+    fs::write(output, yaml)
+        .with_context(|| format!("Failed to write {}", output.display()))?;
+    println!("Written: {}", output.display());
     Ok(())
 }
