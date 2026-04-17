@@ -13,6 +13,72 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
+/// A commented TOML file containing every knob with its default value.
+/// The values here MUST match the `Default` impls below — a unit test
+/// asserts the round-trip equals `Config::default()`.
+pub const DEFAULT_CONFIG_TEMPLATE: &str = r##"# rsslide configuration. Drop this file as `rsslide.toml` next to your
+# YAML inputs (or pass `--config PATH`). Every section is optional — any
+# field you omit keeps its built-in default.
+
+[slide]
+# Slide dimensions in millimeters. Default is 16:9.
+width_mm = 254.0
+height_mm = 143.0
+# Side margins and top/bottom reserved space for slide content (not
+# including SVGs — see [svg] for a separate SVG margin).
+margin_x_mm = 8.0
+margin_top_mm = 10.0
+page_bottom_reserved_mm = 6.0
+
+[title]
+# Slide title font size and the gap structure beneath it.
+font_size_pt = 28.0
+rule_offset_mm = 9.0   # distance from title baseline down to the rule
+content_gap_mm = 4.0   # extra gap from rule down to first content line
+
+[body]
+# Body text, bullets, and column text sizing.
+font_size_pt = 18.0
+line_height_mm = 9.0
+section_gap_mm = 5.0
+
+[code]
+# Code block styling. Font size is in points; other dimensions in mm.
+font_size_pt = 12.0
+line_height_mm = 6.5
+padding_mm = 4.0
+# Language icon at the top-right of each code block.
+icon_size_mm = 16.0
+icon_inset_mm = 2.0
+
+[svg]
+# Filter-effect rasterization detail. 2.0 is a good quality/speed tradeoff.
+# 4.0 is krilla-svg's default (crispest, slowest). 1.0 is fastest (softer).
+filter_scale = 2.0
+# Pre-resolve CSS `var(--x)` references before usvg parses the SVG.
+# Leave on — usvg 0.45 otherwise silently drops strokes using CSS vars.
+flatten_css_vars = true
+# Extra gap above an embedded SVG, pushing it below the title.
+top_gap_mm = 4.0
+# Side margin for SVGs specifically. Smaller than slide.margin_x_mm lets
+# SVGs extend closer to the slide edge.
+margin_x_mm = 4.0
+
+[fonts]
+# Absolute paths to TTF/OTF files for each symbolic role. Reassign to use
+# a different typeface without touching the Rust source.
+title = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+body  = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+code  = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+
+[colors]
+# Colors as CSS-style hex strings.
+text            = "#000000"
+bullet          = "#000000"
+title_rule      = "#000000"
+code_background = "#f0f0f0"
+"##;
+
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
@@ -269,6 +335,27 @@ mod tests {
         "#;
         let err = toml::from_str::<Config>(toml).unwrap_err();
         assert!(err.to_string().contains("#rrggbb"));
+    }
+
+    #[test]
+    fn default_template_parses_to_default() {
+        let parsed: Config = toml::from_str(DEFAULT_CONFIG_TEMPLATE)
+            .expect("DEFAULT_CONFIG_TEMPLATE should parse");
+        let def = Config::default();
+        // Spot-check every sub-struct's key field; if any drift the test
+        // catches it and the template needs updating.
+        assert!((parsed.slide.width_mm - def.slide.width_mm).abs() < 0.001);
+        assert!((parsed.slide.margin_x_mm - def.slide.margin_x_mm).abs() < 0.001);
+        assert!((parsed.title.font_size_pt - def.title.font_size_pt).abs() < 0.001);
+        assert!((parsed.body.font_size_pt - def.body.font_size_pt).abs() < 0.001);
+        assert!((parsed.code.font_size_pt - def.code.font_size_pt).abs() < 0.001);
+        assert!((parsed.svg.filter_scale - def.svg.filter_scale).abs() < 0.001);
+        assert!((parsed.svg.top_gap_mm - def.svg.top_gap_mm).abs() < 0.001);
+        assert!((parsed.svg.margin_x_mm - def.svg.margin_x_mm).abs() < 0.001);
+        assert_eq!(parsed.svg.flatten_css_vars, def.svg.flatten_css_vars);
+        assert_eq!(parsed.fonts.body, def.fonts.body);
+        assert_eq!(parsed.colors.text.rgb(), def.colors.text.rgb());
+        assert_eq!(parsed.colors.code_background.rgb(), def.colors.code_background.rgb());
     }
 
     #[test]

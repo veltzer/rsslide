@@ -65,6 +65,13 @@ enum Command {
     },
     /// Print version information
     Version,
+    /// Print a fully-commented config file with all defaults. Redirect to
+    /// `rsslide.toml` to seed project-local settings.
+    DumpConfig {
+        /// Write to this file instead of stdout.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -80,6 +87,7 @@ fn main() -> Result<()> {
             print_version();
             Ok(())
         }
+        Some(Command::DumpConfig { output }) => run_dump_config(output),
         None => {
             Cli::command().print_help()?;
             println!();
@@ -145,6 +153,19 @@ fn convert_one(
         }
     }
     println!("Written: {}", output.display());
+    Ok(())
+}
+
+fn run_dump_config(output: Option<PathBuf>) -> Result<()> {
+    let text = config::DEFAULT_CONFIG_TEMPLATE;
+    match output {
+        Some(path) => {
+            fs::write(&path, text)
+                .with_context(|| format!("failed to write {}", path.display()))?;
+            println!("Written: {}", path.display());
+        }
+        None => print!("{text}"),
+    }
     Ok(())
 }
 
