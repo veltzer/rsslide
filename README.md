@@ -66,9 +66,11 @@ slides:
 ## Usage
 
 ```
-rsslide [OPTIONS] <INPUT>
+rsslide process [OPTIONS] <INPUT>
+rsslide import  [OPTIONS] <INPUT>
+rsslide version
 
-Options:
+process options:
   -o, --output <FILE>        Output file [default: <input stem>.<format>]
   -f, --format <FORMAT>      html | pdf | pptx  [default: html]
       --theme <THEME>        Built-in theme: default | gaia | uncover  [default: default]
