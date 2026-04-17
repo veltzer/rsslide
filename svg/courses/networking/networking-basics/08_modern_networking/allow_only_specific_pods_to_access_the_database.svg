@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <text x="640.0001" y="40" text-anchor="middle" font-size="28.5816" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Network Policy: Pod Access Control</text>
+  <rect x="40" y="77.0212" width="563.6364" height="542.9788" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="321.8182" y="138.7234" text-anchor="middle" font-size="23.2225" font-weight="bold" fill="var(--danger-accent)" font-family="Arial, sans-serif">Without Network Policy</text>
+  <rect x="76.3637" y="188.0851" width="127.2727" height="111.0638" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="140.0001" y="254.7234" text-anchor="middle" font-size="21.4363" fill="var(--text)" font-family="Arial, sans-serif">Web</text>
+  <rect x="267.2728" y="188.0851" width="127.2727" height="111.0638" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="330.9092" y="254.7234" text-anchor="middle" font-size="21.4363" fill="var(--text)" font-family="Arial, sans-serif">API</text>
+  <rect x="458.1819" y="188.0851" width="127.2727" height="111.0638" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="521.8183" y="254.7234" text-anchor="middle" font-size="21.4363" fill="var(--text)" font-family="Arial, sans-serif">DB</text>
+  <line x1="203.6365" y1="242.383" x2="267.2728" y2="242.383" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <line x1="394.5455" y1="242.383" x2="458.1819" y2="242.383" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <path d="M 140.0001 299.1489 Q 140.0001 397.8724 521.8183 299.1489" stroke="var(--danger-border)" stroke-width="3.5008" fill="none" marker-end="url(#arrow-danger)"/>
+  <text x="321.8182" y="422.5532" text-anchor="middle" font-size="19.6499" fill="var(--danger-accent)" font-weight="bold" font-family="Arial, sans-serif">All Pods can reach DB</text>
+  <rect x="676.3636" y="77.0212" width="563.6364" height="542.9788" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="958.1819" y="138.7234" text-anchor="middle" font-size="23.2225" font-weight="bold" fill="var(--ok-accent)" font-family="Arial, sans-serif">With Network Policy</text>
+  <rect x="712.7273" y="188.0851" width="127.2727" height="111.0638" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="776.3637" y="254.7234" text-anchor="middle" font-size="21.4363" fill="var(--text)" font-family="Arial, sans-serif">Web</text>
+  <rect x="903.6364" y="188.0851" width="127.2727" height="111.0638" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="967.2728" y="254.7234" text-anchor="middle" font-size="21.4363" fill="var(--text)" font-family="Arial, sans-serif">API</text>
+  <rect x="1094.5456" y="188.0851" width="127.2727" height="111.0638" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1158.182" y="254.7234" text-anchor="middle" font-size="21.4363" fill="var(--text)" font-family="Arial, sans-serif">DB</text>
+  <line x1="840.0001" y1="242.383" x2="894.5455" y2="242.383" stroke="var(--danger-border)" stroke-width="2" stroke-dasharray="8.7522 5.2513"/>
+  <text x="870.9092" y="225.1064" text-anchor="middle" font-size="28.5816" fill="var(--danger-accent)" font-family="Arial, sans-serif">✗</text>
+  <line x1="1030.9091" y1="242.383" x2="1094.5456" y2="242.383" stroke="var(--ok-border)" stroke-width="2" marker-end="url(#arrow-ok)"/>
+  <text x="958.1819" y="422.5532" text-anchor="middle" font-size="19.6499" fill="var(--ok-accent)" font-weight="bold" font-family="Arial, sans-serif">Only API can reach DB</text>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+</svg>

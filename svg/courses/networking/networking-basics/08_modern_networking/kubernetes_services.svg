@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <rect x="40" y="66.9767" width="316.9812" height="161.8605" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="198.4905" y="139.814" text-anchor="middle" font-size="30.2065" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Client</text>
+  <text x="198.4905" y="193.7674" text-anchor="middle" font-size="25.5593" fill="var(--text-muted)" font-family="Arial, sans-serif">ClusterIP: 10.96.0.100</text>
+  <line x1="356.9811" y1="147.9069" x2="538.1132" y2="147.9069" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <rect x="538.1132" y="40" width="452.8302" height="215.8139" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="764.5283" y="120.9302" text-anchor="middle" font-size="34.8535" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Service</text>
+  <text x="764.5283" y="169.4884" text-anchor="middle" font-size="30.2065" fill="var(--text-muted)" font-family="Arial, sans-serif">web-service</text>
+  <text x="764.5283" y="223.4418" text-anchor="middle" font-size="27.8828" fill="var(--text-muted)" font-family="Arial, sans-serif">10.96.0.100:80</text>
+  <text x="764.5283" y="323.2558" text-anchor="middle" font-size="27.8828" fill="var(--text-faint)" font-family="Arial, sans-serif">load balances to</text>
+  <line x1="583.3962" y1="255.8139" x2="266.415" y2="471.6279" stroke="var(--ok-border)" stroke-width="2" marker-end="url(#arrow-ok)"/>
+  <line x1="764.5283" y1="255.8139" x2="764.5283" y2="471.6279" stroke="var(--ok-border)" stroke-width="2" marker-end="url(#arrow-ok)"/>
+  <line x1="945.6603" y1="255.8139" x2="1081.5094" y2="471.6279" stroke="var(--ok-border)" stroke-width="2" marker-end="url(#arrow-ok)"/>
+  <rect x="107.9245" y="471.6279" width="316.9812" height="148.3721" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="266.415" y="539.0696" text-anchor="middle" font-size="32.53" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Pod 1</text>
+  <text x="266.415" y="593.0232" text-anchor="middle" font-size="27.8828" fill="var(--text-muted)" font-family="Arial, sans-serif">10.0.1.2</text>
+  <rect x="538.1132" y="471.6279" width="316.9812" height="148.3721" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="696.6037" y="539.0696" text-anchor="middle" font-size="32.53" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Pod 2</text>
+  <text x="696.6037" y="593.0232" text-anchor="middle" font-size="27.8828" fill="var(--text-muted)" font-family="Arial, sans-serif">10.0.2.3</text>
+  <rect x="923.0188" y="471.6279" width="316.9812" height="148.3721" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1081.5094" y="539.0696" text-anchor="middle" font-size="32.53" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Pod 3</text>
+  <text x="1081.5094" y="593.0232" text-anchor="middle" font-size="27.8828" fill="var(--text-muted)" font-family="Arial, sans-serif">10.0.1.4</text>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+</svg>

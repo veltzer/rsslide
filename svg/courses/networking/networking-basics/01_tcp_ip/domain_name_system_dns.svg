@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <rect x="40" y="136.6667" width="186.2069" height="241.6667" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="133.1034" y="233.3333" text-anchor="middle" font-size="26.7776" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Browser</text>
+  <text x="133.1034" y="305.8333" text-anchor="middle" font-size="24.3432" fill="var(--text-muted)" font-family="Arial, sans-serif">example.com?</text>
+  <rect x="308.9656" y="136.6667" width="186.2069" height="241.6667" fill="url(#grad-info)" stroke="var(--info-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="402.069" y="233.3333" text-anchor="middle" font-size="26.7776" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Local DNS</text>
+  <text x="402.069" y="305.8333" text-anchor="middle" font-size="24.3432" fill="var(--text-muted)" font-family="Arial, sans-serif">Resolver</text>
+  <rect x="577.931" y="136.6667" width="186.2069" height="241.6667" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="671.0345" y="233.3333" text-anchor="middle" font-size="26.7776" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Root DNS</text>
+  <text x="671.0345" y="305.8333" text-anchor="middle" font-size="24.3432" fill="var(--text-muted)" font-family="Arial, sans-serif">(.) servers</text>
+  <rect x="846.8965" y="136.6667" width="186.2069" height="241.6667" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="940" y="233.3333" text-anchor="middle" font-size="26.7776" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">TLD DNS</text>
+  <text x="940" y="305.8333" text-anchor="middle" font-size="24.3432" fill="var(--text-muted)" font-family="Arial, sans-serif">(.com)</text>
+  <rect x="1074.4827" y="136.6667" width="165.5173" height="241.6667" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="1157.2413" y="233.3333" text-anchor="middle" font-size="24.3432" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Authoritative</text>
+  <text x="1157.2413" y="305.8333" text-anchor="middle" font-size="24.3432" fill="var(--text-muted)" font-family="Arial, sans-serif">DNS</text>
+  <line x1="226.2069" y1="233.3333" x2="308.9656" y2="233.3333" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <line x1="495.1725" y1="209.1667" x2="577.931" y2="209.1667" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <line x1="764.1379" y1="209.1667" x2="846.8965" y2="209.1667" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <line x1="1033.1034" y1="209.1667" x2="1074.4827" y2="209.1667" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <line x1="1074.4827" y1="305.8333" x2="1033.1034" y2="305.8333" stroke="var(--ok-border)" stroke-width="2" stroke-dasharray="8.5333 6.4" marker-end="url(#arrow-ok)"/>
+  <line x1="846.8965" y1="305.8333" x2="764.1379" y2="305.8333" stroke="var(--ok-border)" stroke-width="2" stroke-dasharray="8.5333 6.4" marker-end="url(#arrow-ok)"/>
+  <line x1="577.931" y1="305.8333" x2="495.1725" y2="305.8333" stroke="var(--ok-border)" stroke-width="2" stroke-dasharray="8.5333 6.4" marker-end="url(#arrow-ok)"/>
+  <line x1="308.9656" y1="281.6667" x2="226.2069" y2="281.6667" stroke="var(--ok-border)" stroke-width="2" stroke-dasharray="8.5333 6.4" marker-end="url(#arrow-ok)"/>
+  <text x="640" y="40" text-anchor="middle" font-size="26.7776" fill="var(--text)" font-family="Arial, sans-serif">Query: "What is the IP of example.com?"</text>
+  <text x="640" y="547.5" text-anchor="middle" font-size="26.7776" fill="var(--ok-accent)" font-family="Arial, sans-serif">Response: 93.184.216.34</text>
+  <text x="133.1034" y="620" text-anchor="middle" font-size="24.3432" fill="var(--text-muted)" font-family="Arial, sans-serif">Step 1</text>
+  <text x="402.069" y="620" text-anchor="middle" font-size="24.3432" fill="var(--text-muted)" font-family="Arial, sans-serif">Step 2</text>
+  <text x="671.0345" y="620" text-anchor="middle" font-size="24.3432" fill="var(--text-muted)" font-family="Arial, sans-serif">Step 3</text>
+  <text x="940" y="620" text-anchor="middle" font-size="24.3432" fill="var(--text-muted)" font-family="Arial, sans-serif">Step 4</text>
+  <text x="1157.2413" y="620" text-anchor="middle" font-size="24.3432" fill="var(--text-muted)" font-family="Arial, sans-serif">Step 5</text>
+</svg>

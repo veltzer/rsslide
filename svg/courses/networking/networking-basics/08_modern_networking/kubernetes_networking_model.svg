@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <text x="640" y="40" text-anchor="middle" font-size="30.4066" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Kubernetes Networking Model</text>
+  <rect x="40" y="60.3508" width="1200" height="559.6492" rx="6" fill="none" stroke="var(--border)" stroke-width="1" stroke-dasharray="13.6533 6.8267"/>
+  <text x="640" y="102.7486" text-anchor="middle" font-size="25.3388" font-weight="bold" fill="var(--primary-accent)" font-family="Arial, sans-serif">Kubernetes Cluster</text>
+  <rect x="90.7042" y="128.1872" width="490.1408" height="339.1813" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="335.7747" y="170.5848" text-anchor="middle" font-size="21.9603" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Node A (10.0.1.0/24)</text>
+  <rect x="132.9578" y="196.0234" width="185.9155" height="135.6726" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="225.9156" y="238.421" text-anchor="middle" font-size="20.2711" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Pod 1</text>
+  <text x="225.9156" y="268.9474" text-anchor="middle" font-size="16.8926" fill="var(--text-muted)" font-family="Arial, sans-serif">10.0.1.2</text>
+  <rect x="192.1127" y="284.2105" width="67.6057" height="33.9181" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="225.9156" y="307.9532" text-anchor="middle" font-size="16.8926" fill="var(--danger-accent)" font-family="Arial, sans-serif">C1</text>
+  <rect x="352.6761" y="196.0234" width="185.9155" height="135.6726" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="445.6338" y="238.421" text-anchor="middle" font-size="20.2711" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Pod 2</text>
+  <text x="445.6338" y="268.9474" text-anchor="middle" font-size="16.8926" fill="var(--text-muted)" font-family="Arial, sans-serif">10.0.1.3</text>
+  <rect x="411.831" y="284.2105" width="67.6057" height="33.9181" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="445.6338" y="307.9532" text-anchor="middle" font-size="16.8926" fill="var(--danger-accent)" font-family="Arial, sans-serif">C2</text>
+  <rect x="699.1549" y="128.1872" width="490.1408" height="339.1813" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="944.2254" y="170.5848" text-anchor="middle" font-size="21.9603" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Node B (10.0.2.0/24)</text>
+  <rect x="741.4085" y="196.0234" width="185.9155" height="135.6726" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="834.3663" y="238.421" text-anchor="middle" font-size="20.2711" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Pod 3</text>
+  <text x="834.3663" y="268.9474" text-anchor="middle" font-size="16.8926" fill="var(--text-muted)" font-family="Arial, sans-serif">10.0.2.2</text>
+  <rect x="800.5634" y="284.2105" width="67.6057" height="33.9181" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="834.3663" y="307.9532" text-anchor="middle" font-size="16.8926" fill="var(--danger-accent)" font-family="Arial, sans-serif">C3</text>
+  <rect x="961.1269" y="196.0234" width="185.9155" height="135.6726" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1054.0845" y="238.421" text-anchor="middle" font-size="20.2711" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Pod 4</text>
+  <text x="1054.0845" y="268.9474" text-anchor="middle" font-size="16.8926" fill="var(--text-muted)" font-family="Arial, sans-serif">10.0.2.3</text>
+  <rect x="1020.2818" y="284.2105" width="67.6057" height="33.9181" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1054.0845" y="307.9532" text-anchor="middle" font-size="16.8926" fill="var(--danger-accent)" font-family="Arial, sans-serif">C4</text>
+  <line x1="335.7747" y1="467.3684" x2="335.7747" y2="518.2457" stroke="var(--primary-border)" stroke-width="2"/>
+  <line x1="944.2254" y1="467.3684" x2="944.2254" y2="518.2457" stroke="var(--primary-border)" stroke-width="2"/>
+  <rect x="209.0141" y="518.2457" width="861.9719" height="76.3158" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="557.2514" text-anchor="middle" font-size="21.9603" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">CNI Plugin</text>
+  <text x="640" y="584.386" text-anchor="middle" font-size="18.5818" fill="var(--text-muted)" font-family="Arial, sans-serif">(Calico, Flannel, Cilium, Weave)</text>
+  <line x1="335.7747" y1="518.2457" x2="428.7325" y2="518.2457" stroke="var(--primary-border)" stroke-width="2"/>
+  <line x1="944.2254" y1="518.2457" x2="851.2676" y2="518.2457" stroke="var(--primary-border)" stroke-width="2"/>
+</svg>

@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" style="background:var(--bg)">
+  <metadata>
+    <type>title</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #f5f5f5;
+        --border: #e0e0e0;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --black: #000000;
+        --primary-fill: #2196f3;
+        --primary-border: #1565c0;
+        --primary-text: #ffffff;
+        --primary-accent: #0d47a1;
+        --ok-fill: #4caf50;
+        --ok-border: #2e7d32;
+        --ok-text: #ffffff;
+        --ok-accent: #1b5e20;
+        --warn-fill: #ff9800;
+        --warn-border: #e65100;
+        --warn-text: #ffffff;
+        --warn-accent: #bf360c;
+        --danger-fill: #e74c3c;
+        --danger-border: #c62828;
+        --danger-text: #ffffff;
+        --danger-accent: #b71c1c;
+        --info-fill: #9c27b0;
+        --info-border: #6a1b9a;
+        --info-text: #ffffff;
+        --info-accent: #4a148c;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2196f3"/>
+      <stop offset="100%" stop-color="#1565c0"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4caf50"/>
+      <stop offset="100%" stop-color="#2e7d32"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff9800"/>
+      <stop offset="100%" stop-color="#e65100"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e74c3c"/>
+      <stop offset="100%" stop-color="#c62828"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9c27b0"/>
+      <stop offset="100%" stop-color="#6a1b9a"/>
+    </linearGradient>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#1565c0"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#2e7d32"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#e65100"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#c62828"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#6a1b9a"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="580" fill="var(--code-bg)" rx="6" x="40" y="40"/>
+  <g transform="translate(0,60)">
+  <!-- Network connection lines -->
+  <line x1="250" y1="200" x2="480" y2="140" stroke="var(--primary-border)" stroke-width="2" opacity="0.4"/>
+  <line x1="250" y1="200" x2="640" y2="280" stroke="var(--primary-border)" stroke-width="2" opacity="0.4"/>
+  <line x1="250" y1="200" x2="350" y2="380" stroke="var(--ok-border)" stroke-width="2" opacity="0.4"/>
+  <line x1="480" y1="140" x2="800" y2="160" stroke="var(--primary-border)" stroke-width="2" opacity="0.4"/>
+  <line x1="480" y1="140" x2="640" y2="280" stroke="var(--warn-border)" stroke-width="2" opacity="0.3"/>
+  <line x1="800" y1="160" x2="1020" y2="240" stroke="var(--primary-border)" stroke-width="2" opacity="0.4"/>
+  <line x1="800" y1="160" x2="640" y2="280" stroke="var(--ok-border)" stroke-width="2" opacity="0.3"/>
+  <line x1="1020" y1="240" x2="950" y2="420" stroke="var(--danger-border)" stroke-width="2" opacity="0.4"/>
+  <line x1="1020" y1="240" x2="640" y2="280" stroke="var(--primary-border)" stroke-width="2" opacity="0.3"/>
+  <line x1="640" y1="280" x2="350" y2="380" stroke="var(--warn-border)" stroke-width="2" opacity="0.4"/>
+  <line x1="640" y1="280" x2="950" y2="420" stroke="var(--ok-border)" stroke-width="2" opacity="0.4"/>
+  <line x1="350" y1="380" x2="500" y2="480" stroke="var(--primary-border)" stroke-width="2" opacity="0.4"/>
+  <line x1="350" y1="380" x2="950" y2="420" stroke="var(--danger-border)" stroke-width="2" opacity="0.2"/>
+  <line x1="950" y1="420" x2="780" y2="490" stroke="var(--warn-border)" stroke-width="2" opacity="0.4"/>
+  <line x1="500" y1="480" x2="780" y2="490" stroke="var(--ok-border)" stroke-width="2" opacity="0.4"/>
+  <line x1="500" y1="480" x2="640" y2="280" stroke="var(--primary-border)" stroke-width="2" opacity="0.2"/>
+  <line x1="780" y1="490" x2="640" y2="280" stroke="var(--danger-border)" stroke-width="2" opacity="0.2"/>
+
+  <!-- Network nodes -->
+  <circle cx="250" cy="200" r="22" fill="var(--primary-fill)" opacity="0.7" stroke="var(--primary-border)" stroke-width="2"/>
+  <circle cx="480" cy="140" r="18" fill="var(--ok-fill)" opacity="0.7" stroke="var(--ok-border)" stroke-width="2"/>
+  <circle cx="800" cy="160" r="20" fill="var(--warn-fill)" opacity="0.7" stroke="var(--warn-border)" stroke-width="2"/>
+  <circle cx="1020" cy="240" r="18" fill="var(--danger-fill)" opacity="0.7" stroke="var(--danger-border)" stroke-width="2"/>
+  <circle cx="640" cy="280" r="28" fill="var(--primary-fill)" opacity="0.8" stroke="var(--primary-border)" stroke-width="3"/>
+  <circle cx="350" cy="380" r="18" fill="var(--info-fill)" opacity="0.7" stroke="var(--info-border)" stroke-width="2"/>
+  <circle cx="950" cy="420" r="20" fill="var(--ok-fill)" opacity="0.7" stroke="var(--ok-border)" stroke-width="2"/>
+  <circle cx="500" cy="480" r="16" fill="var(--warn-fill)" opacity="0.7" stroke="var(--warn-border)" stroke-width="2"/>
+  <circle cx="780" cy="490" r="16" fill="var(--danger-fill)" opacity="0.7" stroke="var(--danger-border)" stroke-width="2"/>
+
+  <!-- Small decorative dots (distant nodes) -->
+  <circle cx="120" cy="120" r="6" fill="var(--primary-border)" opacity="0.3"/>
+  <circle cx="1100" cy="100" r="5" fill="var(--ok-border)" opacity="0.3"/>
+  <circle cx="160" cy="450" r="5" fill="var(--warn-border)" opacity="0.3"/>
+  <circle cx="1120" cy="380" r="7" fill="var(--info-border)" opacity="0.3"/>
+  <circle cx="900" cy="80" r="4" fill="var(--danger-border)" opacity="0.3"/>
+  <circle cx="1080" cy="520" r="5" fill="var(--primary-border)" opacity="0.3"/>
+  <circle cx="200" cy="530" r="4" fill="var(--ok-border)" opacity="0.3"/>
+  </g>
+  <!-- Title text -->
+
+  <text x="640" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="39" font-weight="bold" fill="var(--surface)">Networking Basics</text>
+  <text x="640" y="163" text-anchor="middle" font-family="Arial, sans-serif" font-size="21" fill="var(--text-faint)">How Computers Talk</text>
+</svg>

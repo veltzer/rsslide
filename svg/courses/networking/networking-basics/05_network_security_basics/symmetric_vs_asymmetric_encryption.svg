@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <text x="678.0952" y="40" text-anchor="middle" font-size="33.8609" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Symmetric Encryption</text>
+  <rect x="40" y="165.4054" width="228.5714" height="188.1081" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="154.2857" y="275.1351" text-anchor="middle" font-size="26.3363" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Plain Text</text>
+  <line x1="268.5714" y1="259.4595" x2="478.0952" y2="259.4595" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <text x="373.3333" y="228.1081" text-anchor="middle" font-size="20.6928" fill="var(--primary-accent)" font-weight="bold" font-family="Arial, sans-serif">Encrypt</text>
+  <text x="373.3333" y="181.0811" text-anchor="middle" font-size="18.8117" fill="var(--text-muted)" font-family="Arial, sans-serif">Key: "s3cr3t"</text>
+  <rect x="478.0952" y="165.4054" width="323.8095" height="188.1081" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="253.1892" text-anchor="middle" font-size="26.3363" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Ciphertext</text>
+  <text x="640" y="315.8919" text-anchor="middle" font-size="20.6928" fill="var(--text-muted)" font-family="Arial, sans-serif">xK9#mP2...</text>
+  <line x1="801.9047" y1="259.4595" x2="1011.4286" y2="259.4595" stroke="var(--ok-border)" stroke-width="2" marker-end="url(#arrow-ok)"/>
+  <text x="906.6666" y="228.1081" text-anchor="middle" font-size="20.6928" fill="var(--ok-accent)" font-weight="bold" font-family="Arial, sans-serif">Decrypt</text>
+  <text x="906.6666" y="181.0811" text-anchor="middle" font-size="18.8117" fill="var(--text-muted)" font-family="Arial, sans-serif">Key: "s3cr3t"</text>
+  <rect x="1011.4286" y="165.4054" width="228.5714" height="188.1081" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1125.7143" y="275.1351" text-anchor="middle" font-size="26.3363" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Plain Text</text>
+  <rect x="249.5238" y="463.2432" width="857.1429" height="156.7568" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="678.0952" y="532.2162" text-anchor="middle" font-size="24.4552" fill="var(--text)" font-weight="bold" font-family="Arial, sans-serif">Same key used for both encryption and decryption</text>
+  <text x="678.0952" y="588.6486" text-anchor="middle" font-size="22.574" fill="var(--text-muted)" font-family="Arial, sans-serif">Fast but requires secure key exchange (key distribution problem)</text>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+</svg>

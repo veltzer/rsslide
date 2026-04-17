@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <text x="640" y="40" text-anchor="middle" font-size="26.342872" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">UDP Socket Lifecycle</text>
+  <rect x="40" y="75.929204" width="300" height="544.070796" rx="6.079124" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="190" y="127.256637" text-anchor="middle" font-size="26.342872" font-weight="bold" fill="var(--primary-text)" font-family="Arial, sans-serif">Server</text>
+  <rect x="940" y="75.929204" width="300" height="544.070796" rx="6.079124" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1090" y="127.256637" text-anchor="middle" font-size="26.342872" font-weight="bold" fill="var(--ok-text)" font-family="Arial, sans-serif">Client</text>
+  <line x1="190" y1="147.787611" x2="190" y2="614.867257" stroke="var(--bg)" stroke-width="2" stroke-dasharray="6 4"/>
+  <line x1="1090" y1="147.787611" x2="1090" y2="614.867257" stroke="var(--bg)" stroke-width="2" stroke-dasharray="6 4"/>
+  <rect x="60" y="163.185841" width="260" height="47.221239" rx="6.079124" fill="var(--bg)" stroke="var(--primary-border)" stroke-width="2"/>
+  <text x="190" y="195.00885" text-anchor="middle" font-size="20.263748" font-weight="bold" fill="var(--primary-border)" font-family="Arial, sans-serif">socket()</text>
+  <rect x="60" y="235.044248" width="260" height="47.221239" rx="6.079124" fill="var(--bg)" stroke="var(--primary-border)" stroke-width="2"/>
+  <text x="190" y="266.867257" text-anchor="middle" font-size="20.263748" font-weight="bold" fill="var(--primary-border)" font-family="Arial, sans-serif">bind()</text>
+  <rect x="60" y="327.433628" width="260" height="47.221239" rx="6.079124" fill="var(--bg)" stroke="var(--primary-border)" stroke-width="2"/>
+  <text x="190" y="359.256637" text-anchor="middle" font-size="20.263748" font-weight="bold" fill="var(--primary-border)" font-family="Arial, sans-serif">recvfrom()</text>
+  <rect x="60" y="450.619469" width="260" height="47.221239" rx="6.079124" fill="var(--bg)" stroke="var(--primary-border)" stroke-width="2"/>
+  <text x="190" y="482.442478" text-anchor="middle" font-size="20.263748" font-weight="bold" fill="var(--primary-border)" font-family="Arial, sans-serif">sendto()</text>
+  <rect x="60" y="553.274336" width="260" height="47.221239" rx="6.079124" fill="var(--bg)" stroke="var(--primary-border)" stroke-width="2"/>
+  <text x="190" y="585.097345" text-anchor="middle" font-size="20.263748" font-weight="bold" fill="var(--primary-border)" font-family="Arial, sans-serif">close()</text>
+  <rect x="960" y="163.185841" width="260" height="47.221239" rx="6.079124" fill="var(--bg)" stroke="var(--ok-border)" stroke-width="2"/>
+  <text x="1090" y="195.00885" text-anchor="middle" font-size="20.263748" font-weight="bold" fill="var(--ok-border)" font-family="Arial, sans-serif">socket()</text>
+  <rect x="960" y="327.433628" width="260" height="47.221239" rx="6.079124" fill="var(--bg)" stroke="var(--ok-border)" stroke-width="2"/>
+  <text x="1090" y="359.256637" text-anchor="middle" font-size="20.263748" font-weight="bold" fill="var(--ok-border)" font-family="Arial, sans-serif">sendto()</text>
+  <rect x="960" y="450.619469" width="260" height="47.221239" rx="6.079124" fill="var(--bg)" stroke="var(--ok-border)" stroke-width="2"/>
+  <text x="1090" y="482.442478" text-anchor="middle" font-size="20.263748" font-weight="bold" fill="var(--ok-border)" font-family="Arial, sans-serif">recvfrom()</text>
+  <rect x="960" y="553.274336" width="260" height="47.221239" rx="6.079124" fill="var(--bg)" stroke="var(--ok-border)" stroke-width="2"/>
+  <text x="1090" y="585.097345" text-anchor="middle" font-size="20.263748" font-weight="bold" fill="var(--ok-border)" font-family="Arial, sans-serif">close()</text>
+  <line x1="960" y1="353.097345" x2="340" y2="353.097345" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="640" y="342.831858" text-anchor="middle" font-size="18.237373" font-style="italic" fill="var(--text-muted)" font-family="Arial, sans-serif">datagram</text>
+  <line x1="340" y1="476.283186" x2="960" y2="476.283186" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="640" y="466.017699" text-anchor="middle" font-size="18.237373" font-style="italic" fill="var(--text-muted)" font-family="Arial, sans-serif">datagram</text>
+  <text x="640" y="188.849558" text-anchor="middle" font-size="20.263748" fill="var(--text)" font-family="Arial, sans-serif">No connect() / accept() -- connectionless</text>
+</svg>

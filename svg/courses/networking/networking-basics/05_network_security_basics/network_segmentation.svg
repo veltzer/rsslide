@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <text x="639.9999" y="40" text-anchor="middle" font-size="31.3736" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Network Segmentation with VLANs</text>
+  <rect x="40" y="65.9702" width="1200" height="554.0298" rx="6" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+  <text x="639.9999" y="109.2537" text-anchor="middle" font-size="24.4017" font-weight="bold" fill="var(--primary-accent)" font-family="Arial, sans-serif">Corporate Network</text>
+  <rect x="94.5454" y="135.2239" width="327.2727" height="173.1344" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="258.1818" y="178.5075" text-anchor="middle" font-size="22.6587" font-weight="bold" fill="var(--primary-accent)" font-family="Arial, sans-serif">VLAN 10</text>
+  <text x="258.1818" y="213.1344" text-anchor="middle" font-size="20.9158" fill="var(--text)" font-family="Arial, sans-serif">Office</text>
+  <text x="258.1818" y="247.7612" text-anchor="middle" font-size="19.1727" fill="var(--text-muted)" font-family="Arial, sans-serif">10.10.0.0/24</text>
+  <rect x="476.3636" y="135.2239" width="327.2727" height="173.1344" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="639.9999" y="178.5075" text-anchor="middle" font-size="22.6587" font-weight="bold" fill="var(--ok-accent)" font-family="Arial, sans-serif">VLAN 20</text>
+  <text x="639.9999" y="213.1344" text-anchor="middle" font-size="20.9158" fill="var(--text)" font-family="Arial, sans-serif">Development</text>
+  <text x="639.9999" y="247.7612" text-anchor="middle" font-size="19.1727" fill="var(--text-muted)" font-family="Arial, sans-serif">10.20.0.0/24</text>
+  <rect x="858.1818" y="135.2239" width="327.2727" height="173.1344" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1021.8181" y="178.5075" text-anchor="middle" font-size="22.6587" font-weight="bold" fill="var(--danger-accent)" font-family="Arial, sans-serif">VLAN 30</text>
+  <text x="1021.8181" y="213.1344" text-anchor="middle" font-size="20.9158" fill="var(--text)" font-family="Arial, sans-serif">Production</text>
+  <text x="1021.8181" y="247.7612" text-anchor="middle" font-size="19.1727" fill="var(--text-muted)" font-family="Arial, sans-serif">10.30.0.0/24</text>
+  <line x1="258.1818" y1="308.3582" x2="258.1818" y2="386.2687" stroke="var(--primary-border)" stroke-width="2"/>
+  <line x1="639.9999" y1="308.3582" x2="639.9999" y2="386.2687" stroke="var(--ok-border)" stroke-width="2"/>
+  <line x1="1021.8181" y1="308.3582" x2="1021.8181" y2="386.2687" stroke="var(--warn-border)" stroke-width="2"/>
+  <line x1="258.1818" y1="386.2687" x2="458.1818" y2="438.209" stroke="var(--primary-border)" stroke-width="2"/>
+  <line x1="639.9999" y1="386.2687" x2="458.1818" y2="438.209" stroke="var(--ok-border)" stroke-width="2"/>
+  <line x1="639.9999" y1="386.2687" x2="821.8182" y2="438.209" stroke="var(--ok-border)" stroke-width="2"/>
+  <line x1="1021.8181" y1="386.2687" x2="821.8182" y2="438.209" stroke="var(--warn-border)" stroke-width="2"/>
+  <rect x="312.7272" y="438.209" width="290.9091" height="86.5671" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="458.1818" y="490.1492" text-anchor="middle" font-size="22.6587" font-weight="bold" fill="var(--danger-accent)" font-family="Arial, sans-serif">Firewall Rules</text>
+  <rect x="676.3636" y="438.209" width="290.9091" height="86.5671" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="821.8182" y="490.1492" text-anchor="middle" font-size="22.6587" font-weight="bold" fill="var(--danger-accent)" font-family="Arial, sans-serif">Firewall Rules</text>
+  <text x="639.9999" y="585.3731" text-anchor="middle" font-size="20.9158" fill="var(--text-muted)" font-family="Arial, sans-serif">Each VLAN is isolated; traffic between VLANs must pass through firewall rules</text>
+</svg>

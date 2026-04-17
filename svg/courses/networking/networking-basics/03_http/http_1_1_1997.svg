@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <rect x="40" y="40" width="230.7692" height="76.3158" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="155.3846" y="91.8947" text-anchor="middle" font-size="22.4748" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Client</text>
+  <rect x="847.6923" y="40" width="230.7692" height="76.3158" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="963.077" y="91.8947" text-anchor="middle" font-size="22.4748" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Server</text>
+  <line x1="155.3846" y1="131.5789" x2="155.3846" y2="620" stroke="var(--border)" stroke-width="2"/>
+  <line x1="963.077" y1="131.5789" x2="963.077" y2="620" stroke="var(--border)" stroke-width="2"/>
+  <line x1="155.3846" y1="171.2632" x2="963.077" y2="192.6315" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <text x="559.2308" y="156" text-anchor="middle" font-size="20.4317" fill="var(--primary-accent)" font-family="Arial, sans-serif">TCP Connect (persistent)</text>
+  <line x1="155.3846" y1="238.421" x2="963.077" y2="253.6841" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <text x="559.2308" y="229.2631" text-anchor="middle" font-size="20.4317" fill="var(--primary-accent)" font-family="Arial, sans-serif">GET /page.html</text>
+  <line x1="963.077" y1="284.2105" x2="155.3846" y2="299.4736" stroke="var(--ok-border)" stroke-width="2" stroke-dasharray="7.7796 5.8348" marker-end="url(#arrow-ok)"/>
+  <text x="559.2308" y="293.3684" text-anchor="middle" font-size="20.4317" fill="var(--ok-accent)" font-family="Arial, sans-serif">200 OK + HTML</text>
+  <line x1="155.3846" y1="345.2632" x2="963.077" y2="360.5263" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <text x="559.2308" y="339.1579" text-anchor="middle" font-size="20.4317" fill="var(--primary-accent)" font-family="Arial, sans-serif">GET /style.css (same conn)</text>
+  <line x1="963.077" y1="391.0527" x2="155.3846" y2="406.3158" stroke="var(--ok-border)" stroke-width="2" stroke-dasharray="7.7796 5.8348" marker-end="url(#arrow-ok)"/>
+  <text x="559.2308" y="397.1579" text-anchor="middle" font-size="20.4317" fill="var(--ok-accent)" font-family="Arial, sans-serif">200 OK + CSS</text>
+  <line x1="155.3846" y1="452.1053" x2="963.077" y2="467.3684" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <text x="559.2308" y="449.0526" text-anchor="middle" font-size="20.4317" fill="var(--primary-accent)" font-family="Arial, sans-serif">GET /app.js (same conn)</text>
+  <line x1="963.077" y1="497.8947" x2="155.3846" y2="513.1579" stroke="var(--ok-border)" stroke-width="2" stroke-dasharray="7.7796 5.8348" marker-end="url(#arrow-ok)"/>
+  <text x="559.2308" y="504" text-anchor="middle" font-size="20.4317" fill="var(--ok-accent)" font-family="Arial, sans-serif">200 OK + JS</text>
+  <rect x="1032.3077" y="207.8947" width="207.6923" height="305.2632" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" rx="6" opacity="0.7" filter="url(#shadow)"/>
+  <text x="1136.1538" y="268.9473" text-anchor="middle" font-size="20.4317" fill="var(--text-muted)" font-family="Arial, sans-serif">Keep-Alive</text>
+  <text x="1136.1538" y="314.7368" text-anchor="middle" font-size="20.4317" fill="var(--text-muted)" font-family="Arial, sans-serif">Pipelining</text>
+  <text x="1136.1538" y="360.5263" text-anchor="middle" font-size="20.4317" fill="var(--text-muted)" font-family="Arial, sans-serif">Chunked</text>
+  <text x="1136.1538" y="406.3158" text-anchor="middle" font-size="20.4317" fill="var(--text-muted)" font-family="Arial, sans-serif">encoding</text>
+  <text x="559.2308" y="604.7368" text-anchor="middle" font-size="20.4317" fill="var(--text-muted)" font-family="Arial, sans-serif">Single TCP connection reused for multiple requests</text>
+</svg>

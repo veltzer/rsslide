@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <rect x="40" y="40" width="1200" height="128.8889" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="85.1111" text-anchor="middle" font-size="26.9258" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Application Layer</text>
+  <text x="640" y="117.3333" text-anchor="middle" font-size="20.1944" fill="var(--text-muted)" font-family="Arial, sans-serif">Network monitoring, load balancing, firewalls</text>
+  <text x="640" y="144.7222" text-anchor="middle" font-size="20.1944" fill="var(--text-muted)" font-family="Arial, sans-serif">Traffic engineering, policy management</text>
+  <rect x="140" y="185" width="1000" height="56.3889" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="222.0556" text-anchor="middle" font-size="21.8772" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Northbound API (REST, gRPC)</text>
+  <line x1="640" y1="168.8889" x2="640" y2="185" stroke="var(--primary-border)" stroke-width="2"/>
+  <rect x="40" y="257.5" width="1200" height="145" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="302.6111" text-anchor="middle" font-size="26.9258" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Control Layer</text>
+  <text x="640" y="334.8333" text-anchor="middle" font-size="20.1944" fill="var(--text-muted)" font-family="Arial, sans-serif">SDN Controller (ONOS, OpenDaylight, Floodlight)</text>
+  <text x="640" y="367.0556" text-anchor="middle" font-size="20.1944" fill="var(--text-muted)" font-family="Arial, sans-serif">Topology discovery, routing, policy engine</text>
+  <line x1="640" y1="241.3889" x2="640" y2="257.5" stroke="var(--primary-border)" stroke-width="2"/>
+  <rect x="140" y="418.6111" width="1000" height="56.3889" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="455.6667" text-anchor="middle" font-size="21.8772" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Southbound API (OpenFlow, P4, NETCONF)</text>
+  <line x1="640" y1="402.5" x2="640" y2="418.6111" stroke="var(--primary-border)" stroke-width="2"/>
+  <rect x="40" y="491.1111" width="1200" height="128.8889" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="536.2222" text-anchor="middle" font-size="26.9258" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Data Layer</text>
+  <text x="640" y="568.4444" text-anchor="middle" font-size="20.1944" fill="var(--text-muted)" font-family="Arial, sans-serif">Physical/virtual switches and routers</text>
+  <text x="640" y="595.8333" text-anchor="middle" font-size="20.1944" fill="var(--text-muted)" font-family="Arial, sans-serif">Forwarding based on flow tables</text>
+  <line x1="640" y1="475" x2="640" y2="491.1111" stroke="var(--primary-border)" stroke-width="2"/>
+  <polygon points="630,257.5 640,246.2222 650,257.5" fill="var(--primary-fill)"/>
+  <polygon points="630,491.1111 640,479.8333 650,491.1111" fill="var(--primary-fill)"/>
+</svg>

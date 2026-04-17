@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <text x="255.3846" y="40" text-anchor="middle" font-size="25.2803" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Traditional Network</text>
+  <text x="886.1539" y="40" text-anchor="middle" font-size="25.2803" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">SDN</text>
+  <rect x="40" y="81.7265" width="153.8462" height="146.0432" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="116.9231" y="133.8849" text-anchor="middle" font-size="18.9602" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Switch</text>
+  <text x="116.9231" y="171.4389" text-anchor="middle" font-size="17.3803" fill="var(--text-muted)" font-family="Arial, sans-serif">Control</text>
+  <text x="116.9231" y="202.7338" text-anchor="middle" font-size="17.3803" fill="var(--text-muted)" font-family="Arial, sans-serif">+ Data</text>
+  <rect x="224.6154" y="81.7265" width="153.8462" height="146.0432" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="301.5385" y="133.8849" text-anchor="middle" font-size="18.9602" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Switch</text>
+  <text x="301.5385" y="171.4389" text-anchor="middle" font-size="17.3803" fill="var(--text-muted)" font-family="Arial, sans-serif">Control</text>
+  <text x="301.5385" y="202.7338" text-anchor="middle" font-size="17.3803" fill="var(--text-muted)" font-family="Arial, sans-serif">+ Data</text>
+  <rect x="409.2308" y="81.7265" width="153.8462" height="146.0432" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="486.1538" y="133.8849" text-anchor="middle" font-size="18.9602" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Switch</text>
+  <text x="486.1538" y="171.4389" text-anchor="middle" font-size="17.3803" fill="var(--text-muted)" font-family="Arial, sans-serif">Control</text>
+  <text x="486.1538" y="202.7338" text-anchor="middle" font-size="17.3803" fill="var(--text-muted)" font-family="Arial, sans-serif">+ Data</text>
+  <text x="255.3846" y="300.7913" text-anchor="middle" font-size="18.9602" fill="var(--text-muted)" font-family="Arial, sans-serif">Each switch makes its own</text>
+  <text x="255.3846" y="338.3453" text-anchor="middle" font-size="18.9602" fill="var(--text-muted)" font-family="Arial, sans-serif">forwarding decisions independently</text>
+  <rect x="686.1539" y="81.7265" width="400" height="146.0432" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="886.1539" y="133.8849" text-anchor="middle" font-size="22.1203" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">SDN Controller</text>
+  <text x="886.1539" y="175.6116" text-anchor="middle" font-size="18.9602" fill="var(--text-muted)" font-family="Arial, sans-serif">(centralized control plane)</text>
+  <line x1="778.4616" y1="227.7697" x2="778.4616" y2="384.2445" stroke="var(--primary-border)" stroke-width="2"/>
+  <line x1="886.1539" y1="227.7697" x2="886.1539" y2="384.2445" stroke="var(--primary-border)" stroke-width="2"/>
+  <line x1="993.8461" y1="227.7697" x2="993.8461" y2="384.2445" stroke="var(--primary-border)" stroke-width="2"/>
+  <rect x="686.1539" y="384.2445" width="169.2308" height="125.1798" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="770.7693" y="436.4029" text-anchor="middle" font-size="18.9602" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Switch</text>
+  <text x="770.7693" y="478.1295" text-anchor="middle" font-size="17.3803" fill="var(--text-muted)" font-family="Arial, sans-serif">(data only)</text>
+  <rect x="878.4616" y="384.2445" width="169.2308" height="125.1798" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="963.0769" y="436.4029" text-anchor="middle" font-size="18.9602" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Switch</text>
+  <text x="963.0769" y="478.1295" text-anchor="middle" font-size="17.3803" fill="var(--text-muted)" font-family="Arial, sans-serif">(data only)</text>
+  <rect x="1070.7692" y="384.2445" width="169.2308" height="125.1798" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1155.3846" y="436.4029" text-anchor="middle" font-size="18.9602" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Switch</text>
+  <text x="1155.3846" y="478.1295" text-anchor="middle" font-size="17.3803" fill="var(--text-muted)" font-family="Arial, sans-serif">(data only)</text>
+  <text x="963.0769" y="582.446" text-anchor="middle" font-size="18.9602" fill="var(--text-muted)" font-family="Arial, sans-serif">Switches forward packets based</text>
+  <text x="963.0769" y="620" text-anchor="middle" font-size="18.9602" fill="var(--text-muted)" font-family="Arial, sans-serif">on controller instructions</text>
+</svg>

@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <text x="640" y="40" text-anchor="middle" font-size="26.821872" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Certificates and the PKI Chain of Trust</text>
+  <rect x="40" y="71.926606" width="385" height="404.40367" rx="6.189663" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="232" y="135.779817" text-anchor="middle" font-size="26.821872" font-weight="bold" fill="var(--warn-text)" font-family="Arial, sans-serif">Root CA</text>
+  <text x="232" y="210.275229" text-anchor="middle" font-size="18.568989" fill="var(--warn-text)" font-family="Arial, sans-serif">Self-signed</text>
+  <text x="232" y="258.165138" text-anchor="middle" font-size="18.568989" fill="var(--warn-text)" font-family="Arial, sans-serif">Embedded in OS</text>
+  <text x="232" y="306.055046" text-anchor="middle" font-size="18.568989" fill="var(--warn-text)" font-family="Arial, sans-serif">and browser stores</text>
+  <text x="232" y="391.192661" text-anchor="middle" font-size="16.505768" fill="var(--warn-text)" font-family="Arial, sans-serif">e.g., DigiCert</text>
+  <rect x="445" y="71.926606" width="385" height="404.40367" rx="6.189663" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="637" y="135.779817" text-anchor="middle" font-size="26.821872" font-weight="bold" fill="var(--primary-text)" font-family="Arial, sans-serif">Intermediate CA</text>
+  <text x="637" y="210.275229" text-anchor="middle" font-size="18.568989" fill="var(--primary-text)" font-family="Arial, sans-serif">Signed by Root</text>
+  <text x="637" y="258.165138" text-anchor="middle" font-size="18.568989" fill="var(--primary-text)" font-family="Arial, sans-serif">Issues end-entity</text>
+  <text x="637" y="306.055046" text-anchor="middle" font-size="18.568989" fill="var(--primary-text)" font-family="Arial, sans-serif">certificates</text>
+  <text x="637" y="391.192661" text-anchor="middle" font-size="16.505768" fill="var(--primary-text)" font-family="Arial, sans-serif">e.g., Let's Encrypt</text>
+  <rect x="850" y="71.926606" width="385" height="404.40367" rx="6.189663" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1042" y="135.779817" text-anchor="middle" font-size="26.821872" font-weight="bold" fill="var(--ok-text)" font-family="Arial, sans-serif">Server Cert</text>
+  <text x="1042" y="210.275229" text-anchor="middle" font-size="18.568989" fill="var(--ok-text)" font-family="Arial, sans-serif">Signed by</text>
+  <text x="1042" y="258.165138" text-anchor="middle" font-size="18.568989" fill="var(--ok-text)" font-family="Arial, sans-serif">Intermediate CA</text>
+  <text x="1042" y="306.055046" text-anchor="middle" font-size="18.568989" fill="var(--ok-text)" font-family="Arial, sans-serif">Domain, key, validity</text>
+  <text x="1042" y="391.192661" text-anchor="middle" font-size="16.505768" fill="var(--ok-text)" font-family="Arial, sans-serif">e.g., example.com</text>
+  <line x1="425" y1="274.12844" x2="445" y2="274.12844" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="435" y="258.165138" text-anchor="middle" font-size="14.442547" fill="var(--text-muted)" font-family="Arial, sans-serif">signs</text>
+  <line x1="830" y1="274.12844" x2="850" y2="274.12844" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="840" y="258.165138" text-anchor="middle" font-size="14.442547" fill="var(--text-muted)" font-family="Arial, sans-serif">signs</text>
+  <rect x="40" y="497.614679" width="1200" height="122.385321" rx="6.189663" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+  <text x="640" y="540.183486" text-anchor="middle" font-size="18.568989" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Browser verifies chain: Server -&gt; Intermediate -&gt; Root</text>
+  <text x="640" y="575.302752" text-anchor="middle" font-size="15.474157" fill="var(--text-muted)" font-family="Arial, sans-serif">Trust the root once; every descendant cert is trusted automatically.</text>
+  <text x="640" y="604.036697" text-anchor="middle" font-size="15.474157" fill="var(--text-muted)" font-family="Arial, sans-serif">Compromise of any CA in the path breaks every cert below it.</text>
+</svg>

@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <rect x="40" y="40" width="266.6666" height="76.3158" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="173.3334" y="91.8947" text-anchor="middle" font-size="24.1597" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Client</text>
+  <rect x="973.3334" y="40" width="266.6666" height="76.3158" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="1106.6668" y="91.8947" text-anchor="middle" font-size="24.1597" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Server</text>
+  <line x1="173.3334" y1="131.5789" x2="173.3334" y2="620" stroke="var(--border)" stroke-width="2"/>
+  <line x1="1106.6668" y1="131.5789" x2="1106.6668" y2="620" stroke="var(--border)" stroke-width="2"/>
+  <line x1="173.3334" y1="177.3684" x2="1106.6668" y2="201.7895" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <text x="640.0001" y="165.1579" text-anchor="middle" font-size="21.9634" fill="var(--primary-accent)" font-family="Arial, sans-serif">GET /index.html (Stream 1)</text>
+  <line x1="1106.6668" y1="244.5263" x2="173.3334" y2="268.9473" stroke="var(--ok-border)" stroke-width="2" stroke-dasharray="7.7796 5.8348" marker-end="url(#arrow-ok)"/>
+  <text x="640.0001" y="244.5263" text-anchor="middle" font-size="21.9634" fill="var(--ok-accent)" font-family="Arial, sans-serif">200 OK + HTML (Stream 1)</text>
+  <line x1="1106.6668" y1="314.7368" x2="173.3334" y2="339.1579" stroke="var(--info-border)" stroke-width="2" marker-end="url(#arrow-info)"/>
+  <text x="640.0001" y="314.7368" text-anchor="middle" font-size="21.9634" fill="var(--info-accent)" font-family="Arial, sans-serif">PUSH_PROMISE: /style.css (Stream 2)</text>
+  <line x1="1106.6668" y1="384.9474" x2="173.3334" y2="409.3684" stroke="var(--info-border)" stroke-width="2" stroke-dasharray="7.7796 5.8348" marker-end="url(#arrow-info)"/>
+  <text x="640.0001" y="384.9474" text-anchor="middle" font-size="21.9634" fill="var(--info-accent)" font-family="Arial, sans-serif">Push: style.css data (Stream 2)</text>
+  <line x1="1106.6668" y1="455.1579" x2="173.3334" y2="479.5789" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <text x="640.0001" y="455.1579" text-anchor="middle" font-size="21.9634" fill="var(--danger-accent)" font-family="Arial, sans-serif">PUSH_PROMISE: /app.js (Stream 4)</text>
+  <line x1="1106.6668" y1="525.3684" x2="173.3334" y2="549.7894" stroke="var(--danger-border)" stroke-width="2" stroke-dasharray="7.7796 5.8348" marker-end="url(#arrow-danger)"/>
+  <text x="640.0001" y="525.3684" text-anchor="middle" font-size="21.9634" fill="var(--danger-accent)" font-family="Arial, sans-serif">Push: app.js data (Stream 4)</text>
+  <text x="640.0001" y="610.8421" text-anchor="middle" font-size="21.9634" fill="var(--text-muted)" font-family="Arial, sans-serif">Server proactively sends resources before client requests them</text>
+</svg>

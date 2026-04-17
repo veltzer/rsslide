@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <text x="640" y="40" text-anchor="middle" font-size="34.7111" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Man-in-the-Middle (MITM) Attack</text>
+  <rect x="40" y="166.087" width="270.9678" height="201.7391" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="175.4839" y="254.3478" text-anchor="middle" font-size="28.9259" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Client</text>
+  <text x="175.4839" y="330" text-anchor="middle" font-size="21.2123" fill="var(--text-muted)" font-family="Arial, sans-serif">Thinks it talks</text>
+  <text x="175.4839" y="367.8261" text-anchor="middle" font-size="21.2123" fill="var(--text-muted)" font-family="Arial, sans-serif">to the server</text>
+  <rect x="485.1613" y="166.087" width="309.6774" height="201.7391" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="254.3478" text-anchor="middle" font-size="28.9259" font-weight="bold" fill="var(--danger-accent)" font-family="Arial, sans-serif">Attacker</text>
+  <text x="640" y="317.3913" text-anchor="middle" font-size="21.2123" fill="var(--text-muted)" font-family="Arial, sans-serif">Intercepts &amp; modifies</text>
+  <text x="640" y="355.2174" text-anchor="middle" font-size="21.2123" fill="var(--text-muted)" font-family="Arial, sans-serif">all traffic</text>
+  <rect x="969.0322" y="166.087" width="270.9678" height="201.7391" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1104.5161" y="254.3478" text-anchor="middle" font-size="28.9259" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Server</text>
+  <line x1="310.9678" y1="216.5217" x2="485.1613" y2="216.5217" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <line x1="485.1613" y1="317.3913" x2="310.9678" y2="317.3913" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <line x1="794.8387" y1="216.5217" x2="969.0322" y2="216.5217" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <line x1="969.0322" y1="317.3913" x2="794.8387" y2="317.3913" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <rect x="252.9032" y="493.913" width="774.1936" height="126.087" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="569.5652" text-anchor="middle" font-size="25.0691" fill="var(--danger-accent)" font-weight="bold" font-family="Arial, sans-serif">TLS/HTTPS prevents MITM by authenticating the server</text>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+</svg>

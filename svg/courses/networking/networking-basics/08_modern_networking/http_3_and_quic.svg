@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <text x="184.3609" y="40" text-anchor="middle" font-size="25.3642" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">HTTP/1.1 + TLS</text>
+  <rect x="40" y="69.4916" width="288.7218" height="88.4746" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="184.3609" y="124.5423" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">HTTP/1.1</text>
+  <rect x="40" y="157.9661" width="288.7218" height="88.4746" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="184.3609" y="213.017" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">TLS</text>
+  <rect x="40" y="246.4407" width="288.7218" height="88.4746" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="184.3609" y="301.4915" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">TCP</text>
+  <rect x="40" y="334.9153" width="288.7218" height="88.4746" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="184.3609" y="389.9661" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">IP</text>
+  <rect x="40" y="462.7118" width="288.7218" height="78.644" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="184.3609" y="511.8644" text-anchor="middle" font-size="20.2913" fill="var(--danger-accent)" font-family="Arial, sans-serif">3 RTT to first data</text>
+  <text x="644.5112" y="40" text-anchor="middle" font-size="25.3642" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">HTTP/2 + TLS</text>
+  <rect x="500.1504" y="69.4916" width="288.7218" height="88.4746" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="644.5112" y="124.5423" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">HTTP/2</text>
+  <rect x="500.1504" y="157.9661" width="288.7218" height="88.4746" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="644.5112" y="213.017" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">TLS</text>
+  <rect x="500.1504" y="246.4407" width="288.7218" height="88.4746" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="644.5112" y="301.4915" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">TCP</text>
+  <rect x="500.1504" y="334.9153" width="288.7218" height="88.4746" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="644.5112" y="389.9661" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">IP</text>
+  <rect x="500.1504" y="462.7118" width="288.7218" height="78.644" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="644.5112" y="511.8644" text-anchor="middle" font-size="20.2913" fill="var(--danger-accent)" font-family="Arial, sans-serif">3 RTT to first data</text>
+  <text x="1095.6391" y="40" text-anchor="middle" font-size="25.3642" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">HTTP/3 + QUIC</text>
+  <rect x="951.2782" y="69.4916" width="288.7218" height="88.4746" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1095.6391" y="124.5423" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">HTTP/3</text>
+  <rect x="951.2782" y="157.9661" width="288.7218" height="157.2882" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1095.6391" y="213.017" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">QUIC</text>
+  <text x="1095.6391" y="256.2712" text-anchor="middle" font-size="20.2913" fill="var(--text-muted)" font-family="Arial, sans-serif">(includes TLS 1.3)</text>
+  <rect x="951.2782" y="315.2542" width="288.7218" height="88.4746" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1095.6391" y="370.3051" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">UDP</text>
+  <rect x="951.2782" y="403.7288" width="288.7218" height="88.4746" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1095.6391" y="458.7796" text-anchor="middle" font-size="23.6732" fill="var(--text)" font-family="Arial, sans-serif">IP</text>
+  <rect x="951.2782" y="521.6949" width="288.7218" height="98.3051" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1095.6391" y="561.017" text-anchor="middle" font-size="20.2913" fill="var(--ok-accent)" font-family="Arial, sans-serif">1 RTT to first data</text>
+  <text x="1095.6391" y="600.339" text-anchor="middle" font-size="20.2913" fill="var(--ok-accent)" font-family="Arial, sans-serif">0 RTT on reconnect</text>
+</svg>

@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <text x="639.9999" y="40" text-anchor="middle" font-size="29.1188" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Troubleshooting Methodology</text>
+  <rect x="40" y="67.2941" width="1200" height="75.0588" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="94.5454" y="101.4118" font-size="22.6479" font-weight="bold" fill="var(--primary-accent)" font-family="Arial, sans-serif">1. Identify the problem</text>
+  <text x="94.5454" y="128.7059" font-size="19.4125" fill="var(--text-muted)" font-family="Arial, sans-serif">"What exactly isn't working?"</text>
+  <line x1="639.9999" y1="142.3529" x2="639.9999" y2="162.8235" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <rect x="40" y="162.8235" width="1200" height="75.0588" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="94.5454" y="196.9411" font-size="22.6479" font-weight="bold" fill="var(--ok-accent)" font-family="Arial, sans-serif">2. Gather information</text>
+  <text x="94.5454" y="224.2353" font-size="19.4125" fill="var(--text-muted)" font-family="Arial, sans-serif">Logs, error messages, recent changes</text>
+  <line x1="639.9999" y1="237.8823" x2="639.9999" y2="258.3529" stroke="var(--ok-border)" stroke-width="2" marker-end="url(#arrow-ok)"/>
+  <rect x="40" y="258.3529" width="1200" height="75.0588" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="94.5454" y="292.4706" font-size="22.6479" font-weight="bold" fill="var(--danger-accent)" font-family="Arial, sans-serif">3. Test layer by layer (bottom-up)</text>
+  <text x="94.5454" y="319.7648" font-size="19.4125" fill="var(--text-muted)" font-family="Arial, sans-serif">Physical -&gt; Link -&gt; Network -&gt; Transport -&gt; Application</text>
+  <line x1="639.9999" y1="333.4118" x2="639.9999" y2="353.8824" stroke="var(--warn-border)" stroke-width="2" marker-end="url(#arrow-warn)"/>
+  <rect x="40" y="353.8824" width="1200" height="75.0588" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="94.5454" y="388" font-size="22.6479" font-weight="bold" fill="var(--primary-accent)" font-family="Arial, sans-serif">4. Isolate the cause</text>
+  <text x="94.5454" y="415.2941" font-size="19.4125" fill="var(--text-muted)" font-family="Arial, sans-serif">Narrow down: local? network? remote?</text>
+  <line x1="639.9999" y1="428.9412" x2="639.9999" y2="449.4117" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <rect x="40" y="449.4117" width="1200" height="75.0588" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="94.5454" y="483.5295" font-size="22.6479" font-weight="bold" fill="var(--ok-accent)" font-family="Arial, sans-serif">5. Fix and verify</text>
+  <text x="94.5454" y="510.8235" font-size="19.4125" fill="var(--text-muted)" font-family="Arial, sans-serif">Apply fix, confirm it works</text>
+  <line x1="639.9999" y1="524.4706" x2="639.9999" y2="544.9412" stroke="var(--ok-border)" stroke-width="2" marker-end="url(#arrow-ok)"/>
+  <rect x="40" y="544.9412" width="1200" height="75.0588" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="94.5454" y="579.0588" font-size="22.6479" font-weight="bold" fill="var(--danger-accent)" font-family="Arial, sans-serif">6. Document</text>
+  <text x="94.5454" y="606.353" font-size="19.4125" fill="var(--text-muted)" font-family="Arial, sans-serif">Record the problem and solution</text>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+</svg>

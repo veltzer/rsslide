@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+
+  <text x="640" y="40" text-anchor="middle" font-size="30.319058" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">NS Records: Delegation Chain</text>
+
+  <!-- Left column: zone boxes -->
+  <rect x="40" y="83.773585" width="385.714286" height="98.490566" rx="6.496941" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="232.857143" y="122.075472" text-anchor="middle" font-size="23.822117" font-weight="bold" fill="var(--primary-text)" font-family="Arial, sans-serif">Root (.)</text>
+  <text x="232.857143" y="158.188679" text-anchor="middle" font-size="17.325176" fill="var(--primary-text)" font-family="Arial, sans-serif">13 root servers (a–m.root-servers.net)</text>
+
+  <rect x="40" y="226.037736" width="385.714286" height="98.490566" rx="6.496941" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="232.857143" y="264.339623" text-anchor="middle" font-size="23.822117" font-weight="bold" fill="var(--primary-text)" font-family="Arial, sans-serif">.com TLD</text>
+  <text x="232.857143" y="300.45283" text-anchor="middle" font-size="17.325176" fill="var(--primary-text)" font-family="Arial, sans-serif">Verisign gTLD name servers</text>
+
+  <rect x="40" y="368.301887" width="385.714286" height="98.490566" rx="6.496941" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="232.857143" y="406.603774" text-anchor="middle" font-size="23.822117" font-weight="bold" fill="var(--primary-text)" font-family="Arial, sans-serif">example.com</text>
+  <text x="232.857143" y="442.716981" text-anchor="middle" font-size="17.325176" fill="var(--primary-text)" font-family="Arial, sans-serif">Authoritative zone</text>
+
+  <rect x="40" y="510.566038" width="385.714286" height="109.433962" rx="6.496941" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="232.857143" y="548.867925" text-anchor="middle" font-size="21.65647" font-weight="bold" fill="var(--ok-text)" font-family="Arial, sans-serif">Answer returned</text>
+  <text x="232.857143" y="581.698113" text-anchor="middle" font-size="17.325176" fill="var(--ok-text)" font-family="Arial, sans-serif">a.iana-servers.net</text>
+  <text x="232.857143" y="606.867925" text-anchor="middle" font-size="17.325176" fill="var(--ok-text)" font-family="Arial, sans-serif">b.iana-servers.net</text>
+
+  <line x1="232.857143" y1="182.264151" x2="232.857143" y2="226.037736" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="232.857143" y1="324.528302" x2="232.857143" y2="368.301887" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="232.857143" y1="466.792453" x2="232.857143" y2="510.566038" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Right column: messages -->
+  <rect x="490" y="83.773585" width="750" height="98.490566" rx="6.496941" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+  <text x="511.428571" y="122.075472" font-size="19.490823" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Query: "Who handles .com?"</text>
+  <text x="511.428571" y="154.90566" font-size="17.325176" fill="var(--text-muted)" font-family="Arial, sans-serif">Root refers resolver to the .com TLD name servers via NS records.</text>
+
+  <rect x="490" y="226.037736" width="750" height="98.490566" rx="6.496941" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+  <text x="511.428571" y="264.339623" font-size="19.490823" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Query: "Who handles example.com?"</text>
+  <text x="511.428571" y="297.169811" font-size="17.325176" fill="var(--text-muted)" font-family="Arial, sans-serif">.com TLD returns NS records pointing to the zone's authoritative servers.</text>
+
+  <rect x="490" y="368.301887" width="750" height="98.490566" rx="6.496941" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+  <text x="511.428571" y="406.603774" font-size="19.490823" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Response: "I am authoritative"</text>
+  <text x="511.428571" y="439.433962" font-size="17.325176" fill="var(--text-muted)" font-family="Arial, sans-serif">Authoritative server answers with the actual record (A, MX, etc.).</text>
+
+  <rect x="490" y="510.566038" width="750" height="109.433962" rx="6.496941" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+  <text x="511.428571" y="548.867925" font-size="19.490823" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">NS record format</text>
+  <text x="511.428571" y="581.698113" font-size="17.325176" fill="var(--text-muted)" font-family="Courier New, monospace">example.com.  IN  NS  a.iana-servers.net.</text>
+  <text x="511.428571" y="606.867925" font-size="17.325176" fill="var(--text-muted)" font-family="Courier New, monospace">example.com.  IN  NS  b.iana-servers.net.</text>
+</svg>

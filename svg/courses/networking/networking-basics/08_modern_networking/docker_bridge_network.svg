@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <text x="640" y="40" text-anchor="middle" font-size="24.6107" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Docker Bridge Network</text>
+  <rect x="40" y="61.4814" width="1200" height="558.5186" rx="6" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+  <text x="640" y="97.284" text-anchor="middle" font-size="21.5344" font-weight="bold" fill="var(--primary-accent)" font-family="Arial, sans-serif">Host Machine</text>
+  <rect x="109.2308" y="125.9259" width="300" height="114.5679" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="259.2307" y="161.7284" text-anchor="middle" font-size="18.4581" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Container</text>
+  <text x="259.2307" y="186.0741" text-anchor="middle" font-size="16.9199" fill="var(--text-muted)" font-family="Arial, sans-serif">App A</text>
+  <text x="259.2307" y="210.4198" text-anchor="middle" font-size="15.3817" fill="var(--primary-accent)" font-family="Arial, sans-serif">172.17.0.2</text>
+  <rect x="478.4616" y="125.9259" width="300" height="114.5679" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="628.4615" y="161.7284" text-anchor="middle" font-size="18.4581" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Container</text>
+  <text x="628.4615" y="186.0741" text-anchor="middle" font-size="16.9199" fill="var(--text-muted)" font-family="Arial, sans-serif">App B</text>
+  <text x="628.4615" y="210.4198" text-anchor="middle" font-size="15.3817" fill="var(--primary-accent)" font-family="Arial, sans-serif">172.17.0.3</text>
+  <rect x="847.6924" y="125.9259" width="300" height="114.5679" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="997.6923" y="161.7284" text-anchor="middle" font-size="18.4581" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Container</text>
+  <text x="997.6923" y="186.0741" text-anchor="middle" font-size="16.9199" fill="var(--text-muted)" font-family="Arial, sans-serif">App C</text>
+  <text x="997.6923" y="210.4198" text-anchor="middle" font-size="15.3817" fill="var(--primary-accent)" font-family="Arial, sans-serif">172.17.0.4</text>
+  <line x1="259.2307" y1="240.4938" x2="259.2307" y2="297.7778" stroke="var(--primary-border)" stroke-width="2"/>
+  <line x1="628.4615" y1="240.4938" x2="628.4615" y2="297.7778" stroke="var(--primary-border)" stroke-width="2"/>
+  <line x1="997.6923" y1="240.4938" x2="997.6923" y2="297.7778" stroke="var(--primary-border)" stroke-width="2"/>
+  <rect x="109.2308" y="297.7778" width="1061.5384" height="64.4445" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="326.4197" text-anchor="middle" font-size="19.9962" font-weight="bold" fill="var(--ok-accent)" font-family="Arial, sans-serif">docker0 bridge</text>
+  <text x="640" y="350.7655" text-anchor="middle" font-size="16.9199" fill="var(--text-muted)" font-family="Arial, sans-serif">172.17.0.1</text>
+  <line x1="640" y1="362.2222" x2="640" y2="412.3457" stroke="var(--text)" stroke-width="2"/>
+  <text x="778.4616" y="398.0248" font-size="15.3817" fill="var(--text-muted)" font-family="Arial, sans-serif">iptables NAT</text>
+  <rect x="109.2308" y="412.3457" width="1061.5384" height="64.4445" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="440.9877" text-anchor="middle" font-size="19.9962" font-weight="bold" fill="var(--danger-accent)" font-family="Arial, sans-serif">eth0 (host interface)</text>
+  <text x="640" y="465.3334" text-anchor="middle" font-size="16.9199" fill="var(--text-muted)" font-family="Arial, sans-serif">10.0.0.5</text>
+  <line x1="640" y1="476.7901" x2="640" y2="534.0741" stroke="var(--text)" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="640" y="562.7161" text-anchor="middle" font-size="18.4581" fill="var(--text-muted)" font-family="Arial, sans-serif">External Network</text>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+</svg>

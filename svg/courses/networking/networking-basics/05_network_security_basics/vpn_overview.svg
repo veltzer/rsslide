@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <text x="631.4286" y="40" text-anchor="middle" font-size="30.1129" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">VPN Overview</text>
+  <text x="631.4286" y="94.3751" text-anchor="middle" font-size="25.0941" font-weight="bold" fill="var(--danger-accent)" font-family="Arial, sans-serif">Without VPN</text>
+  <rect x="40" y="112.5" width="188.5714" height="90.6249" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="134.2857" y="166.8751" text-anchor="middle" font-size="21.7482" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Client</text>
+  <line x1="228.5714" y1="157.8125" x2="331.4285" y2="157.8125" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <rect x="331.4285" y="112.5" width="222.8572" height="90.6249" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="442.8572" y="148.75" text-anchor="middle" font-size="20.0753" font-weight="bold" fill="var(--danger-accent)" font-family="Arial, sans-serif">ISP</text>
+  <text x="442.8572" y="181.375" text-anchor="middle" font-size="16.7294" fill="var(--text-muted)" font-family="Arial, sans-serif">Can see traffic</text>
+  <line x1="554.2857" y1="157.8125" x2="639.9999" y2="157.8125" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <rect x="639.9999" y="112.5" width="240" height="90.6249" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="759.9999" y="148.75" text-anchor="middle" font-size="20.0753" font-weight="bold" fill="var(--danger-accent)" font-family="Arial, sans-serif">Internet</text>
+  <text x="759.9999" y="181.375" text-anchor="middle" font-size="16.7294" fill="var(--text-muted)" font-family="Arial, sans-serif">Can see traffic</text>
+  <line x1="880" y1="157.8125" x2="982.8572" y2="157.8125" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <rect x="982.8572" y="112.5" width="188.5714" height="90.6249" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1077.1428" y="166.8751" text-anchor="middle" font-size="21.7482" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Server</text>
+  <text x="631.4286" y="293.7501" text-anchor="middle" font-size="25.0941" font-weight="bold" fill="var(--ok-accent)" font-family="Arial, sans-serif">With VPN</text>
+  <rect x="40" y="311.875" width="188.5714" height="90.6249" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="134.2857" y="366.25" text-anchor="middle" font-size="21.7482" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Client</text>
+  <line x1="228.5714" y1="357.1876" x2="331.4285" y2="357.1876" stroke="var(--ok-border)" stroke-width="2"/>
+  <rect x="331.4285" y="311.875" width="222.8572" height="90.6249" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="442.8572" y="348.125" text-anchor="middle" font-size="20.0753" font-weight="bold" fill="var(--ok-accent)" font-family="Arial, sans-serif">ISP</text>
+  <text x="442.8572" y="380.7499" text-anchor="middle" font-size="16.7294" fill="var(--text-muted)" font-family="Arial, sans-serif">Sees encrypted</text>
+  <line x1="554.2857" y1="357.1876" x2="639.9999" y2="357.1876" stroke="var(--ok-border)" stroke-width="2"/>
+  <rect x="639.9999" y="311.875" width="240" height="90.6249" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="759.9999" y="348.125" text-anchor="middle" font-size="20.0753" font-weight="bold" fill="var(--ok-accent)" font-family="Arial, sans-serif">Internet</text>
+  <text x="759.9999" y="380.7499" text-anchor="middle" font-size="16.7294" fill="var(--text-muted)" font-family="Arial, sans-serif">Sees encrypted</text>
+  <line x1="880" y1="357.1876" x2="982.8572" y2="357.1876" stroke="var(--ok-border)" stroke-width="2"/>
+  <rect x="982.8572" y="311.875" width="188.5714" height="90.6249" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1077.1428" y="348.125" text-anchor="middle" font-size="21.7482" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">VPN</text>
+  <text x="1077.1428" y="380.7499" text-anchor="middle" font-size="20.0753" fill="var(--text-muted)" font-family="Arial, sans-serif">Server</text>
+  <line x1="1171.4286" y1="357.1876" x2="1222.8571" y2="357.1876" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <text x="1240" y="366.25" font-size="18.4023" fill="var(--text-muted)" font-family="Arial, sans-serif">Server</text>
+  <rect x="194.2857" y="339.0625" width="805.7143" height="36.25" rx="6" fill="none" stroke="var(--border)" stroke-width="1" stroke-dasharray="13.1765 6.5883"/>
+  <rect x="331.4285" y="493.125" width="599.9999" height="126.875" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <line x1="365.7143" y1="538.4374" x2="468.5715" y2="538.4374" stroke="var(--ok-border)" stroke-width="2"/>
+  <text x="485.7142" y="545.6875" font-size="20.0753" fill="var(--text)" font-family="Arial, sans-serif">= Encrypted tunnel</text>
+  <line x1="365.7143" y1="583.75" x2="468.5715" y2="583.75" stroke="var(--danger-border)" stroke-width="2"/>
+  <text x="485.7142" y="590.9999" font-size="20.0753" fill="var(--text)" font-family="Arial, sans-serif">= Unprotected traffic</text>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+</svg>

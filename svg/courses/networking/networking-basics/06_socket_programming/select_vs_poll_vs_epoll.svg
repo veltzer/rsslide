@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <text x="640.0001" y="40" text-anchor="middle" font-size="23.3144" fill="var(--text)" font-weight="bold" font-family="Arial, sans-serif">I/O Multiplexing: select / poll / epoll</text>
+  <rect x="40" y="70.8876" width="1200" height="130.4142" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="176.3637" y="108.639" text-anchor="middle" font-size="21.6492" fill="var(--code-bg)" font-weight="bold" font-family="Arial, sans-serif">select()</text>
+  <line x1="312.7273" y1="77.7516" x2="312.7273" y2="194.4379" stroke="var(--text-faint)" stroke-width="1.5803"/>
+  <text x="330.9092" y="108.639" text-anchor="start" font-size="19.9838" fill="var(--text)" font-family="Arial, sans-serif">Pass ALL fds every time → kernel scans all → returns ready ones</text>
+  <text x="330.9092" y="139.5267" text-anchor="start" font-size="18.3185" fill="var(--text-muted)" font-family="Arial, sans-serif">Works on ~1024 fds max. O(n) scan per call.</text>
+  <rect x="40" y="208.1657" width="1200" height="130.4142" fill="url(#grad-info)" stroke="var(--info-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="176.3637" y="245.9172" text-anchor="middle" font-size="21.6492" fill="var(--code-bg)" font-weight="bold" font-family="Arial, sans-serif">poll()</text>
+  <line x1="312.7273" y1="215.0296" x2="312.7273" y2="331.7159" stroke="var(--text-faint)" stroke-width="1.5803"/>
+  <text x="330.9092" y="245.9172" text-anchor="start" font-size="19.9838" fill="var(--text)" font-family="Arial, sans-serif">Similar to select() but no fd limit.</text>
+  <text x="330.9092" y="276.8047" text-anchor="start" font-size="18.3185" fill="var(--text-muted)" font-family="Arial, sans-serif">Still O(n) — kernel scans the whole list each call.</text>
+  <rect x="40" y="345.4438" width="1200" height="130.4142" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="176.3637" y="383.1952" text-anchor="middle" font-size="21.6492" fill="var(--code-bg)" font-weight="bold" font-family="Arial, sans-serif">epoll()</text>
+  <line x1="312.7273" y1="352.3077" x2="312.7273" y2="468.9941" stroke="var(--text-faint)" stroke-width="1.5803"/>
+  <text x="330.9092" y="383.1952" text-anchor="start" font-size="19.9838" fill="var(--text)" font-family="Arial, sans-serif">Register fds once; kernel notifies only about ready fds.</text>
+  <text x="330.9092" y="414.0829" text-anchor="start" font-size="18.3185" fill="var(--text-muted)" font-family="Arial, sans-serif">O(1) for returning events. Scales to millions of connections.</text>
+  <rect x="167.2727" y="499.8816" width="945.4545" height="120.1184" fill="var(--text-muted)" stroke="var(--ok-border)" stroke-width="2.3703" rx="6"/>
+  <text x="640.0001" y="537.6332" text-anchor="middle" font-size="19.9838" fill="var(--ok-accent)" font-weight="bold" font-family="Arial, sans-serif">Kernel (epoll): monitors registered fds efficiently</text>
+  <text x="640.0001" y="575.3846" text-anchor="middle" font-size="18.3185" fill="var(--ok-accent)" font-family="Arial, sans-serif">Notifies userspace only about fds with actual events</text>
+</svg>

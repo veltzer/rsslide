@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+
+  <text x="640" y="40" text-anchor="middle" font-size="24.104121963933" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Interpreting MTR Results</text>
+
+  <rect x="40" y="65.217391304348" width="1200" height="116" rx="8.034707321311" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="70" y="100.521739130435" font-size="18.07809147295" font-weight="bold" fill="var(--ok-text)" font-family="Arial, sans-serif">Case 1: Loss at one hop, then clean</text>
+  <text x="70" y="130.782608695652" font-size="15.065076227458" fill="var(--ok-text)" font-family="Courier New, monospace">Hop3: 30%  Hop4: 0%  Hop5: 0%</text>
+  <text x="70" y="166.086956521739" font-size="15.065076227458" fill="var(--ok-text)" font-family="Arial, sans-serif">ICMP rate-limited - false alarm</text>
+
+  <rect x="40" y="194.330434782609" width="1200" height="116" rx="8.034707321311" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="70" y="229.634782608696" font-size="18.07809147295" font-weight="bold" fill="var(--danger-text)" font-family="Arial, sans-serif">Case 2: Loss persists past one hop</text>
+  <text x="70" y="259.895652173913" font-size="15.065076227458" fill="var(--danger-text)" font-family="Courier New, monospace">Hop3: 0%  Hop4: 20%  Hop5: 20%</text>
+  <text x="70" y="295.2" font-size="15.065076227458" fill="var(--danger-text)" font-family="Arial, sans-serif">Real loss between hops 3-4</text>
+
+  <rect x="40" y="323.44347826087" width="1200" height="116" rx="8.034707321311" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="70" y="358.747826086957" font-size="18.07809147295" font-weight="bold" fill="var(--warn-text)" font-family="Arial, sans-serif">Case 3: Latency spike</text>
+  <text x="70" y="389.008695652174" font-size="15.065076227458" fill="var(--warn-text)" font-family="Courier New, monospace">Hop3: 5ms  Hop4: 150ms  Hop5: 152ms</text>
+  <text x="70" y="424.313043478261" font-size="15.065076227458" fill="var(--warn-text)" font-family="Arial, sans-serif">Congestion or distant peering</text>
+
+  <rect x="40" y="452.55652173913" width="1200" height="116" rx="8.034707321311" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="70" y="487.860869565217" font-size="18.07809147295" font-weight="bold" fill="var(--primary-text)" font-family="Arial, sans-serif">Case 4: High jitter (StDev)</text>
+  <text x="70" y="518.121739130435" font-size="15.065076227458" fill="var(--primary-text)" font-family="Courier New, monospace">Avg=10  StDev=25  Worst=200</text>
+  <text x="70" y="553.426086956522" font-size="15.065076227458" fill="var(--primary-text)" font-family="Arial, sans-serif">Bufferbloat or wireless issues</text>
+
+  <rect x="190" y="579.652173913043" width="900" height="40.347826086957" rx="8.034707321311" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="606.886956521739" text-anchor="middle" font-size="15.065076227458" fill="var(--primary-text)" font-weight="bold" font-family="Arial, sans-serif">Look for patterns persisting across hops</text>
+</svg>

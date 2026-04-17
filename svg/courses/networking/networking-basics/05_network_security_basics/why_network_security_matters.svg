@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <text x="631.4286" y="40" text-anchor="middle" font-size="30.8265" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Why Network Security Matters</text>
+  <rect x="40" y="143.1111" width="188.5714" height="154.6667" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="134.2858" y="233.3333" text-anchor="middle" font-size="22.2636" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Client</text>
+  <line x1="228.5714" y1="220.4444" x2="322.8571" y2="220.4444" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <rect x="322.8571" y="143.1111" width="188.5714" height="154.6667" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="417.1429" y="220.4444" text-anchor="middle" font-size="20.551" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Your LAN</text>
+  <line x1="511.4285" y1="220.4444" x2="605.7143" y2="220.4444" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <rect x="605.7143" y="143.1111" width="171.4286" height="154.6667" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="691.4285" y="220.4444" text-anchor="middle" font-size="20.551" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">ISP</text>
+  <line x1="777.1428" y1="220.4444" x2="871.4285" y2="220.4444" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <rect x="871.4285" y="143.1111" width="188.5714" height="154.6667" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="965.7143" y="220.4444" text-anchor="middle" font-size="20.551" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Internet</text>
+  <line x1="1060" y1="220.4444" x2="1119.9999" y2="220.4444" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <rect x="1119.9999" y="143.1111" width="120.0001" height="154.6667" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1179.9999" y="233.3333" text-anchor="middle" font-size="22.2636" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Server</text>
+  <rect x="365.7143" y="349.3333" width="171.4286" height="90.2222" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="451.4286" y="406.0444" text-anchor="middle" font-size="18.8384" fill="var(--danger-accent)" font-weight="bold" font-family="Arial, sans-serif">Attacker</text>
+  <line x1="417.1429" y1="349.3333" x2="417.1429" y2="297.7777" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <rect x="639.9999" y="349.3333" width="171.4286" height="90.2222" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="725.7143" y="406.0444" text-anchor="middle" font-size="18.8384" fill="var(--danger-accent)" font-weight="bold" font-family="Arial, sans-serif">Attacker</text>
+  <line x1="691.4285" y1="349.3333" x2="691.4285" y2="297.7777" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <rect x="897.1428" y="349.3333" width="171.4286" height="90.2222" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="982.8572" y="406.0444" text-anchor="middle" font-size="18.8384" fill="var(--danger-accent)" font-weight="bold" font-family="Arial, sans-serif">Attacker</text>
+  <line x1="965.7143" y1="349.3333" x2="965.7143" y2="297.7777" stroke="var(--danger-border)" stroke-width="2" marker-end="url(#arrow-danger)"/>
+  <rect x="194.2857" y="504" width="874.2857" height="116" rx="6" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="631.4286" y="555.5555" text-anchor="middle" font-size="22.2636" fill="var(--text)" font-weight="bold" font-family="Arial, sans-serif">Attackers can sniff traffic at every hop along the path</text>
+  <text x="631.4286" y="601.9556" text-anchor="middle" font-size="20.551" fill="var(--text-muted)" font-family="Arial, sans-serif">Encryption (TLS/VPN) protects data in transit</text>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+</svg>

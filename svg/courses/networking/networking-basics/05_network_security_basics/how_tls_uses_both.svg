@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <text x="649.0908" y="40" text-anchor="middle" font-size="30.9894" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">How TLS Uses Both Encryption Types</text>
+  <text x="312.7273" y="120.2372" text-anchor="middle" font-size="24.1029" font-weight="bold" fill="var(--primary-accent)" font-family="Arial, sans-serif">Phase 1: Asymmetric (Key Exchange)</text>
+  <rect x="40" y="154.6245" width="218.1818" height="183.3992" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="149.0909" y="234.8617" text-anchor="middle" font-size="24.1029" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Client</text>
+  <text x="149.0909" y="292.174" text-anchor="middle" font-size="18.938" fill="var(--text-muted)" font-family="Arial, sans-serif">Public Key</text>
+  <line x1="258.1818" y1="223.3993" x2="349.0909" y2="223.3993" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <line x1="349.0909" y1="269.249" x2="258.1818" y2="269.249" stroke="var(--primary-border)" stroke-width="2" marker-end="url(#arrow-primary)"/>
+  <rect x="349.0909" y="154.6245" width="218.1818" height="183.3992" rx="6" fill="url(#grad-primary)" stroke="var(--primary-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="458.1817" y="234.8617" text-anchor="middle" font-size="24.1029" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Server</text>
+  <text x="458.1817" y="292.174" text-anchor="middle" font-size="18.938" fill="var(--text-muted)" font-family="Arial, sans-serif">Crypto</text>
+  <text x="312.7273" y="406.7984" text-anchor="middle" font-size="20.6596" fill="var(--text-muted)" font-family="Arial, sans-serif">Slow but solves key distribution</text>
+  <text x="985.4544" y="120.2372" text-anchor="middle" font-size="24.1029" font-weight="bold" fill="var(--ok-accent)" font-family="Arial, sans-serif">Phase 2: Symmetric (Bulk Data)</text>
+  <rect x="712.7271" y="154.6245" width="218.1818" height="183.3992" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="821.8181" y="234.8617" text-anchor="middle" font-size="24.1029" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Client</text>
+  <text x="821.8181" y="292.174" text-anchor="middle" font-size="18.938" fill="var(--text-muted)" font-family="Arial, sans-serif">Shared</text>
+  <line x1="930.909" y1="223.3993" x2="1021.8182" y2="223.3993" stroke="var(--ok-border)" stroke-width="2" marker-end="url(#arrow-ok)"/>
+  <line x1="1021.8182" y1="269.249" x2="930.909" y2="269.249" stroke="var(--ok-border)" stroke-width="2" marker-end="url(#arrow-ok)"/>
+  <rect x="1021.8182" y="154.6245" width="218.1818" height="183.3992" rx="6" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1130.9091" y="234.8617" text-anchor="middle" font-size="24.1029" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Server</text>
+  <text x="1130.9091" y="292.174" text-anchor="middle" font-size="18.938" fill="var(--text-muted)" font-family="Arial, sans-serif">Session Key</text>
+  <text x="985.4544" y="406.7984" text-anchor="middle" font-size="20.6596" fill="var(--text-muted)" font-family="Arial, sans-serif">Fast, used for all application data</text>
+  <line x1="567.2726" y1="246.3241" x2="712.7271" y2="246.3241" stroke="var(--warn-border)" stroke-width="2" stroke-dasharray="12.8653 6.4327"/>
+  <text x="639.9999" y="498.498" text-anchor="middle" font-size="22.3813" fill="var(--danger-accent)" font-weight="bold" font-family="Arial, sans-serif">Session key negotiated in Phase 1 is used in Phase 2</text>
+  <rect x="185.4545" y="539.7629" width="927.2727" height="80.2371" rx="6" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="649.0908" y="590.1976" text-anchor="middle" font-size="20.6596" fill="var(--text)" font-family="Arial, sans-serif">Combines security of asymmetric with speed of symmetric encryption</text>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+</svg>

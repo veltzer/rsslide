@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Arial, sans-serif" style="background:var(--bg)">
+  <metadata>
+    <type>regular</type>
+  </metadata>
+  <defs>
+    <style id="palette-vars">
+      :root, svg {
+        --bg: #ffffff;
+        --surface: #c4cdd6;
+        --border: #6b7280;
+        --text: #212121;
+        --text-muted: #555555;
+        --text-faint: #888888;
+        --code-bg: #1a1a2e;
+        --shadow: #00000044;
+        --black: #000000;
+        --primary-fill: #5a7a9c;
+        --primary-border: #3d5a7d;
+        --primary-text: #ffffff;
+        --primary-accent: #243b59;
+        --ok-fill: #7a9a6a;
+        --ok-border: #5a7a4d;
+        --ok-text: #ffffff;
+        --ok-accent: #385030;
+        --warn-fill: #c8924a;
+        --warn-border: #9c6e2e;
+        --warn-text: #ffffff;
+        --warn-accent: #5a3f12;
+        --danger-fill: #a86058;
+        --danger-border: #7d3f38;
+        --danger-text: #ffffff;
+        --danger-accent: #4a1f1a;
+        --info-fill: #7c6a8e;
+        --info-border: #574a68;
+        --info-text: #ffffff;
+        --info-accent: #2f253b;
+      }
+    </style>
+    <!-- Gradients -->
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7493b3"/>
+      <stop offset="100%" stop-color="#3d5a7d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4cdd6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-ok" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94b384"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+
+    <linearGradient id="grad-warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba868"/>
+      <stop offset="100%" stop-color="#9c6e2e"/>
+    </linearGradient>
+
+    <linearGradient id="grad-danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bd7d75"/>
+      <stop offset="100%" stop-color="#7d3f38"/>
+    </linearGradient>
+
+    <linearGradient id="grad-info" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9384a5"/>
+      <stop offset="100%" stop-color="#574a68"/>
+    </linearGradient>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-4%" y="-8%" width="108%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000044"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#555555"/>
+    </marker>
+    <marker id="arrow-primary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#3d5a7d"/>
+    </marker>
+    <marker id="arrow-ok" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#5a7a4d"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#9c6e2e"/>
+    </marker>
+    <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#7d3f38"/>
+    </marker>
+    <marker id="arrow-info" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#574a68"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,2 L9,5 L1,8 Z" fill="#ffffff"/>
+    </marker>
+  </defs>
+  <text x="640" y="40" text-anchor="middle" font-size="28.753498" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">DMZ: Demilitarized Zone</text>
+  <rect x="40" y="71.636364" width="300" height="548.363636" rx="6.161464" fill="url(#grad-danger)" stroke="var(--danger-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="190" y="124.363636" text-anchor="middle" font-size="24.645855" font-weight="bold" fill="var(--danger-text)" font-family="Arial, sans-serif">Internet</text>
+  <text x="190" y="177.090909" text-anchor="middle" font-size="16.43057" fill="var(--danger-text)" font-family="Arial, sans-serif">Untrusted</text>
+  <text x="190" y="219.272727" text-anchor="middle" font-size="16.43057" fill="var(--danger-text)" font-family="Arial, sans-serif">public traffic</text>
+  <text x="190" y="345.818182" text-anchor="middle" font-size="16.43057" fill="var(--danger-text)" font-family="Arial, sans-serif">browsers,</text>
+  <text x="190" y="377.454545" text-anchor="middle" font-size="16.43057" fill="var(--danger-text)" font-family="Arial, sans-serif">attackers,</text>
+  <text x="190" y="409.090909" text-anchor="middle" font-size="16.43057" fill="var(--danger-text)" font-family="Arial, sans-serif">scanners</text>
+  <line x1="340" y1="345.818182" x2="400" y2="345.818182" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="370" y="330" text-anchor="middle" font-size="12.322928" fill="var(--text-muted)" font-family="Arial, sans-serif">FW1</text>
+  <rect x="400" y="71.636364" width="480" height="548.363636" rx="6.161464" fill="url(#grad-warn)" stroke="var(--warn-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="124.363636" text-anchor="middle" font-size="24.645855" font-weight="bold" fill="var(--warn-text)" font-family="Arial, sans-serif">DMZ</text>
+  <text x="640" y="156" text-anchor="middle" font-size="14.376749" fill="var(--warn-text)" font-family="Arial, sans-serif">public-facing hosts</text>
+  <rect x="440" y="198.181818" width="400" height="105.454545" rx="6.161464" fill="var(--surface)" stroke="var(--warn-border)" stroke-width="2"/>
+  <text x="640" y="245.636364" text-anchor="middle" font-size="20.538213" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Web Server</text>
+  <text x="640" y="277.272727" text-anchor="middle" font-size="14.376749" fill="var(--text-muted)" font-family="Arial, sans-serif">exposed, hardened</text>
+  <rect x="440" y="345.818182" width="400" height="105.454545" rx="6.161464" fill="var(--surface)" stroke="var(--warn-border)" stroke-width="2"/>
+  <text x="640" y="393.272727" text-anchor="middle" font-size="20.538213" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">Mail Server</text>
+  <text x="640" y="424.909091" text-anchor="middle" font-size="14.376749" fill="var(--text-muted)" font-family="Arial, sans-serif">exposed, hardened</text>
+  <rect x="440" y="493.454545" width="400" height="105.454545" rx="6.161464" fill="var(--surface)" stroke="var(--warn-border)" stroke-width="2"/>
+  <text x="640" y="540.909091" text-anchor="middle" font-size="20.538213" font-weight="bold" fill="var(--text)" font-family="Arial, sans-serif">DNS Server</text>
+  <text x="640" y="572.545455" text-anchor="middle" font-size="14.376749" fill="var(--text-muted)" font-family="Arial, sans-serif">exposed, hardened</text>
+  <line x1="880" y1="345.818182" x2="940" y2="345.818182" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="910" y="330" text-anchor="middle" font-size="12.322928" fill="var(--text-muted)" font-family="Arial, sans-serif">FW2</text>
+  <rect x="940" y="71.636364" width="300" height="548.363636" rx="6.161464" fill="url(#grad-ok)" stroke="var(--ok-border)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1090" y="124.363636" text-anchor="middle" font-size="24.645855" font-weight="bold" fill="var(--ok-text)" font-family="Arial, sans-serif">Internal</text>
+  <text x="1090" y="156" text-anchor="middle" font-size="16.43057" fill="var(--ok-text)" font-family="Arial, sans-serif">Trusted LAN</text>
+  <text x="1090" y="240.363636" text-anchor="middle" font-size="16.43057" fill="var(--ok-text)" font-family="Arial, sans-serif">Databases</text>
+  <text x="1090" y="303.636364" text-anchor="middle" font-size="16.43057" fill="var(--ok-text)" font-family="Arial, sans-serif">App servers</text>
+  <text x="1090" y="366.909091" text-anchor="middle" font-size="16.43057" fill="var(--ok-text)" font-family="Arial, sans-serif">Workstations</text>
+  <text x="1090" y="451.272727" text-anchor="middle" font-size="14.376749" fill="var(--ok-text)" font-family="Arial, sans-serif">no direct</text>
+  <text x="1090" y="477.636364" text-anchor="middle" font-size="14.376749" fill="var(--ok-text)" font-family="Arial, sans-serif">internet access</text>
+</svg>
