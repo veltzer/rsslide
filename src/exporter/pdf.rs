@@ -53,6 +53,13 @@ const PT_PER_MM: f32 = 72.0 / 25.4;
 // Courier glyph advance = 0.6 × em
 const COURIER_CHAR_WIDTH_MM: f32 = 0.6 * CODE_FONT_SIZE * MM_PER_PT;
 
+/// Pre-resolve CSS `var(--x)` references in embedded SVGs before handing
+/// them to usvg. Works around a usvg 0.45 limitation where unresolved
+/// custom properties silently drop stroke/fill on that element (e.g. arrow
+/// lines vanish). Set to `false` to disable — the underlying usvg/krilla
+/// stack will then skip any CSS-var-dependent drawing.
+const FLATTEN_SVG_CSS_VARS: bool = true;
+
 struct Fonts {
     sans: Font,
     sans_bold: Font,
@@ -378,7 +385,14 @@ fn draw_svg_fixed_box(
         font_family: "sans-serif".into(),
         ..Default::default()
     };
-    let tree = match usvg::Tree::from_data(svg_str.as_bytes(), &opts) {
+    let flattened;
+    let svg_bytes: &[u8] = if FLATTEN_SVG_CSS_VARS {
+        flattened = crate::utils::css_vars::flatten(svg_str);
+        flattened.as_bytes()
+    } else {
+        svg_str.as_bytes()
+    };
+    let tree = match usvg::Tree::from_data(svg_bytes, &opts) {
         Ok(t) => t,
         Err(_) => return,
     };
@@ -416,7 +430,14 @@ fn render_svg(
         font_family: "sans-serif".into(),
         ..Default::default()
     };
-    let tree = usvg::Tree::from_data(svg_str.as_bytes(), &opts)
+    let flattened;
+    let svg_bytes: &[u8] = if FLATTEN_SVG_CSS_VARS {
+        flattened = crate::utils::css_vars::flatten(svg_str);
+        flattened.as_bytes()
+    } else {
+        svg_str.as_bytes()
+    };
+    let tree = usvg::Tree::from_data(svg_bytes, &opts)
         .map_err(|e| anyhow::anyhow!("failed to parse SVG: {e}"))?;
 
     let natural_w = tree.size().width();

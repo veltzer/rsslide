@@ -1,8 +1,9 @@
+mod assets;
 mod exporter;
 mod importer;
 mod model;
 mod parser;
-mod assets;
+mod utils;
 
 use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
