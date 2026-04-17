@@ -5,7 +5,7 @@ mod parser;
 mod assets;
 
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use std::fs;
 use std::path::PathBuf;
 
@@ -53,16 +53,27 @@ enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Print version information
+    Version,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    if let Some(Command::Import { input, output }) = cli.command {
-        return run_import(input, output);
+    match cli.command {
+        Some(Command::Import { input, output }) => return run_import(input, output),
+        Some(Command::Version) => {
+            print_version();
+            return Ok(());
+        }
+        None => {}
     }
 
-    let input = cli.input.context("missing input file")?;
+    let Some(input) = cli.input else {
+        Cli::command().print_help()?;
+        println!();
+        return Ok(());
+    };
     let input_str = fs::read_to_string(&input)
         .with_context(|| format!("Failed to read {}", input.display()))?;
 
@@ -96,6 +107,17 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn print_version() {
+    println!("rsslide {} by {}", env!("CARGO_PKG_VERSION"), env!("CARGO_PKG_AUTHORS"));
+    println!("GIT_DESCRIBE: {}", env!("GIT_DESCRIBE"));
+    println!("GIT_SHA: {}", env!("GIT_SHA"));
+    println!("GIT_BRANCH: {}", env!("GIT_BRANCH"));
+    println!("GIT_DIRTY: {}", env!("GIT_DIRTY"));
+    println!("RUSTC_SEMVER: {}", env!("RUSTC_SEMVER"));
+    println!("RUST_EDITION: {}", env!("RUST_EDITION"));
+    println!("BUILD_TIMESTAMP: {}", env!("BUILD_TIMESTAMP"));
 }
 
 fn run_import(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
