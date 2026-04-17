@@ -162,12 +162,11 @@ fn parse_slide(block: String) -> OutSlide {
             continue;
         }
 
-        if slide.title.is_none() {
-            if let Some(heading) = strip_heading(trimmed) {
+        if slide.title.is_none()
+            && let Some(heading) = strip_heading(trimmed) {
                 slide.title = Some(heading.to_string());
                 continue;
             }
-        }
 
         if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
             flush_paragraph(&mut paragraph, &mut slide.content_lines);
@@ -217,7 +216,7 @@ fn flush_paragraph(paragraph: &mut Vec<String>, out: &mut Vec<String>) {
     if !out.is_empty() {
         out.push(String::new());
     }
-    out.extend(paragraph.drain(..));
+    out.append(paragraph);
 }
 
 fn strip_heading(line: &str) -> Option<&str> {
@@ -341,7 +340,7 @@ fn emit_content(out: &mut String, lines: &[String]) {
         let line = &lines[0];
         if needs_block_scalar(line) {
             out.push_str("content: |-\n");
-            push_block_lines(out, &[line.clone()]);
+            push_block_lines(out, std::slice::from_ref(line));
         } else {
             out.push_str("content: ");
             out.push_str(&scalar(line));

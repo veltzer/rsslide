@@ -106,7 +106,7 @@ fn run_process(
 }
 
 fn run_generate(format: Format, paths: Vec<PathBuf>) -> Result<()> {
-    if paths.len() % 2 != 0 {
+    if !paths.len().is_multiple_of(2) {
         anyhow::bail!(
             "generate requires an even number of arguments (input/output pairs), got {}",
             paths.len()
@@ -148,7 +148,7 @@ fn print_version() {
 }
 
 fn run_import(paths: Vec<PathBuf>) -> Result<()> {
-    if paths.len() % 2 != 0 {
+    if !paths.len().is_multiple_of(2) {
         anyhow::bail!(
             "import requires an even number of arguments (input/output pairs), got {}",
             paths.len()
