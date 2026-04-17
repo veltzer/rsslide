@@ -1,8 +1,17 @@
-[processor.generator.rssslide]
+[processor.generator.generate]
 command = "rsslide"
 args = ["generate", "--format=pdf"]
-src_dirs = ["examples"]
+src_dirs = ["yaml"]
 src_extensions = [".yaml"]
-output_dir = "out"
+output_dir = "out/generate"
 output_extension = "pdf"
+batch = true
+
+[processor.generator.import]
+command = "rsslide"
+args = ["import"]
+src_dirs = ["marp"]
+src_extensions = [".md"]
+output_dir = "out/import"
+output_extension = "yaml"
 batch = true
