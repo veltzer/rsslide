@@ -3,6 +3,9 @@ name = "rsslide"
 version = "0.1.0"
 edition = "2024"
 authors = ["Mark Veltzer <mark.veltzer@gmail.com>"]
+description = "The ultimate slide builder"
+license = "MIT"
+repository = "https://github.com/veltzer/rsslide"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
