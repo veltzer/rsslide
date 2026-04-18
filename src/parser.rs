@@ -89,6 +89,50 @@ slides:
     }
 
     #[test]
+    fn parse_slide_with_table() {
+        let yaml = r#"
+slides:
+  - title: T
+    table:
+      headers: [A, B]
+      rows:
+        - [1, 2]
+        - [3, 4]
+"#;
+        let p = parse(yaml).unwrap();
+        let t = p.slides[0].table.as_ref().unwrap();
+        assert_eq!(t.headers, vec!["A".to_string(), "B".to_string()]);
+        assert_eq!(t.rows.len(), 2);
+        assert_eq!(t.aligns.len(), 2); // defaults to all-left
+    }
+
+    #[test]
+    fn parse_table_rejects_ragged_row() {
+        let yaml = r#"
+slides:
+  - table:
+      headers: [A, B]
+      rows:
+        - [1, 2]
+        - [3]
+"#;
+        let err = parse(yaml).unwrap_err();
+        assert!(err.to_string().contains("cells"), "{err}");
+    }
+
+    #[test]
+    fn parse_table_rejects_aligns_length_mismatch() {
+        let yaml = r#"
+slides:
+  - table:
+      headers: [A, B]
+      aligns: [left]
+      rows: []
+"#;
+        assert!(parse(yaml).is_err());
+    }
+
+    #[test]
     fn parse_invalid_yaml_returns_error() {
         let yaml = "slides: [{{{{";
         assert!(parse(yaml).is_err());

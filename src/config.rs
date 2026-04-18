@@ -51,6 +51,15 @@ padding_mm = 4.0
 icon_size_mm = 16.0
 icon_inset_mm = 2.0
 
+[table]
+# Grid tables. Header row uses the title font; body rows use the body font.
+# Cell contents must fit within the column width — overflow is a hard error.
+header_font_size_pt = 16.0
+cell_font_size_pt   = 14.0
+row_height_mm       = 8.0
+cell_padding_mm     = 2.0
+border_width_mm     = 0.2
+
 [svg]
 # Filter-effect rasterization detail. 2.0 is a good quality/speed tradeoff.
 # 4.0 is krilla-svg's default (crispest, slowest). 1.0 is fastest (softer).
@@ -86,6 +95,7 @@ pub struct Config {
     pub title: Title,
     pub body: Body,
     pub code: Code,
+    pub table: Table,
     pub svg: Svg,
     pub fonts: Fonts,
     pub colors: Colors,
@@ -125,6 +135,16 @@ pub struct Code {
     pub padding_mm: f32,
     pub icon_size_mm: f32,
     pub icon_inset_mm: f32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Table {
+    pub header_font_size_pt: f32,
+    pub cell_font_size_pt: f32,
+    pub row_height_mm: f32,
+    pub cell_padding_mm: f32,
+    pub border_width_mm: f32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -220,6 +240,18 @@ impl Default for Code {
             padding_mm: 4.0,
             icon_size_mm: 16.0,
             icon_inset_mm: 2.0,
+        }
+    }
+}
+
+impl Default for Table {
+    fn default() -> Self {
+        Self {
+            header_font_size_pt: 16.0,
+            cell_font_size_pt: 14.0,
+            row_height_mm: 8.0,
+            cell_padding_mm: 2.0,
+            border_width_mm: 0.2,
         }
     }
 }
@@ -349,6 +381,11 @@ mod tests {
         assert!((parsed.title.font_size_pt - def.title.font_size_pt).abs() < 0.001);
         assert!((parsed.body.font_size_pt - def.body.font_size_pt).abs() < 0.001);
         assert!((parsed.code.font_size_pt - def.code.font_size_pt).abs() < 0.001);
+        assert!((parsed.table.header_font_size_pt - def.table.header_font_size_pt).abs() < 0.001);
+        assert!((parsed.table.cell_font_size_pt - def.table.cell_font_size_pt).abs() < 0.001);
+        assert!((parsed.table.row_height_mm - def.table.row_height_mm).abs() < 0.001);
+        assert!((parsed.table.cell_padding_mm - def.table.cell_padding_mm).abs() < 0.001);
+        assert!((parsed.table.border_width_mm - def.table.border_width_mm).abs() < 0.001);
         assert!((parsed.svg.filter_scale - def.svg.filter_scale).abs() < 0.001);
         assert!((parsed.svg.top_gap_mm - def.svg.top_gap_mm).abs() < 0.001);
         assert!((parsed.svg.margin_x_mm - def.svg.margin_x_mm).abs() < 0.001);

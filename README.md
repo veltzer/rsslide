@@ -52,8 +52,21 @@ slides:
 | `align`      | `left` \| `center` \| `right`    | Horizontal text alignment           |
 | `valign`     | `top` \| `middle` \| `bottom`    | Vertical content alignment          |
 | `image`      | string                            | Path to image file                  |
+| `table`      | `{headers, rows, aligns?}`        | Grid table with header + body rows  |
 | `class`      | string                            | CSS class (e.g. `lead`)             |
 | `background` | string                            | CSS background value or color       |
+
+#### Table fields
+
+| Field     | Type                            | Default       | Description |
+|-----------|---------------------------------|---------------|-------------|
+| `headers` | list of strings                 | —             | Header-row cells. Must be non-empty. |
+| `rows`    | list of list of strings         | —             | Body rows. Every row must have exactly `len(headers)` cells (hard error otherwise). |
+| `aligns`  | list of `left`/`center`/`right` | all `left`    | Per-column horizontal alignment. Length must equal `len(headers)`. |
+
+GFM tables in `.md` inputs (`| A | B |` / `|:--|--:|`) are translated to this
+form by `rsslide import` — the alignment markers in the separator row are
+preserved.
 
 #### Code block fields
 
@@ -134,6 +147,7 @@ Some slide fields defined in the YAML schema are not yet rendered by the PDF exp
 | `code`       | ✅ rendered (syntax-highlighted, language icon) |
 | `align`      | ✅ rendered (`left` / `center` / `right`) |
 | `valign`     | ✅ rendered (`top` / `middle` / `bottom`) |
+| `table`      | ✅ rendered (grid with per-column alignment; fails hard on overflow) |
 | `image`      | 🔜 planned   |
 | `class`      | 🔜 planned   |
 | `background` | 🔜 planned   |

@@ -1,0 +1,43 @@
+title: Table Examples
+theme: default
+paginate: true
+
+slides:
+  - title: TCP vs UDP
+    table:
+      headers:
+        - TCP
+        - UDP
+      rows:
+        - [Connection-oriented, Connectionless]
+        - [Reliable, Best effort]
+        - [Ordered delivery, No order guarantee]
+        - [Flow control, No flow control]
+
+  - title: Common Ports
+    table:
+      headers:
+        - Protocol
+        - Port
+        - Use Case
+      aligns:
+        - left
+        - right
+        - left
+      rows:
+        - [HTTP,  '80',  Web browsing]
+        - [HTTPS, '443', Secure web]
+        - [FTP,   '21',  File transfer]
+        - [DNS,   '53',  Name resolution]
+
+  - title: Mixed Alignment
+    table:
+      headers:
+        - Left
+        - Center
+        - Right
+      aligns: [left, center, right]
+      rows:
+        - [alpha,   beta,    gamma]
+        - [one,     two,     three]
+        - [foo,     bar,     baz]

@@ -15,11 +15,19 @@ pub struct OutSlide {
     pub bullets: Vec<String>,
     pub code: Option<OutCode>,
     pub image: Option<String>,
+    pub table: Option<OutTable>,
 }
 
 pub struct OutCode {
     pub language: Option<String>,
     pub source: String,
+}
+
+pub struct OutTable {
+    pub headers: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+    /// One per column: "left" | "center" | "right".
+    pub aligns: Vec<&'static str>,
 }
 
 pub fn import(input: &str) -> Result<String> {
@@ -142,29 +150,33 @@ fn parse_slide(block: String) -> OutSlide {
     let mut slide = OutSlide::default();
     let mut paragraph: Vec<String> = Vec::new();
 
-    let mut lines = block.lines().peekable();
-    while let Some(line) = lines.next() {
+    let lines: Vec<&str> = block.lines().collect();
+    let mut i = 0;
+    while i < lines.len() {
+        let line = lines[i];
         let trimmed = line.trim();
 
         if trimmed.is_empty() {
             flush_paragraph(&mut paragraph, &mut slide.content_lines);
+            i += 1;
             continue;
         }
 
         if trimmed.starts_with("<!--") {
             if !trimmed.contains("-->") {
-                for inner in lines.by_ref() {
-                    if inner.contains("-->") {
-                        break;
-                    }
+                i += 1;
+                while i < lines.len() && !lines[i].contains("-->") {
+                    i += 1;
                 }
             }
+            i += 1;
             continue;
         }
 
         if slide.title.is_none()
             && let Some(heading) = strip_heading(trimmed) {
                 slide.title = Some(heading.to_string());
+                i += 1;
                 continue;
             }
 
@@ -174,7 +186,10 @@ fn parse_slide(block: String) -> OutSlide {
             let language = trimmed[3..].trim().to_string();
             let language = if language.is_empty() { None } else { Some(language) };
             let mut source = String::new();
-            for inner in lines.by_ref() {
+            i += 1;
+            while i < lines.len() {
+                let inner = lines[i];
+                i += 1;
                 if inner.trim_start().starts_with(fence) {
                     break;
                 }
@@ -188,9 +203,38 @@ fn parse_slide(block: String) -> OutSlide {
             continue;
         }
 
+        // GFM table: header row | sep row (with --- and optional :) | body rows.
+        if is_table_row(trimmed)
+            && i + 1 < lines.len()
+            && let Some(aligns) = parse_table_separator(lines[i + 1].trim())
+        {
+            flush_paragraph(&mut paragraph, &mut slide.content_lines);
+            let headers = split_table_row(trimmed);
+            if headers.len() == aligns.len() && slide.table.is_none() {
+                let mut rows: Vec<Vec<String>> = Vec::new();
+                let mut j = i + 2;
+                while j < lines.len() {
+                    let r = lines[j].trim();
+                    if !is_table_row(r) {
+                        break;
+                    }
+                    let cells = split_table_row(r);
+                    if cells.len() != headers.len() {
+                        break;
+                    }
+                    rows.push(cells);
+                    j += 1;
+                }
+                slide.table = Some(OutTable { headers, rows, aligns });
+                i = j;
+                continue;
+            }
+        }
+
         if let Some(bullet) = strip_bullet(trimmed) {
             flush_paragraph(&mut paragraph, &mut slide.content_lines);
             slide.bullets.push(bullet.to_string());
+            i += 1;
             continue;
         }
 
@@ -199,14 +243,54 @@ fn parse_slide(block: String) -> OutSlide {
         {
             flush_paragraph(&mut paragraph, &mut slide.content_lines);
             slide.image = Some(path);
+            i += 1;
             continue;
         }
 
         paragraph.push(trimmed.to_string());
+        i += 1;
     }
     flush_paragraph(&mut paragraph, &mut slide.content_lines);
 
     slide
+}
+
+fn is_table_row(line: &str) -> bool {
+    line.starts_with('|') && line.ends_with('|') && line.len() >= 2
+}
+
+/// Parse a GFM table separator row (`|---|:--:|--:|`). Returns per-column
+/// alignment strings, or None if the row isn't a valid separator.
+fn parse_table_separator(line: &str) -> Option<Vec<&'static str>> {
+    if !is_table_row(line) {
+        return None;
+    }
+    let inner = &line[1..line.len() - 1];
+    let mut aligns: Vec<&'static str> = Vec::new();
+    for cell in inner.split('|') {
+        let c = cell.trim();
+        if c.is_empty() {
+            return None;
+        }
+        let left = c.starts_with(':');
+        let right = c.ends_with(':');
+        let body = c.trim_matches(':');
+        if body.is_empty() || !body.chars().all(|ch| ch == '-') {
+            return None;
+        }
+        let align = match (left, right) {
+            (true, true) => "center",
+            (false, true) => "right",
+            _ => "left",
+        };
+        aligns.push(align);
+    }
+    if aligns.is_empty() { None } else { Some(aligns) }
+}
+
+fn split_table_row(line: &str) -> Vec<String> {
+    let inner = &line[1..line.len() - 1];
+    inner.split('|').map(|c| c.trim().to_string()).collect()
 }
 
 fn flush_paragraph(paragraph: &mut Vec<String>, out: &mut Vec<String>) {
@@ -330,6 +414,33 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
         out.push_str(&scalar(image));
         out.push('\n');
     }
+    if let Some(table) = &slide.table {
+        out.push_str(prefix(&mut first));
+        out.push_str("table:\n");
+        out.push_str("      headers:\n");
+        for h in &table.headers {
+            out.push_str("        - ");
+            out.push_str(&scalar(h));
+            out.push('\n');
+        }
+        if table.aligns.iter().any(|a| *a != "left") {
+            out.push_str("      aligns:\n");
+            for a in &table.aligns {
+                out.push_str("        - ");
+                out.push_str(a);
+                out.push('\n');
+            }
+        }
+        out.push_str("      rows:\n");
+        for row in &table.rows {
+            out.push_str("        -\n");
+            for cell in row {
+                out.push_str("          - ");
+                out.push_str(&scalar(cell));
+                out.push('\n');
+            }
+        }
+    }
     if first {
         out.push_str("  - {}\n");
     }
@@ -450,6 +561,46 @@ mod tests {
         assert!(out.contains("title: T"));
         assert!(out.contains("  - title: S"));
         assert!(out.contains("      - a"));
+    }
+
+    #[test]
+    fn parses_simple_table() {
+        let md = "# T\n\n| A | B |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n";
+        let pres = parse_marp(md);
+        let t = pres.slides[0].table.as_ref().expect("table");
+        assert_eq!(t.headers, vec!["A".to_string(), "B".to_string()]);
+        assert_eq!(t.rows.len(), 2);
+        assert_eq!(t.rows[0], vec!["1".to_string(), "2".to_string()]);
+        assert_eq!(t.aligns, vec!["left", "left"]);
+    }
+
+    #[test]
+    fn parses_table_with_alignment() {
+        let md = "# T\n\n| A | B | C |\n|:--|:-:|--:|\n| 1 | 2 | 3 |\n";
+        let pres = parse_marp(md);
+        let t = pres.slides[0].table.as_ref().unwrap();
+        assert_eq!(t.aligns, vec!["left", "center", "right"]);
+    }
+
+    #[test]
+    fn table_does_not_leak_into_content() {
+        let md = "# T\n\n| A | B |\n|---|---|\n| 1 | 2 |\n";
+        let pres = parse_marp(md);
+        // The cell text must not have been pushed into content_lines.
+        for line in &pres.slides[0].content_lines {
+            assert!(!line.contains('|'), "table row leaked: {line}");
+        }
+    }
+
+    #[test]
+    fn yaml_emits_table_block() {
+        let md = "# T\n\n| A | B |\n|:-:|--:|\n| 1 | 2 |\n";
+        let out = import(md).unwrap();
+        assert!(out.contains("table:"), "{out}");
+        assert!(out.contains("headers:"));
+        assert!(out.contains("aligns:"));
+        assert!(out.contains("- center"));
+        assert!(out.contains("- right"));
     }
 
     #[test]

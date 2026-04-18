@@ -1,5 +1,5 @@
 use crate::config::{Color, Config};
-use crate::model::{Presentation, Slide};
+use crate::model::{Presentation, Slide, Table, TableAlign};
 use anyhow::{Context, Result};
 use fontdb::Database;
 use krilla::Document;
@@ -207,6 +207,11 @@ fn render_slide(
             render_columns(&mut surface, columns, &mut cursor_y, fonts, cfg);
         }
         render_bullets(&mut surface, &mut cursor_y);
+    }
+
+    // Table
+    if let Some(table) = &slide.table {
+        render_table(&mut surface, table, &mut cursor_y, fonts, cfg)?;
     }
 
     // Code
@@ -507,6 +512,137 @@ fn render_columns(
     *cursor_y = max_y + cfg.body.section_gap_mm;
 }
 
+fn render_table(
+    surface: &mut Surface<'_>,
+    table: &Table,
+    cursor_y: &mut f32,
+    fonts: &Fonts,
+    cfg: &Config,
+) -> Result<()> {
+    let n = table.headers.len();
+    let total_width = cfg.slide.width_mm - 2.0 * cfg.slide.margin_x_mm;
+    let pad = cfg.table.cell_padding_mm;
+
+    // Estimated glyph advance for a proportional sans font: 0.5 × em.
+    let header_char_mm = 0.5 * cfg.table.header_font_size_pt * MM_PER_PT;
+    let cell_char_mm = 0.5 * cfg.table.cell_font_size_pt * MM_PER_PT;
+
+    // Per-column natural width (max of header + cells, in mm) including padding.
+    let mut col_widths = vec![0.0_f32; n];
+    for (c, h) in table.headers.iter().enumerate() {
+        let w = h.chars().count() as f32 * header_char_mm + 2.0 * pad;
+        if w > col_widths[c] {
+            col_widths[c] = w;
+        }
+    }
+    for row in &table.rows {
+        for (c, cell) in row.iter().enumerate() {
+            let w = cell.chars().count() as f32 * cell_char_mm + 2.0 * pad;
+            if w > col_widths[c] {
+                col_widths[c] = w;
+            }
+        }
+    }
+    let natural_total: f32 = col_widths.iter().sum();
+    if natural_total > total_width {
+        anyhow::bail!(
+            "table is too wide for the slide: natural width {natural_total:.1}mm > available {total_width:.1}mm \
+             (headers: {:?})",
+            table.headers
+        );
+    }
+    // Distribute leftover space proportionally so the table spans the full
+    // content width — keeps borders flush with the slide margins.
+    let leftover = total_width - natural_total;
+    if natural_total > 0.0 {
+        for w in &mut col_widths {
+            *w += leftover * (*w / natural_total);
+        }
+    }
+
+    let row_h = cfg.table.row_height_mm;
+    let total_rows = 1 + table.rows.len();
+    let table_top = *cursor_y;
+    let table_bottom = table_top + total_rows as f32 * row_h;
+    let table_left = cfg.slide.margin_x_mm;
+
+    // Column x-offsets (left edge of each column).
+    let mut col_lefts = Vec::with_capacity(n + 1);
+    col_lefts.push(table_left);
+    for w in &col_widths {
+        col_lefts.push(col_lefts.last().copied().unwrap() + *w);
+    }
+
+    // Borders: horizontal rules between rows, vertical rules between columns.
+    set_fill(surface, cfg.colors.title_rule);
+    let bw = cfg.table.border_width_mm;
+    for r in 0..=total_rows {
+        let y = table_top + r as f32 * row_h;
+        draw_rect_mm(
+            surface,
+            table_left,
+            y - bw / 2.0,
+            *col_lefts.last().unwrap(),
+            y + bw / 2.0,
+        );
+    }
+    for x in &col_lefts {
+        draw_rect_mm(
+            surface,
+            *x - bw / 2.0,
+            table_top,
+            *x + bw / 2.0,
+            table_bottom,
+        );
+    }
+
+    // Header row.
+    for (c, h) in table.headers.iter().enumerate() {
+        let cell_w = col_widths[c];
+        let text_w = h.chars().count() as f32 * header_char_mm;
+        if text_w > cell_w - 2.0 * pad {
+            anyhow::bail!(
+                "table header cell {:?} (col {}) width {:.1}mm exceeds column width {:.1}mm",
+                h, c, text_w, cell_w - 2.0 * pad
+            );
+        }
+        let x = align_x(col_lefts[c], cell_w, text_w, pad, table.aligns[c]);
+        let y = table_top + (row_h - cfg.table.header_font_size_pt * MM_PER_PT) / 2.0;
+        set_fill(surface, cfg.colors.text);
+        draw_text_mm(surface, h, cfg.table.header_font_size_pt, x, y, &fonts.title);
+    }
+
+    // Body rows.
+    for (r, row) in table.rows.iter().enumerate() {
+        let y_top = table_top + (r + 1) as f32 * row_h;
+        for (c, cell) in row.iter().enumerate() {
+            let cell_w = col_widths[c];
+            let text_w = cell.chars().count() as f32 * cell_char_mm;
+            if text_w > cell_w - 2.0 * pad {
+                anyhow::bail!(
+                    "table cell {:?} at row {} col {} width {:.1}mm exceeds column width {:.1}mm",
+                    cell, r, c, text_w, cell_w - 2.0 * pad
+                );
+            }
+            let x = align_x(col_lefts[c], cell_w, text_w, pad, table.aligns[c]);
+            let y = y_top + (row_h - cfg.table.cell_font_size_pt * MM_PER_PT) / 2.0;
+            set_fill(surface, cfg.colors.text);
+            draw_text_mm(surface, cell, cfg.table.cell_font_size_pt, x, y, &fonts.body);
+        }
+    }
+
+    *cursor_y = table_bottom + cfg.body.section_gap_mm;
+    Ok(())
+}
+
+fn align_x(col_left: f32, cell_w: f32, text_w: f32, pad: f32, align: TableAlign) -> f32 {
+    match align {
+        TableAlign::Left => col_left + pad,
+        TableAlign::Right => col_left + cell_w - pad - text_w,
+        TableAlign::Center => col_left + (cell_w - text_w) / 2.0,
+    }
+}
+
 // ── primitives ────────────────────────────────────────────────────────────
 
 fn set_fill(surface: &mut Surface<'_>, c: Color) {
@@ -579,6 +715,10 @@ fn content_height(slide: &Slide, cfg: &Config) -> f32 {
         };
         let n = LinesWithEndings::from(src).count() as f32;
         h += (n - 1.0).max(0.0) * cfg.code.line_height_mm + 2.0 * cfg.code.padding_mm;
+    }
+    if let Some(table) = &slide.table {
+        let rows = 1 + table.rows.len();
+        h += rows as f32 * cfg.table.row_height_mm + cfg.body.section_gap_mm;
     }
     h
 }
@@ -702,6 +842,7 @@ mod tests {
             valign: None,
             columns: None,
             bullets_first: false,
+            table: None,
         }
     }
 
@@ -720,6 +861,19 @@ mod tests {
             content_height(&s, &cfg),
             cfg.title.rule_offset_mm + cfg.title.content_gap_mm
         );
+    }
+
+    #[test]
+    fn content_height_table_adds_rows() {
+        let cfg = Config::default();
+        let mut s = empty_slide();
+        s.table = Some(Table {
+            headers: vec!["A".into(), "B".into()],
+            rows: vec![vec!["1".into(), "2".into()], vec!["3".into(), "4".into()]],
+            aligns: vec![TableAlign::Left, TableAlign::Left],
+        });
+        let expected = 3.0 * cfg.table.row_height_mm + cfg.body.section_gap_mm;
+        assert!((content_height(&s, &cfg) - expected).abs() < 0.001);
     }
 
     #[test]
