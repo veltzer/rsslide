@@ -74,4 +74,3 @@ slides:
       source: |-
         #!/usr/bin/env bash
         echo "Hello from rsslide!"
-

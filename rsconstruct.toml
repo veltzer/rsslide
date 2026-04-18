@@ -1,9 +1,18 @@
-[processor.generator.generate]
+[processor.generator.generate1]
 command = "rsslide"
 args = ["generate", "--format=pdf"]
-src_dirs = ["yaml", "out/import"]
+src_dirs = ["yaml"]
 src_extensions = [".yaml"]
-output_dir = "out/generate"
+output_dir = "out/generate1"
+output_extension = "pdf"
+batch = true
+
+[processor.generator.generate2]
+command = "rsslide"
+args = ["generate", "--format=pdf"]
+src_dirs = ["out/import"]
+src_extensions = [".yaml"]
+output_dir = "out/generate2"
 output_extension = "pdf"
 batch = true
 
@@ -17,4 +26,4 @@ output_extension = "yaml"
 batch = true
 
 [processor.yamllint]
-src_dirs = ["out/import"]
+src_dirs = ["out/import","yaml"]

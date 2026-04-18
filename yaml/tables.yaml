@@ -25,10 +25,10 @@ slides:
         - right
         - left
       rows:
-        - [HTTP,  '80',  Web browsing]
+        - [HTTP, '80', Web browsing]
         - [HTTPS, '443', Secure web]
-        - [FTP,   '21',  File transfer]
-        - [DNS,   '53',  Name resolution]
+        - [FTP, '21', File transfer]
+        - [DNS, '53', Name resolution]
 
   - title: Mixed Alignment
     table:
@@ -38,6 +38,6 @@ slides:
         - Right
       aligns: [left, center, right]
       rows:
-        - [alpha,   beta,    gamma]
-        - [one,     two,     three]
-        - [foo,     bar,     baz]
+        - [alpha, beta, gamma]
+        - [one, two, three]
+        - [foo, bar, baz]

@@ -39,9 +39,9 @@ slides:
       headers: [TCP, UDP]
       rows:
         - [Connection-oriented, Connectionless]
-        - [Reliable,            Best effort]
-        - [Ordered delivery,    No order guarantee]
-        - [Flow control,        No flow control]
+        - [Reliable, Best effort]
+        - [Ordered delivery, No order guarantee]
+        - [Flow control, No flow control]
 
   # All five subtitle levels on one slide for visual comparison.
   - title: All Subtitle Levels
@@ -58,4 +58,4 @@ slides:
     subtitles:
       - Mark Veltzer
       - mark.veltzer@gmail.com
-      - { text: Course intro, level: 3 }
+      - {text: Course intro, level: 3}
