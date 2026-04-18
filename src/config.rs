@@ -36,6 +36,13 @@ font_size_pt = 28.0
 rule_offset_mm = 9.0   # distance from title baseline down to the rule
 content_gap_mm = 4.0   # extra gap from rule down to first content line
 
+[subtitle]
+# Subtitle font sizes per markdown heading level (## .. ######).
+# Indexed by `level - 2`; ##=22pt, ###=18pt, ####=16pt, #####=14pt, ######=13pt.
+font_sizes_pt = [22.0, 18.0, 16.0, 14.0, 13.0]
+# Gap below the subtitle line before the next content element.
+gap_below_mm  = 4.0
+
 [body]
 # Body text, bullets, and column text sizing.
 font_size_pt = 18.0
@@ -93,6 +100,7 @@ code_background = "#f0f0f0"
 pub struct Config {
     pub slide: Slide,
     pub title: Title,
+    pub subtitle: Subtitle,
     pub body: Body,
     pub code: Code,
     pub table: Table,
@@ -117,6 +125,14 @@ pub struct Title {
     pub font_size_pt: f32,
     pub rule_offset_mm: f32,
     pub content_gap_mm: f32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Subtitle {
+    /// Five font sizes for heading levels 2..=6.
+    pub font_sizes_pt: [f32; 5],
+    pub gap_below_mm: f32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -229,6 +245,15 @@ impl Default for Title {
 impl Default for Body {
     fn default() -> Self {
         Self { font_size_pt: 18.0, line_height_mm: 9.0, section_gap_mm: 5.0 }
+    }
+}
+
+impl Default for Subtitle {
+    fn default() -> Self {
+        Self {
+            font_sizes_pt: [22.0, 18.0, 16.0, 14.0, 13.0],
+            gap_below_mm: 4.0,
+        }
     }
 }
 
@@ -379,6 +404,8 @@ mod tests {
         assert!((parsed.slide.width_mm - def.slide.width_mm).abs() < 0.001);
         assert!((parsed.slide.margin_x_mm - def.slide.margin_x_mm).abs() < 0.001);
         assert!((parsed.title.font_size_pt - def.title.font_size_pt).abs() < 0.001);
+        assert_eq!(parsed.subtitle.font_sizes_pt, def.subtitle.font_sizes_pt);
+        assert!((parsed.subtitle.gap_below_mm - def.subtitle.gap_below_mm).abs() < 0.001);
         assert!((parsed.body.font_size_pt - def.body.font_size_pt).abs() < 0.001);
         assert!((parsed.code.font_size_pt - def.code.font_size_pt).abs() < 0.001);
         assert!((parsed.table.header_font_size_pt - def.table.header_font_size_pt).abs() < 0.001);

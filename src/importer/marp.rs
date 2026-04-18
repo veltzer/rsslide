@@ -1,6 +1,6 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct OutPresentation {
     pub title: Option<String>,
     pub theme: Option<String>,
@@ -8,9 +8,11 @@ pub struct OutPresentation {
     pub slides: Vec<OutSlide>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct OutSlide {
     pub title: Option<String>,
+    /// (text, level) — set from the first non-title `##..######` heading.
+    pub subtitle: Option<(String, u8)>,
     pub content_lines: Vec<String>,
     pub bullets: Vec<String>,
     pub code: Option<OutCode>,
@@ -18,11 +20,13 @@ pub struct OutSlide {
     pub table: Option<OutTable>,
 }
 
+#[derive(Debug)]
 pub struct OutCode {
     pub language: Option<String>,
     pub source: String,
 }
 
+#[derive(Debug)]
 pub struct OutTable {
     pub headers: Vec<String>,
     pub rows: Vec<Vec<String>>,
@@ -31,23 +35,26 @@ pub struct OutTable {
 }
 
 pub fn import(input: &str) -> Result<String> {
-    let pres = parse_marp(input);
+    let pres = parse_marp(input)?;
     Ok(emit_yaml(&pres))
 }
 
-fn parse_marp(input: &str) -> OutPresentation {
+fn parse_marp(input: &str) -> Result<OutPresentation> {
     let (front_matter, body) = split_front_matter(input);
     let (fm_title, fm_theme, fm_paginate) = parse_front_matter(front_matter);
 
     let slide_blocks = split_slides(body);
-    let slides: Vec<OutSlide> = slide_blocks.into_iter().map(parse_slide).collect();
+    let mut slides: Vec<OutSlide> = Vec::with_capacity(slide_blocks.len());
+    for (i, block) in slide_blocks.into_iter().enumerate() {
+        slides.push(parse_slide(block).map_err(|e| anyhow!("slide {}: {e}", i + 1))?);
+    }
 
-    OutPresentation {
+    Ok(OutPresentation {
         title: fm_title,
         theme: fm_theme,
         paginate: fm_paginate,
         slides,
-    }
+    })
 }
 
 fn split_front_matter(input: &str) -> (&str, &str) {
@@ -146,7 +153,7 @@ fn is_slide_separator(line: &str) -> bool {
     t == "---" || t == "***" || t == "___"
 }
 
-fn parse_slide(block: String) -> OutSlide {
+fn parse_slide(block: String) -> Result<OutSlide> {
     let mut slide = OutSlide::default();
     let mut paragraph: Vec<String> = Vec::new();
 
@@ -173,12 +180,26 @@ fn parse_slide(block: String) -> OutSlide {
             continue;
         }
 
-        if slide.title.is_none()
-            && let Some(heading) = strip_heading(trimmed) {
+        if let Some((level, heading)) = parse_heading(trimmed) {
+            if slide.title.is_none() {
                 slide.title = Some(heading.to_string());
-                i += 1;
-                continue;
+            } else if slide.subtitle.is_none() {
+                if level < 2 {
+                    return Err(anyhow!(
+                        "second `# ` heading {:?} on a slide that already has a title — only one title is allowed",
+                        heading
+                    ));
+                }
+                slide.subtitle = Some((heading.to_string(), level));
+            } else {
+                return Err(anyhow!(
+                    "more than one sub-heading on a slide; second is {:?}",
+                    heading
+                ));
             }
+            i += 1;
+            continue;
+        }
 
         if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
             flush_paragraph(&mut paragraph, &mut slide.content_lines);
@@ -252,7 +273,7 @@ fn parse_slide(block: String) -> OutSlide {
     }
     flush_paragraph(&mut paragraph, &mut slide.content_lines);
 
-    slide
+    Ok(slide)
 }
 
 fn is_table_row(line: &str) -> bool {
@@ -303,7 +324,8 @@ fn flush_paragraph(paragraph: &mut Vec<String>, out: &mut Vec<String>) {
     out.append(paragraph);
 }
 
-fn strip_heading(line: &str) -> Option<&str> {
+/// Returns `(level, text)` for a markdown ATX heading, or None.
+fn parse_heading(line: &str) -> Option<(u8, &str)> {
     let line = line.trim_start();
     let hashes = line.bytes().take_while(|b| *b == b'#').count();
     if hashes == 0 || hashes > 6 {
@@ -313,7 +335,7 @@ fn strip_heading(line: &str) -> Option<&str> {
     if !rest.starts_with(' ') {
         return None;
     }
-    Some(rest.trim())
+    Some((hashes as u8, rest.trim()))
 }
 
 fn strip_bullet(line: &str) -> Option<&str> {
@@ -374,6 +396,16 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
     if let Some(title) = &slide.title {
         out.push_str(prefix(&mut first));
         out.push_str(&format!("title: {}\n", scalar(title)));
+    }
+    if let Some((text, level)) = &slide.subtitle {
+        out.push_str(prefix(&mut first));
+        if *level == 2 {
+            out.push_str(&format!("subtitle: {}\n", scalar(text)));
+        } else {
+            out.push_str("subtitle:\n");
+            out.push_str(&format!("      text: {}\n", scalar(text)));
+            out.push_str(&format!("      level: {}\n", level));
+        }
     }
     if !slide.content_lines.is_empty() {
         out.push_str(prefix(&mut first));
@@ -510,7 +542,7 @@ mod tests {
     #[test]
     fn imports_front_matter_and_single_slide() {
         let md = "---\ntitle: My Talk\ntheme: default\npaginate: true\n---\n\n# Hello\n\nsome text\n";
-        let pres = parse_marp(md);
+        let pres = parse_marp(md).unwrap();
         assert_eq!(pres.title.as_deref(), Some("My Talk"));
         assert_eq!(pres.theme.as_deref(), Some("default"));
         assert_eq!(pres.paginate, Some(true));
@@ -522,7 +554,7 @@ mod tests {
     #[test]
     fn splits_multiple_slides_on_hr() {
         let md = "# A\n\ncontent A\n\n---\n\n# B\n\ncontent B\n";
-        let pres = parse_marp(md);
+        let pres = parse_marp(md).unwrap();
         assert_eq!(pres.slides.len(), 2);
         assert_eq!(pres.slides[0].title.as_deref(), Some("A"));
         assert_eq!(pres.slides[1].title.as_deref(), Some("B"));
@@ -531,7 +563,7 @@ mod tests {
     #[test]
     fn parses_bullets_and_code() {
         let md = "# Slide\n\n- one\n- two\n\n```rust\nfn main() {}\n```\n";
-        let pres = parse_marp(md);
+        let pres = parse_marp(md).unwrap();
         let s = &pres.slides[0];
         assert_eq!(s.bullets, vec!["one".to_string(), "two".to_string()]);
         let code = s.code.as_ref().unwrap();
@@ -542,14 +574,14 @@ mod tests {
     #[test]
     fn hr_inside_code_fence_is_not_a_separator() {
         let md = "# A\n\n```\n---\n```\n";
-        let pres = parse_marp(md);
+        let pres = parse_marp(md).unwrap();
         assert_eq!(pres.slides.len(), 1);
     }
 
     #[test]
     fn parses_image() {
         let md = "# Pic\n\n![alt](diagram.svg)\n";
-        let pres = parse_marp(md);
+        let pres = parse_marp(md).unwrap();
         assert_eq!(pres.slides[0].image.as_deref(), Some("diagram.svg"));
     }
 
@@ -564,9 +596,45 @@ mod tests {
     }
 
     #[test]
+    fn captures_subheading_as_subtitle() {
+        let md = "## Title\n### Sub\n\nbody\n";
+        let pres = parse_marp(md).unwrap();
+        let s = &pres.slides[0];
+        assert_eq!(s.title.as_deref(), Some("Title"));
+        let (text, level) = s.subtitle.as_ref().unwrap();
+        assert_eq!(text, "Sub");
+        assert_eq!(*level, 3);
+        // The subheading must not also leak into content.
+        for line in &s.content_lines {
+            assert!(!line.starts_with('#'), "heading leaked: {line}");
+        }
+    }
+
+    #[test]
+    fn second_subheading_is_an_error() {
+        let md = "# T\n\n## A\n\n## B\n";
+        let err = parse_marp(md).unwrap_err();
+        assert!(err.to_string().contains("more than one"), "{err}");
+    }
+
+    #[test]
+    fn yaml_emits_subtitle_shorthand_for_level_2() {
+        let md = "# T\n\n## Sub\n";
+        let out = import(md).unwrap();
+        assert!(out.contains("subtitle: Sub"), "{out}");
+    }
+
+    #[test]
+    fn yaml_emits_subtitle_block_for_higher_level() {
+        let md = "# T\n\n#### Sub\n";
+        let out = import(md).unwrap();
+        assert!(out.contains("subtitle:\n      text: Sub\n      level: 4"), "{out}");
+    }
+
+    #[test]
     fn parses_simple_table() {
         let md = "# T\n\n| A | B |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n";
-        let pres = parse_marp(md);
+        let pres = parse_marp(md).unwrap();
         let t = pres.slides[0].table.as_ref().expect("table");
         assert_eq!(t.headers, vec!["A".to_string(), "B".to_string()]);
         assert_eq!(t.rows.len(), 2);
@@ -577,7 +645,7 @@ mod tests {
     #[test]
     fn parses_table_with_alignment() {
         let md = "# T\n\n| A | B | C |\n|:--|:-:|--:|\n| 1 | 2 | 3 |\n";
-        let pres = parse_marp(md);
+        let pres = parse_marp(md).unwrap();
         let t = pres.slides[0].table.as_ref().unwrap();
         assert_eq!(t.aligns, vec!["left", "center", "right"]);
     }
@@ -585,7 +653,7 @@ mod tests {
     #[test]
     fn table_does_not_leak_into_content() {
         let md = "# T\n\n| A | B |\n|---|---|\n| 1 | 2 |\n";
-        let pres = parse_marp(md);
+        let pres = parse_marp(md).unwrap();
         // The cell text must not have been pushed into content_lines.
         for line in &pres.slides[0].content_lines {
             assert!(!line.contains('|'), "table row leaked: {line}");

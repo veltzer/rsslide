@@ -89,6 +89,29 @@ slides:
     }
 
     #[test]
+    fn parse_slide_subtitle_shorthand() {
+        let yaml = "slides:\n  - title: T\n    subtitle: Sub\n";
+        let p = parse(yaml).unwrap();
+        let s = p.slides[0].subtitle.as_ref().unwrap();
+        assert_eq!(s.text, "Sub");
+        assert_eq!(s.level, 2);
+    }
+
+    #[test]
+    fn parse_slide_subtitle_with_level() {
+        let yaml = "slides:\n  - title: T\n    subtitle:\n      text: Sub\n      level: 4\n";
+        let p = parse(yaml).unwrap();
+        let s = p.slides[0].subtitle.as_ref().unwrap();
+        assert_eq!(s.level, 4);
+    }
+
+    #[test]
+    fn parse_slide_subtitle_rejects_bad_level() {
+        let yaml = "slides:\n  - subtitle:\n      text: x\n      level: 9\n";
+        assert!(parse(yaml).is_err());
+    }
+
+    #[test]
     fn parse_slide_with_table() {
         let yaml = r#"
 slides:

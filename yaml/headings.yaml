@@ -1,0 +1,54 @@
+title: Heading & Subheading Examples
+theme: default
+paginate: true
+
+slides:
+  # Plain title only (no subtitle).
+  - title: Title Only
+    content: A slide with just a heading and some body text.
+
+  # Shorthand subtitle — bare string, defaults to level 2 (largest sub-heading).
+  - title: With a Level-2 Subtitle
+    subtitle: This is the shorthand form
+    bullets:
+      - Equivalent to "##" in a marp source
+      - Largest of the sub-heading sizes
+
+  # Explicit level 3 — "###".
+  - title: With a Level-3 Subtitle
+    subtitle:
+      text: A slightly smaller sub-heading
+      level: 3
+    content: Use this when the sub-heading is a section name within the slide.
+
+  # Explicit level 4 — "####".
+  - title: With a Level-4 Subtitle
+    subtitle:
+      text: Even smaller — for fine-grained labels
+      level: 4
+    bullets:
+      - Useful above tables or code blocks
+      - Keeps the visual hierarchy compact
+
+  # Subtitle paired with a table — the original use case.
+  - title: TCP vs UDP
+    subtitle:
+      text: Key Differences
+      level: 3
+    table:
+      headers: [TCP, UDP]
+      rows:
+        - [Connection-oriented, Connectionless]
+        - [Reliable,            Best effort]
+        - [Ordered delivery,    No order guarantee]
+        - [Flow control,        No flow control]
+
+  # All five subtitle levels on one slide for visual comparison.
+  - title: All Subtitle Levels
+    subtitle:
+      text: Level 2 — largest
+      level: 2
+    bullets:
+      - Level 2 is the default ("##")
+      - Levels 3..6 step down progressively in size
+      - Level 6 is the smallest ("######")

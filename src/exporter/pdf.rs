@@ -1,5 +1,5 @@
 use crate::config::{Color, Config};
-use crate::model::{Presentation, Slide, Table, TableAlign};
+use crate::model::{Presentation, Slide, Subtitle, Table, TableAlign};
 use anyhow::{Context, Result};
 use fontdb::Database;
 use krilla::Document;
@@ -172,6 +172,15 @@ fn render_slide(
             );
         }
         cursor_y += cfg.title.content_gap_mm;
+    }
+
+    // Subtitle (rendered before any other content)
+    if let Some(sub) = &slide.subtitle {
+        let size_pt = subtitle_font_size(sub, cfg);
+        set_fill(&mut surface, cfg.colors.text);
+        let x = text_x(&sub.text, size_pt, content_align, cfg);
+        draw_text_mm(&mut surface, &sub.text, size_pt, x, cursor_y, &fonts.title);
+        cursor_y += size_pt * MM_PER_PT + cfg.subtitle.gap_below_mm;
     }
 
     // Content
@@ -690,6 +699,9 @@ fn content_height(slide: &Slide, cfg: &Config) -> f32 {
     if slide.title.is_some() {
         h += cfg.title.rule_offset_mm + cfg.title.content_gap_mm;
     }
+    if let Some(sub) = &slide.subtitle {
+        h += subtitle_font_size(sub, cfg) * MM_PER_PT + cfg.subtitle.gap_below_mm;
+    }
     if let Some(content) = &slide.content {
         let n = wrap_text(content, 60).len() as f32;
         h += n * cfg.body.line_height_mm + cfg.body.section_gap_mm;
@@ -721,6 +733,11 @@ fn content_height(slide: &Slide, cfg: &Config) -> f32 {
         h += rows as f32 * cfg.table.row_height_mm + cfg.body.section_gap_mm;
     }
     h
+}
+
+fn subtitle_font_size(sub: &Subtitle, cfg: &Config) -> f32 {
+    // Validated to 2..=6 by the deserializer.
+    cfg.subtitle.font_sizes_pt[(sub.level - 2) as usize]
 }
 
 fn text_x(text: &str, font_size: f32, align: &str, cfg: &Config) -> f32 {
@@ -829,6 +846,7 @@ mod tests {
     fn empty_slide() -> Slide {
         Slide {
             title: None,
+            subtitle: None,
             content: None,
             bullets: None,
             code: None,

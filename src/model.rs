@@ -12,6 +12,7 @@ pub struct Presentation {
 #[derive(Debug, Deserialize)]
 pub struct Slide {
     pub title: Option<String>,
+    pub subtitle: Option<Subtitle>,
     pub content: Option<String>,
     pub bullets: Option<Vec<String>>,
     pub code: Option<CodeBlock>,
@@ -38,6 +39,41 @@ pub struct Slide {
 pub struct Column {
     pub header: Option<String>,
     pub bullets: Vec<String>,
+}
+
+/// A single sub-heading rendered just below the slide title.
+/// `level` mirrors markdown heading depth — 2 for `##`, 3 for `###`, etc.
+#[derive(Debug)]
+pub struct Subtitle {
+    pub text: String,
+    pub level: u8,
+}
+
+impl<'de> Deserialize<'de> for Subtitle {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Raw {
+            Plain(String),
+            Full {
+                text: String,
+                #[serde(default = "default_subtitle_level")]
+                level: u8,
+            },
+        }
+        fn default_subtitle_level() -> u8 { 2 }
+        let raw = Raw::deserialize(d)?;
+        let (text, level) = match raw {
+            Raw::Plain(s) => (s, 2u8),
+            Raw::Full { text, level } => (text, level),
+        };
+        if !(2..=6).contains(&level) {
+            return Err(serde::de::Error::custom(format!(
+                "subtitle.level must be in 2..=6, got {level}"
+            )));
+        }
+        Ok(Subtitle { text, level })
+    }
 }
 
 /// Per-column horizontal alignment for a table cell.
