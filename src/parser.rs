@@ -92,17 +92,29 @@ slides:
     fn parse_slide_subtitle_shorthand() {
         let yaml = "slides:\n  - title: T\n    subtitle: Sub\n";
         let p = parse(yaml).unwrap();
-        let s = p.slides[0].subtitle.as_ref().unwrap();
-        assert_eq!(s.text, "Sub");
-        assert_eq!(s.level, 2);
+        let subs = &p.slides[0].subtitles;
+        assert_eq!(subs.len(), 1);
+        assert_eq!(subs[0].text, "Sub");
+        assert_eq!(subs[0].level, 2);
     }
 
     #[test]
     fn parse_slide_subtitle_with_level() {
         let yaml = "slides:\n  - title: T\n    subtitle:\n      text: Sub\n      level: 4\n";
         let p = parse(yaml).unwrap();
-        let s = p.slides[0].subtitle.as_ref().unwrap();
-        assert_eq!(s.level, 4);
+        assert_eq!(p.slides[0].subtitles[0].level, 4);
+    }
+
+    #[test]
+    fn parse_slide_subtitles_list() {
+        let yaml = "slides:\n  - title: T\n    subtitles:\n      - A\n      - {text: B, level: 3}\n";
+        let p = parse(yaml).unwrap();
+        let subs = &p.slides[0].subtitles;
+        assert_eq!(subs.len(), 2);
+        assert_eq!(subs[0].text, "A");
+        assert_eq!(subs[0].level, 2);
+        assert_eq!(subs[1].text, "B");
+        assert_eq!(subs[1].level, 3);
     }
 
     #[test]

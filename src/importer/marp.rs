@@ -11,8 +11,8 @@ pub struct OutPresentation {
 #[derive(Debug, Default)]
 pub struct OutSlide {
     pub title: Option<String>,
-    /// (text, level) — set from the first non-title `##..######` heading.
-    pub subtitle: Option<(String, u8)>,
+    /// One per non-title `##..######` heading, in source order.
+    pub subtitles: Vec<(String, u8)>,
     pub content_lines: Vec<String>,
     pub bullets: Vec<String>,
     pub code: Option<OutCode>,
@@ -183,17 +183,11 @@ fn parse_slide(block: String) -> Result<OutSlide> {
         if let Some((level, heading)) = parse_heading(trimmed) {
             if slide.title.is_none() {
                 slide.title = Some(heading.to_string());
-            } else if slide.subtitle.is_none() {
-                if level < 2 {
-                    return Err(anyhow!(
-                        "second `# ` heading {:?} on a slide that already has a title — only one title is allowed",
-                        heading
-                    ));
-                }
-                slide.subtitle = Some((heading.to_string(), level));
+            } else if level >= 2 {
+                slide.subtitles.push((heading.to_string(), level));
             } else {
                 return Err(anyhow!(
-                    "more than one sub-heading on a slide; second is {:?}",
+                    "second `# ` heading {:?} on a slide that already has a title — only one title is allowed",
                     heading
                 ));
             }
@@ -397,14 +391,28 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
         out.push_str(prefix(&mut first));
         out.push_str(&format!("title: {}\n", scalar(title)));
     }
-    if let Some((text, level)) = &slide.subtitle {
+    if !slide.subtitles.is_empty() {
         out.push_str(prefix(&mut first));
-        if *level == 2 {
-            out.push_str(&format!("subtitle: {}\n", scalar(text)));
+        if slide.subtitles.len() == 1 {
+            let (text, level) = &slide.subtitles[0];
+            if *level == 2 {
+                out.push_str(&format!("subtitle: {}\n", scalar(text)));
+            } else {
+                out.push_str("subtitle:\n");
+                out.push_str(&format!("      text: {}\n", scalar(text)));
+                out.push_str(&format!("      level: {}\n", level));
+            }
         } else {
-            out.push_str("subtitle:\n");
-            out.push_str(&format!("      text: {}\n", scalar(text)));
-            out.push_str(&format!("      level: {}\n", level));
+            out.push_str("subtitles:\n");
+            for (text, level) in &slide.subtitles {
+                if *level == 2 {
+                    out.push_str(&format!("      - {}\n", scalar(text)));
+                } else {
+                    out.push_str("      -\n");
+                    out.push_str(&format!("        text: {}\n", scalar(text)));
+                    out.push_str(&format!("        level: {}\n", level));
+                }
+            }
         }
     }
     if !slide.content_lines.is_empty() {
@@ -601,20 +609,31 @@ mod tests {
         let pres = parse_marp(md).unwrap();
         let s = &pres.slides[0];
         assert_eq!(s.title.as_deref(), Some("Title"));
-        let (text, level) = s.subtitle.as_ref().unwrap();
+        assert_eq!(s.subtitles.len(), 1);
+        let (text, level) = &s.subtitles[0];
         assert_eq!(text, "Sub");
         assert_eq!(*level, 3);
-        // The subheading must not also leak into content.
         for line in &s.content_lines {
             assert!(!line.starts_with('#'), "heading leaked: {line}");
         }
     }
 
     #[test]
-    fn second_subheading_is_an_error() {
-        let md = "# T\n\n## A\n\n## B\n";
+    fn captures_multiple_subheadings_in_order() {
+        let md = "# T\n## Author\n## email@x\n## Affiliation\n";
+        let pres = parse_marp(md).unwrap();
+        let subs = &pres.slides[0].subtitles;
+        assert_eq!(subs.len(), 3);
+        assert_eq!(subs[0].0, "Author");
+        assert_eq!(subs[1].0, "email@x");
+        assert_eq!(subs[2].0, "Affiliation");
+    }
+
+    #[test]
+    fn second_top_level_heading_is_an_error() {
+        let md = "# T\n\n# AlsoTop\n";
         let err = parse_marp(md).unwrap_err();
-        assert!(err.to_string().contains("more than one"), "{err}");
+        assert!(err.to_string().contains("only one title"), "{err}");
     }
 
     #[test]
@@ -629,6 +648,15 @@ mod tests {
         let md = "# T\n\n#### Sub\n";
         let out = import(md).unwrap();
         assert!(out.contains("subtitle:\n      text: Sub\n      level: 4"), "{out}");
+    }
+
+    #[test]
+    fn yaml_emits_subtitles_list_for_multiple() {
+        let md = "# T\n## A\n## B\n";
+        let out = import(md).unwrap();
+        assert!(out.contains("subtitles:"), "{out}");
+        assert!(out.contains("- A"));
+        assert!(out.contains("- B"));
     }
 
     #[test]

@@ -174,8 +174,8 @@ fn render_slide(
         cursor_y += cfg.title.content_gap_mm;
     }
 
-    // Subtitle (rendered before any other content)
-    if let Some(sub) = &slide.subtitle {
+    // Subtitles (rendered top-to-bottom before any other content)
+    for sub in &slide.subtitles {
         let size_pt = subtitle_font_size(sub, cfg);
         set_fill(&mut surface, cfg.colors.text);
         let x = text_x(&sub.text, size_pt, content_align, cfg);
@@ -699,7 +699,7 @@ fn content_height(slide: &Slide, cfg: &Config) -> f32 {
     if slide.title.is_some() {
         h += cfg.title.rule_offset_mm + cfg.title.content_gap_mm;
     }
-    if let Some(sub) = &slide.subtitle {
+    for sub in &slide.subtitles {
         h += subtitle_font_size(sub, cfg) * MM_PER_PT + cfg.subtitle.gap_below_mm;
     }
     if let Some(content) = &slide.content {
@@ -846,7 +846,7 @@ mod tests {
     fn empty_slide() -> Slide {
         Slide {
             title: None,
-            subtitle: None,
+            subtitles: Vec::new(),
             content: None,
             bullets: None,
             code: None,

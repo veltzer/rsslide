@@ -52,3 +52,10 @@ slides:
       - Level 2 is the default ("##")
       - Levels 3..6 step down progressively in size
       - Level 6 is the smallest ("######")
+
+  # Multiple subtitles stack top-to-bottom under the title.
+  - title: Networking Basics
+    subtitles:
+      - Mark Veltzer
+      - mark.veltzer@gmail.com
+      - { text: Course intro, level: 3 }

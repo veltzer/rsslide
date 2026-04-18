@@ -46,7 +46,7 @@ slides:
 | Field        | Type                              | Description                         |
 |--------------|-----------------------------------|-------------------------------------|
 | `title`      | string                            | Slide heading                       |
-| `subtitle`   | string \| `{text, level}`         | Sub-heading rendered under the title (level 2..6, default 2) |
+| `subtitle` / `subtitles` | string \| `{text, level}` \| list of either | One or more sub-headings rendered stacked under the title (level 2..6, default 2) |
 | `content`    | string                            | Body text                           |
 | `bullets`    | list of strings                   | Bullet point list                   |
 | `code`       | `{language, source, trim?}`       | Syntax-highlighted code block       |
@@ -143,7 +143,7 @@ Some slide fields defined in the YAML schema are not yet rendered by the PDF exp
 | Field        | PDF support |
 |--------------|-------------|
 | `title`      | ✅ rendered  |
-| `subtitle`   | ✅ rendered (font size scales with `level` 2..6) |
+| `subtitle` / `subtitles` | ✅ rendered (font size scales with `level` 2..6; multiple stack vertically) |
 | `content`    | ✅ rendered  |
 | `bullets`    | ✅ rendered  |
 | `code`       | ✅ rendered (syntax-highlighted, language icon) |

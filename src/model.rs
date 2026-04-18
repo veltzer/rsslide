@@ -12,7 +12,12 @@ pub struct Presentation {
 #[derive(Debug, Deserialize)]
 pub struct Slide {
     pub title: Option<String>,
-    pub subtitle: Option<Subtitle>,
+    /// Zero or more sub-headings rendered stacked below the title rule, in
+    /// declaration order. The YAML key may be `subtitle:` (one item) or
+    /// `subtitles:` (list); each item is either a bare string (level 2) or
+    /// `{text, level}`.
+    #[serde(default, alias = "subtitle", deserialize_with = "deserialize_subtitles")]
+    pub subtitles: Vec<Subtitle>,
     pub content: Option<String>,
     pub bullets: Option<Vec<String>>,
     pub code: Option<CodeBlock>,
@@ -39,6 +44,19 @@ pub struct Slide {
 pub struct Column {
     pub header: Option<String>,
     pub bullets: Vec<String>,
+}
+
+fn deserialize_subtitles<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<Subtitle>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum OneOrMany {
+        One(Subtitle),
+        Many(Vec<Subtitle>),
+    }
+    Ok(match OneOrMany::deserialize(d)? {
+        OneOrMany::One(s) => vec![s],
+        OneOrMany::Many(v) => v,
+    })
 }
 
 /// A single sub-heading rendered just below the slide title.
