@@ -5,6 +5,10 @@
 # Run `rsslide dump-config` to see the full annotated defaults.
 
 [slide]
+# Match marp's default slide size: 960 x 540 pt (13.333" x 7.5" at 72dpi),
+# which is also PowerPoint widescreen. In millimeters: 338.667 x 190.5.
+width_mm = 338.667
+height_mm = 190.5
 # Tighten margins so slide content fills more of the page.
 margin_x_mm = 4.0
 margin_top_mm = 6.0

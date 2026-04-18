@@ -11,3 +11,14 @@ Always be strict. Always fail on any minor issue.
 - Do not add config overrides, `#[allow(...)]`, `# yamllint disable ...`, or
   similar suppressions to make problems go away. If a check flags something,
   fix the underlying cause.
+
+## No absolute coordinates in layout
+
+Layout code must never use hardcoded absolute point/pixel values. All
+positions, margins, font sizes, and offsets must be expressed as ratios of
+the page size (or other relative units).
+
+- Reject constants like `x = 40.0` or `font_size = 36.0` in layout code.
+- Derive every coordinate from `page_width` / `page_height` or a named ratio.
+- Changing the page size must be a one-line change — every other element
+  must scale automatically.
