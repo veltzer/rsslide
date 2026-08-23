@@ -1,0 +1,14 @@
+[book]
+authors = ["Mark Veltzer <mark.veltzer@gmail.com>"]
+language = "en"
+src = "src"
+title = "rsslide - The ultimate slide builder"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "rust"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/veltzer/rsslide"
+edit-url-template = "https://github.com/veltzer/rsslide/edit/master/docs/{path}"

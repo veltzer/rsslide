@@ -2,3 +2,6 @@
 /out/
 /.rsconstruct/
 /Cargo.lock
+
+# mdBook build output
+/docs/book/
