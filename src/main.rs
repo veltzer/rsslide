@@ -127,7 +127,8 @@ fn run_generate(
         );
     }
     let cfg = config::Config::load(config_path.as_deref())?;
-    for pair in paths.chunks_exact(2) {
+    let (pairs, _) = paths.as_chunks::<2>();
+    for pair in pairs {
         convert_one(&pair[0], &pair[1], format.clone(), &cfg)?;
     }
     Ok(())
@@ -187,7 +188,8 @@ fn run_import(paths: Vec<PathBuf>) -> Result<()> {
             paths.len()
         );
     }
-    for pair in paths.chunks_exact(2) {
+    let (pairs, _) = paths.as_chunks::<2>();
+    for pair in pairs {
         import_one(&pair[0], &pair[1])?;
     }
     Ok(())
