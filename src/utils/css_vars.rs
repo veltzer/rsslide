@@ -33,9 +33,13 @@ fn collect_declarations(svg: &str) -> HashMap<String, String> {
     let mut cursor = 0;
     while let Some(open_rel) = svg[cursor..].find("<style") {
         let open = cursor + open_rel;
-        let Some(gt) = svg[open..].find('>') else { break };
+        let Some(gt) = svg[open..].find('>') else {
+            break;
+        };
         let body_start = open + gt + 1;
-        let Some(close_rel) = svg[body_start..].find("</style>") else { break };
+        let Some(close_rel) = svg[body_start..].find("</style>") else {
+            break;
+        };
         let body_end = body_start + close_rel;
         for (name, value) in parse_decls(&svg[body_start..body_end]) {
             out.entry(name).or_insert(value);

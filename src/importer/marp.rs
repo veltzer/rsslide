@@ -87,7 +87,9 @@ fn parse_front_matter(fm: &str) -> (Option<String>, Option<String>, Option<bool>
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        let Some((key, value)) = line.split_once(':') else { continue };
+        let Some((key, value)) = line.split_once(':') else {
+            continue;
+        };
         let key = key.trim();
         let value = value.trim().trim_matches('"').trim_matches('\'');
         match key {
@@ -199,7 +201,11 @@ fn parse_slide(block: String) -> Result<OutSlide> {
             flush_paragraph(&mut paragraph, &mut slide.content_lines);
             let fence = &trimmed[..3];
             let language = trimmed[3..].trim().to_string();
-            let language = if language.is_empty() { None } else { Some(language) };
+            let language = if language.is_empty() {
+                None
+            } else {
+                Some(language)
+            };
             let mut source = String::new();
             i += 1;
             while i < lines.len() {
@@ -240,7 +246,11 @@ fn parse_slide(block: String) -> Result<OutSlide> {
                     rows.push(cells);
                     j += 1;
                 }
-                slide.table = Some(OutTable { headers, rows, aligns });
+                slide.table = Some(OutTable {
+                    headers,
+                    rows,
+                    aligns,
+                });
                 i = j;
                 continue;
             }
@@ -300,7 +310,11 @@ fn parse_table_separator(line: &str) -> Option<Vec<&'static str>> {
         };
         aligns.push(align);
     }
-    if aligns.is_empty() { None } else { Some(aligns) }
+    if aligns.is_empty() {
+        None
+    } else {
+        Some(aligns)
+    }
 }
 
 fn split_table_row(line: &str) -> Vec<String> {
@@ -525,8 +539,27 @@ fn scalar(s: &str) -> String {
         return "''".into();
     }
     let needs_quote = s.chars().next().is_some_and(|c| {
-        matches!(c, '-' | '?' | ':' | ',' | '[' | ']' | '{' | '}' | '#' | '&' |
-            '*' | '!' | '|' | '>' | '\'' | '"' | '%' | '@' | '`')
+        matches!(
+            c,
+            '-' | '?'
+                | ':'
+                | ','
+                | '['
+                | ']'
+                | '{'
+                | '}'
+                | '#'
+                | '&'
+                | '*'
+                | '!'
+                | '|'
+                | '>'
+                | '\''
+                | '"'
+                | '%'
+                | '@'
+                | '`'
+        )
     }) || s.contains(": ")
         || s.contains(" #")
         || s.ends_with(':')
@@ -549,7 +582,8 @@ mod tests {
 
     #[test]
     fn imports_front_matter_and_single_slide() {
-        let md = "---\ntitle: My Talk\ntheme: default\npaginate: true\n---\n\n# Hello\n\nsome text\n";
+        let md =
+            "---\ntitle: My Talk\ntheme: default\npaginate: true\n---\n\n# Hello\n\nsome text\n";
         let pres = parse_marp(md).unwrap();
         assert_eq!(pres.title.as_deref(), Some("My Talk"));
         assert_eq!(pres.theme.as_deref(), Some("default"));
@@ -647,7 +681,10 @@ mod tests {
     fn yaml_emits_subtitle_block_for_higher_level() {
         let md = "# T\n\n#### Sub\n";
         let out = import(md).unwrap();
-        assert!(out.contains("subtitle:\n      text: Sub\n      level: 4"), "{out}");
+        assert!(
+            out.contains("subtitle:\n      text: Sub\n      level: 4"),
+            "{out}"
+        );
     }
 
     #[test]

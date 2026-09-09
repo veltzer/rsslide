@@ -16,7 +16,11 @@ pub struct Slide {
     /// declaration order. The YAML key may be `subtitle:` (one item) or
     /// `subtitles:` (list); each item is either a bare string (level 2) or
     /// `{text, level}`.
-    #[serde(default, alias = "subtitle", deserialize_with = "deserialize_subtitles")]
+    #[serde(
+        default,
+        alias = "subtitle",
+        deserialize_with = "deserialize_subtitles"
+    )]
     pub subtitles: Vec<Subtitle>,
     pub content: Option<String>,
     pub bullets: Option<Vec<String>>,
@@ -29,10 +33,10 @@ pub struct Slide {
     pub class: Option<String>,
     #[allow(dead_code)]
     pub background: Option<String>,
-    pub align: Option<String>,        // "left" (default) | "center" | "right" — applies to all elements
-    pub title_align: Option<String>,   // overrides align for the title only
+    pub align: Option<String>, // "left" (default) | "center" | "right" — applies to all elements
+    pub title_align: Option<String>, // overrides align for the title only
     pub content_align: Option<String>, // overrides align for content text and bullets
-    pub valign: Option<String>,        // "top" (default) | "middle" | "bottom"
+    pub valign: Option<String>, // "top" (default) | "middle" | "bottom"
     pub columns: Option<Vec<Column>>,
     /// When true, render bullets before columns instead of after.
     #[serde(default)]
@@ -79,7 +83,9 @@ impl<'de> Deserialize<'de> for Subtitle {
                 level: u8,
             },
         }
-        fn default_subtitle_level() -> u8 { 2 }
+        fn default_subtitle_level() -> u8 {
+            2
+        }
         let raw = Raw::deserialize(d)?;
         let (text, level) = match raw {
             Raw::Plain(s) => (s, 2u8),
@@ -164,7 +170,11 @@ impl<'de> Deserialize<'de> for Table {
             }
             None => vec![TableAlign::Left; n],
         };
-        Ok(Table { headers: raw.headers, rows: raw.rows, aligns })
+        Ok(Table {
+            headers: raw.headers,
+            rows: raw.rows,
+            aligns,
+        })
     }
 }
 

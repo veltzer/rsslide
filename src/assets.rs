@@ -23,14 +23,34 @@ mod tests {
 
     #[test]
     fn known_languages_return_svg() {
-        for lang in &["rust", "python", "javascript", "js", "typescript", "ts",
-                      "go", "golang", "java", "cpp", "c++", "ruby", "rb",
-                      "bash", "sh", "shell", "html", "css"] {
+        for lang in &[
+            "rust",
+            "python",
+            "javascript",
+            "js",
+            "typescript",
+            "ts",
+            "go",
+            "golang",
+            "java",
+            "cpp",
+            "c++",
+            "ruby",
+            "rb",
+            "bash",
+            "sh",
+            "shell",
+            "html",
+            "css",
+        ] {
             let svg = language_icon(lang);
             assert!(svg.is_some(), "expected icon for '{lang}'");
             // Every bundled file should be valid UTF-8 SVG
             let content = svg.unwrap();
-            assert!(content.contains("<svg"), "icon for '{lang}' does not look like SVG");
+            assert!(
+                content.contains("<svg"),
+                "icon for '{lang}' does not look like SVG"
+            );
         }
     }
 
@@ -45,10 +65,10 @@ mod tests {
     fn aliases_return_same_content() {
         assert_eq!(language_icon("javascript"), language_icon("js"));
         assert_eq!(language_icon("typescript"), language_icon("ts"));
-        assert_eq!(language_icon("go"),         language_icon("golang"));
-        assert_eq!(language_icon("ruby"),        language_icon("rb"));
-        assert_eq!(language_icon("bash"),        language_icon("sh"));
-        assert_eq!(language_icon("bash"),        language_icon("shell"));
-        assert_eq!(language_icon("cpp"),         language_icon("c++"));
+        assert_eq!(language_icon("go"), language_icon("golang"));
+        assert_eq!(language_icon("ruby"), language_icon("rb"));
+        assert_eq!(language_icon("bash"), language_icon("sh"));
+        assert_eq!(language_icon("bash"), language_icon("shell"));
+        assert_eq!(language_icon("cpp"), language_icon("c++"));
     }
 }

@@ -49,9 +49,11 @@ pub fn export(presentation: &Presentation, output_path: &StdPath, cfg: &Config) 
     let paginate = presentation.paginate.unwrap_or(false);
 
     if slides.is_empty() {
-        let page_size =
-            Size::from_wh(cfg.slide.width_mm * PT_PER_MM, cfg.slide.height_mm * PT_PER_MM)
-                .context("invalid page size")?;
+        let page_size = Size::from_wh(
+            cfg.slide.width_mm * PT_PER_MM,
+            cfg.slide.height_mm * PT_PER_MM,
+        )
+        .context("invalid page size")?;
         let mut page = doc.start_page_with(PageSettings::new(page_size));
         page.surface().finish();
         page.finish();
@@ -136,9 +138,11 @@ fn render_slide(
     theme: &syntect::highlighting::Theme,
     cfg: &Config,
 ) -> Result<()> {
-    let page_size =
-        Size::from_wh(cfg.slide.width_mm * PT_PER_MM, cfg.slide.height_mm * PT_PER_MM)
-            .context("invalid page size")?;
+    let page_size = Size::from_wh(
+        cfg.slide.width_mm * PT_PER_MM,
+        cfg.slide.height_mm * PT_PER_MM,
+    )
+    .context("invalid page size")?;
     let mut page = doc.start_page_with(PageSettings::new(page_size));
     let mut surface = page.surface();
 
@@ -148,7 +152,8 @@ fn render_slide(
     let valign = slide.valign.as_deref().unwrap_or("top");
 
     let content_h = content_height(slide, cfg);
-    let available = cfg.slide.height_mm - cfg.slide.margin_top_mm - cfg.slide.page_bottom_reserved_mm;
+    let available =
+        cfg.slide.height_mm - cfg.slide.margin_top_mm - cfg.slide.page_bottom_reserved_mm;
     let mut cursor_y = match valign {
         "middle" => cfg.slide.margin_top_mm + ((available - content_h).max(0.0)) / 2.0,
         "bottom" => cfg.slide.margin_top_mm + (available - content_h).max(0.0),
@@ -159,7 +164,14 @@ fn render_slide(
     if let Some(title) = &slide.title {
         set_fill(&mut surface, cfg.colors.text);
         let x = text_x(title, cfg.title.font_size_pt, title_align, cfg);
-        draw_text_mm(&mut surface, title, cfg.title.font_size_pt, x, cursor_y, &fonts.title);
+        draw_text_mm(
+            &mut surface,
+            title,
+            cfg.title.font_size_pt,
+            x,
+            cursor_y,
+            &fonts.title,
+        );
         cursor_y += cfg.title.rule_offset_mm;
         if title_align != "center" {
             set_fill(&mut surface, cfg.colors.title_rule);
@@ -188,7 +200,14 @@ fn render_slide(
         set_fill(&mut surface, cfg.colors.text);
         for line in wrap_text(content, 60) {
             let x = text_x(&line, cfg.body.font_size_pt, content_align, cfg);
-            draw_text_mm(&mut surface, &line, cfg.body.font_size_pt, x, cursor_y, &fonts.body);
+            draw_text_mm(
+                &mut surface,
+                &line,
+                cfg.body.font_size_pt,
+                x,
+                cursor_y,
+                &fonts.body,
+            );
             cursor_y += cfg.body.line_height_mm;
         }
         cursor_y += cfg.body.section_gap_mm;
@@ -259,7 +278,14 @@ fn render_slide(
     };
 
     if let Some(svg_str) = svg_source {
-        render_svg(&mut surface, &svg_str, &mut cursor_y, fontdb, svg_settings, cfg)?;
+        render_svg(
+            &mut surface,
+            &svg_str,
+            &mut cursor_y,
+            fontdb,
+            svg_settings,
+            cfg,
+        )?;
     }
 
     // Page number
@@ -292,7 +318,14 @@ fn draw_bullet_line(
     // close match for DejaVu Sans and avoids needing real glyph metrics.
     let offset = cfg.body.font_size_pt * MM_PER_PT * 0.8;
     set_fill(surface, cfg.colors.text);
-    draw_text_mm(surface, text, cfg.body.font_size_pt, x_mm + offset, y_mm, font);
+    draw_text_mm(
+        surface,
+        text,
+        cfg.body.font_size_pt,
+        x_mm + offset,
+        y_mm,
+        font,
+    );
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -337,8 +370,8 @@ fn render_code_block(
     if let Some(lang) = language
         && let Some(icon_svg) = crate::assets::language_icon(lang)
     {
-        let icon_right =
-            cfg.slide.width_mm - cfg.slide.margin_x_mm + cfg.code.padding_mm - cfg.code.icon_inset_mm;
+        let icon_right = cfg.slide.width_mm - cfg.slide.margin_x_mm + cfg.code.padding_mm
+            - cfg.code.icon_inset_mm;
         let icon_left = icon_right - cfg.code.icon_size_mm;
         let icon_top = box_top + cfg.code.icon_inset_mm;
         draw_svg_fixed_box(
@@ -371,7 +404,14 @@ fn render_code_block(
             }
             let fg = style.foreground;
             set_fill(surface, Color(fg.r, fg.g, fg.b));
-            draw_text_mm(surface, text, cfg.code.font_size_pt, x, *cursor_y, font_mono);
+            draw_text_mm(
+                surface,
+                text,
+                cfg.code.font_size_pt,
+                x,
+                *cursor_y,
+                font_mono,
+            );
             x += text.chars().count() as f32 * char_width_mm;
         }
         *cursor_y += cfg.code.line_height_mm;
@@ -496,8 +536,7 @@ fn render_columns(
         return;
     }
     let gutter = 4.0;
-    let total_width =
-        cfg.slide.width_mm - 2.0 * cfg.slide.margin_x_mm - gutter * (n - 1) as f32;
+    let total_width = cfg.slide.width_mm - 2.0 * cfg.slide.margin_x_mm - gutter * (n - 1) as f32;
     let col_width = total_width / n as f32;
 
     let start_y = *cursor_y;
@@ -507,7 +546,14 @@ fn render_columns(
         let x = cfg.slide.margin_x_mm + i as f32 * (col_width + gutter);
         if let Some(header) = &col.header {
             set_fill(surface, cfg.colors.text);
-            draw_text_mm(surface, header, cfg.body.font_size_pt + 2.0, x, cy, &fonts.title);
+            draw_text_mm(
+                surface,
+                header,
+                cfg.body.font_size_pt + 2.0,
+                x,
+                cy,
+                &fonts.title,
+            );
             cy += cfg.body.line_height_mm + 2.0;
         }
         for bullet in &col.bullets {
@@ -612,13 +658,23 @@ fn render_table(
         if text_w > cell_w - 2.0 * pad {
             anyhow::bail!(
                 "table header cell {:?} (col {}) width {:.1}mm exceeds column width {:.1}mm",
-                h, c, text_w, cell_w - 2.0 * pad
+                h,
+                c,
+                text_w,
+                cell_w - 2.0 * pad
             );
         }
         let x = align_x(col_lefts[c], cell_w, text_w, pad, table.aligns[c]);
         let y = table_top + (row_h - cfg.table.header_font_size_pt * MM_PER_PT) / 2.0;
         set_fill(surface, cfg.colors.text);
-        draw_text_mm(surface, h, cfg.table.header_font_size_pt, x, y, &fonts.title);
+        draw_text_mm(
+            surface,
+            h,
+            cfg.table.header_font_size_pt,
+            x,
+            y,
+            &fonts.title,
+        );
     }
 
     // Body rows.
@@ -630,13 +686,24 @@ fn render_table(
             if text_w > cell_w - 2.0 * pad {
                 anyhow::bail!(
                     "table cell {:?} at row {} col {} width {:.1}mm exceeds column width {:.1}mm",
-                    cell, r, c, text_w, cell_w - 2.0 * pad
+                    cell,
+                    r,
+                    c,
+                    text_w,
+                    cell_w - 2.0 * pad
                 );
             }
             let x = align_x(col_lefts[c], cell_w, text_w, pad, table.aligns[c]);
             let y = y_top + (row_h - cfg.table.cell_font_size_pt * MM_PER_PT) / 2.0;
             set_fill(surface, cfg.colors.text);
-            draw_text_mm(surface, cell, cfg.table.cell_font_size_pt, x, y, &fonts.body);
+            draw_text_mm(
+                surface,
+                cell,
+                cfg.table.cell_font_size_pt,
+                x,
+                y,
+                &fonts.body,
+            );
         }
     }
 
@@ -663,7 +730,14 @@ fn set_fill(surface: &mut Surface<'_>, c: Color) {
     }));
 }
 
-fn draw_text_mm(surface: &mut Surface<'_>, text: &str, size: f32, x_mm: f32, y_mm: f32, font: &Font) {
+fn draw_text_mm(
+    surface: &mut Surface<'_>,
+    text: &str,
+    size: f32,
+    x_mm: f32,
+    y_mm: f32,
+    font: &Font,
+) {
     let x = x_mm * PT_PER_MM;
     let y = y_mm * PT_PER_MM;
     surface.draw_text(
@@ -814,8 +888,14 @@ mod tests {
     #[test]
     fn text_x_left_returns_margin() {
         let cfg = Config::default();
-        assert_eq!(text_x("anything", 18.0, "left", &cfg), cfg.slide.margin_x_mm);
-        assert_eq!(text_x("anything", 18.0, "unknown", &cfg), cfg.slide.margin_x_mm);
+        assert_eq!(
+            text_x("anything", 18.0, "left", &cfg),
+            cfg.slide.margin_x_mm
+        );
+        assert_eq!(
+            text_x("anything", 18.0, "unknown", &cfg),
+            cfg.slide.margin_x_mm
+        );
     }
 
     #[test]

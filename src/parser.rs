@@ -107,7 +107,8 @@ slides:
 
     #[test]
     fn parse_slide_subtitles_list() {
-        let yaml = "slides:\n  - title: T\n    subtitles:\n      - A\n      - {text: B, level: 3}\n";
+        let yaml =
+            "slides:\n  - title: T\n    subtitles:\n      - A\n      - {text: B, level: 3}\n";
         let p = parse(yaml).unwrap();
         let subs = &p.slides[0].subtitles;
         assert_eq!(subs.len(), 2);

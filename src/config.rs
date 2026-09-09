@@ -216,8 +216,7 @@ fn parse_hex_color(s: &str) -> std::result::Result<Color, String> {
         return Err(format!("color must be #rrggbb, got {s:?}"));
     }
     let parse = |i: usize| {
-        u8::from_str_radix(&hex[i..i + 2], 16)
-            .map_err(|e| format!("bad color {s:?}: {e}"))
+        u8::from_str_radix(&hex[i..i + 2], 16).map_err(|e| format!("bad color {s:?}: {e}"))
     };
     Ok(Color(parse(0)?, parse(2)?, parse(4)?))
 }
@@ -238,13 +237,21 @@ impl Default for Slide {
 
 impl Default for Title {
     fn default() -> Self {
-        Self { font_size_pt: 28.0, rule_offset_mm: 9.0, content_gap_mm: 4.0 }
+        Self {
+            font_size_pt: 28.0,
+            rule_offset_mm: 9.0,
+            content_gap_mm: 4.0,
+        }
     }
 }
 
 impl Default for Body {
     fn default() -> Self {
-        Self { font_size_pt: 18.0, line_height_mm: 9.0, section_gap_mm: 5.0 }
+        Self {
+            font_size_pt: 18.0,
+            line_height_mm: 9.0,
+            section_gap_mm: 5.0,
+        }
     }
 }
 
@@ -296,8 +303,8 @@ impl Default for Fonts {
     fn default() -> Self {
         Self {
             title: "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf".into(),
-            body:  "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf".into(),
-            code:  "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf".into(),
+            body: "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf".into(),
+            code: "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf".into(),
         }
     }
 }
@@ -305,9 +312,9 @@ impl Default for Fonts {
 impl Default for Colors {
     fn default() -> Self {
         Self {
-            text:            Color(0, 0, 0),
-            bullet:          Color(0, 0, 0),
-            title_rule:      Color(0, 0, 0),
+            text: Color(0, 0, 0),
+            bullet: Color(0, 0, 0),
+            title_rule: Color(0, 0, 0),
             code_background: Color(240, 240, 240),
         }
     }
@@ -343,8 +350,7 @@ impl Config {
     fn from_file(path: &Path) -> Result<Self> {
         let text = std::fs::read_to_string(path)
             .with_context(|| format!("reading config {}", path.display()))?;
-        toml::from_str(&text)
-            .with_context(|| format!("parsing config {}", path.display()))
+        toml::from_str(&text).with_context(|| format!("parsing config {}", path.display()))
     }
 }
 
@@ -396,8 +402,8 @@ mod tests {
 
     #[test]
     fn default_template_parses_to_default() {
-        let parsed: Config = toml::from_str(DEFAULT_CONFIG_TEMPLATE)
-            .expect("DEFAULT_CONFIG_TEMPLATE should parse");
+        let parsed: Config =
+            toml::from_str(DEFAULT_CONFIG_TEMPLATE).expect("DEFAULT_CONFIG_TEMPLATE should parse");
         let def = Config::default();
         // Spot-check every sub-struct's key field; if any drift the test
         // catches it and the template needs updating.
@@ -419,7 +425,10 @@ mod tests {
         assert_eq!(parsed.svg.flatten_css_vars, def.svg.flatten_css_vars);
         assert_eq!(parsed.fonts.body, def.fonts.body);
         assert_eq!(parsed.colors.text.rgb(), def.colors.text.rgb());
-        assert_eq!(parsed.colors.code_background.rgb(), def.colors.code_background.rgb());
+        assert_eq!(
+            parsed.colors.code_background.rgb(),
+            def.colors.code_background.rgb()
+        );
     }
 
     #[test]

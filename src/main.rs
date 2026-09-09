@@ -19,7 +19,10 @@ enum Format {
 }
 
 #[derive(Debug, Parser)]
-#[command(name = "rsslide", about = "Convert YAML presentations to HTML, PDF or PPTX")]
+#[command(
+    name = "rsslide",
+    about = "Convert YAML presentations to HTML, PDF or PPTX"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -78,11 +81,18 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Command::Process { input, output, format, config }) => {
-            run_process(input, output, format, config)
-        }
+        Some(Command::Process {
+            input,
+            output,
+            format,
+            config,
+        }) => run_process(input, output, format, config),
         Some(Command::Import { paths }) => run_import(paths),
-        Some(Command::Generate { format, config, paths }) => run_generate(format, config, paths),
+        Some(Command::Generate {
+            format,
+            config,
+            paths,
+        }) => run_generate(format, config, paths),
         Some(Command::Version) => {
             print_version();
             Ok(())
@@ -115,11 +125,7 @@ fn run_process(
     convert_one(&input, &output_path, format, &cfg)
 }
 
-fn run_generate(
-    format: Format,
-    config_path: Option<PathBuf>,
-    paths: Vec<PathBuf>,
-) -> Result<()> {
+fn run_generate(format: Format, config_path: Option<PathBuf>, paths: Vec<PathBuf>) -> Result<()> {
     if !paths.len().is_multiple_of(2) {
         anyhow::bail!(
             "generate requires an even number of arguments (input/output pairs), got {}",
@@ -140,8 +146,8 @@ fn convert_one(
     format: Format,
     cfg: &config::Config,
 ) -> Result<()> {
-    let input_str = fs::read_to_string(input)
-        .with_context(|| format!("Failed to read {}", input.display()))?;
+    let input_str =
+        fs::read_to_string(input).with_context(|| format!("Failed to read {}", input.display()))?;
     let presentation = parser::parse(&input_str)
         .with_context(|| format!("Failed to parse {}", input.display()))?;
     match format {
@@ -171,7 +177,11 @@ fn run_dump_config(output: Option<PathBuf>) -> Result<()> {
 }
 
 fn print_version() {
-    println!("rsslide {} by {}", env!("CARGO_PKG_VERSION"), env!("CARGO_PKG_AUTHORS"));
+    println!(
+        "rsslide {} by {}",
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_AUTHORS")
+    );
     println!("GIT_DESCRIBE: {}", env!("GIT_DESCRIBE"));
     println!("GIT_SHA: {}", env!("GIT_SHA"));
     println!("GIT_BRANCH: {}", env!("GIT_BRANCH"));
@@ -196,12 +206,11 @@ fn run_import(paths: Vec<PathBuf>) -> Result<()> {
 }
 
 fn import_one(input: &std::path::Path, output: &std::path::Path) -> Result<()> {
-    let input_str = fs::read_to_string(input)
-        .with_context(|| format!("Failed to read {}", input.display()))?;
+    let input_str =
+        fs::read_to_string(input).with_context(|| format!("Failed to read {}", input.display()))?;
     let yaml = importer::marp::import(&input_str)
         .with_context(|| format!("Failed to import {}", input.display()))?;
-    fs::write(output, yaml)
-        .with_context(|| format!("Failed to write {}", output.display()))?;
+    fs::write(output, yaml).with_context(|| format!("Failed to write {}", output.display()))?;
     println!("Written: {}", output.display());
     Ok(())
 }
