@@ -11,7 +11,7 @@ repository = "https://github.com/veltzer/rsslide"
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
-krilla = "0.7"
+krilla = "0.8"
 krilla-svg = "0.7"
 usvg = "0.45"
 fontdb = "0.23"
