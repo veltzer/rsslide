@@ -13,7 +13,7 @@ serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 krilla = "0.7"
 krilla-svg = "0.7"
-usvg = "0.45"
+usvg = "0.48"
 fontdb = "0.23"
 tera = "1"
 zip = "2"
