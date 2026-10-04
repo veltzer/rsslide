@@ -1,4 +1,4 @@
-[processor.generator.generate1]
+[processor.generator.generic.generate1]
 command = "rsslide"
 args = ["generate", "--format=pdf"]
 src_dirs = ["yaml"]
@@ -7,7 +7,7 @@ output_dir = "out/generate1"
 output_extension = "pdf"
 batch = true
 
-[processor.generator.generate2]
+[processor.generator.generic.generate2]
 command = "rsslide"
 args = ["generate", "--format=pdf"]
 src_dirs = ["out/import"]
@@ -16,7 +16,7 @@ output_dir = "out/generate2"
 output_extension = "pdf"
 batch = true
 
-[processor.generator.import]
+[processor.generator.generic.import]
 command = "rsslide"
 args = ["import"]
 src_dirs = ["marp"]
@@ -25,11 +25,11 @@ output_dir = "out/import"
 output_extension = "yaml"
 batch = true
 
-[processor.yamllint]
+[processor.checker.yamllint]
 src_dirs = ["out/import","yaml"]
 
 # lint the GitHub Actions workflow files with actionlint
-[processor.actionlint]
+[processor.checker.actionlint]
 src_dirs = [".github/workflows"]
 
 # ─── dependencies ────────────────────────────────────────────────────────────
