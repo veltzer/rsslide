@@ -79,7 +79,7 @@ preserved.
 
 ## Usage
 
-```
+```text
 rsslide process [OPTIONS] <INPUT>
 rsslide import  [OPTIONS] <INPUT>
 rsslide version
@@ -107,7 +107,7 @@ Supply your own with `--theme-set my-theme.css`.
 
 ## Architecture
 
-```
+```text
 YAML file
   └─► Parser (serde_yaml)
         └─► Slide model (Presentation + Vec<Slide>)
