@@ -119,7 +119,7 @@ output_dir = "out/import"
 output_extension = "yaml"
 batch = true
 
-[processor.checker.yamllint]
+[processor.checker.iyamllint]
 src_dirs = ["out/import","yaml"]
 
 # lint the GitHub Actions workflow files with actionlint
