@@ -14,7 +14,7 @@ serde_yaml = "0.9"
 krilla = "0.8"
 krilla-svg = "0.8"
 usvg = "0.47"
-fontdb = "0.23"
+fontdb = "0.24"
 # Text measurement. Must be the rustybuzz krilla shapes with, so measured
 # widths equal drawn widths: move it together with krilla.
 rustybuzz = "0.20"
