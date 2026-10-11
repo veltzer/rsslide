@@ -8,8 +8,8 @@ repo's own build produces (`out/chapters/courses/`, `_site/marp/lectures/`).
 
 | Result | Decks |
 |---|---|
-| Import and render | 1,443 (85%) |
-| Render fails | 237 |
+| Import and render | 1,436 (85%) |
+| Render fails | 244 |
 | Import fails | 11 |
 
 Rendered decks keep their text: compared word by word with marp's PDFs,
@@ -25,13 +25,20 @@ Done since the first measurement:
 - Every table and code block of a slide is kept.
 - Content above and below an image.
 - Line breaks after in-word hyphens (`AI-generated`), as Chrome does.
+- SVG size: pictures are sized and placed as marp does (content width,
+  flowing under the heading; checked within 1 pt against marp's PDF). A
+  diagram's empty canvas may run off the page; its drawing may not.
 
 ## Blocks the build
 
-### 1. Content that does not fit: 711 slides
+### 1. Content that does not fit: 724 slides
 
-- **690 are cut off in marp too**, some by a whole paragraph, some by the
-  descenders of the last line. Chromium clips at the page edge and leaves
+- **703 are cut off in marp too**, some by a whole paragraph, some by the
+  descenders of the last line, 13 by a diagram drawn past the page (a
+  two-line title pushing a full-height diagram down, two diagrams on one
+  slide, a title SVG drawn to y=680, and
+  `networking-basics/04_dns_deep_dive` slide 25, whose diagram text is
+  broken in marp too). Chromium clips at the page edge and leaves
   the clipped text out of the PDF, so the cut goes unnoticed today. rsslide
   reports them as errors; each must be split in teaching-slides by hand
   (its CLAUDE.md forbids scripted content edits). This is the largest
@@ -68,7 +75,6 @@ renders SVG only.
 
 | Gap | Slides / decks | What rsslide does today |
 |---|---|---|
-| SVG size | 5,419 slides, 1,647 decks | Shrinks the picture to fit the height below the title. marp sizes it to the content width and lets the bottom of the 1280x720 canvas run off the page (teaching-slides keeps SVG content above y=630 for exactly this), so marp's diagrams are noticeably larger |
 | Code that does not fit | most of the 164 code-overflow slides | Shrinks the code until it fits, sometimes to a barely readable size; marp clips it. These are in the 690 above: split the slides |
 | Blockquotes (`>`) | 56 decks | Text with a literal `>` |
 | Math (`$…$`, `$$…$$`) | 53 decks | Raw LaTeX source |
@@ -98,12 +104,11 @@ highlight.js actually highlights before adding syntaxes.
 
 ## Suggested order
 
-1. SVG size like marp (5,419 slides).
-2. Richer columns content and blockquotes (11 + 56 decks).
-3. Syntax definitions for the languages above.
-4. Raster and background images (9 + 13 decks).
-5. Math (53 decks): needs a TeX-to-SVG step; the hardest item.
-6. In teaching-slides: split the 690 slides marp clips today, then replace
+1. Richer columns content and blockquotes (11 + 56 decks).
+2. Syntax definitions for the languages above.
+3. Raster and background images (9 + 13 decks).
+4. Math (53 decks): needs a TeX-to-SVG step; the hardest item.
+5. In teaching-slides: split the 703 slides marp clips today, then replace
    the `marp.courses` / `marp.lectures` processors in its `rsconstruct.toml`
    with rsslide import + generate (the per-chapter PDFs still feed its
    `ipdfunite` merge).

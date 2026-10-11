@@ -69,9 +69,15 @@ A body element names exactly one of `text` (a paragraph; newlines are line
 breaks), `heading` (`{text, level}`), `bullets` or `numbered` (a list),
 `code`, `table`, `image`, `svg` or `columns`. A list item is a string, or
 `{text, bullets}` / `{text, numbered}` to nest a list under it; markers
-follow the depth as in marp (disc, ring, square; 1., i., a.). A slide has at
-most one `image` or `svg`; it fills the height the other elements leave.
+follow the depth as in marp (disc, ring, square; 1., i., a.).
 `rsslide import` writes every marp slide as a `body`.
+
+An `image` or `svg` is sized as marp sizes an image: as wide as the content
+area, or its own width (in marp's CSS px) if smaller, in the flow of the
+slide. A 1280x720 diagram therefore runs past the bottom of the page, as in
+marp; that is fine as long as its drawing stays on the page, and an error
+otherwise. With `[svg] size = "fill"` in the config, a slide's one picture
+instead fills the height its other elements leave.
 
 | Field        | Type                              | Description                         |
 |--------------|-----------------------------------|-------------------------------------|
@@ -223,7 +229,7 @@ Some slide fields defined in the YAML schema are not yet rendered by the PDF exp
 | `valign`     | ✅ rendered (`top` / `middle` / `bottom`) |
 | `columns`    | ✅ rendered  |
 | `table`      | ✅ rendered (per-column alignment; cells wrap; fails hard if even wrapped it is too wide) |
-| `image` / `svg` | ✅ rendered (SVG only; fills the space below the other content) |
+| `image` / `svg` | ✅ rendered (SVG only; content width like marp, or `size = "fill"`) |
 | `class`      | 🔜 planned   |
 | `background` | 🔜 planned   |
 | `theme`      | 🔜 planned   |

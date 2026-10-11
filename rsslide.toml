@@ -6,7 +6,9 @@
 # Run `rsslide dump-config` to see the full annotated defaults.
 
 [svg]
-# Let the SVG extend to the slide's side edges and almost to its bottom so
-# the diagram dominates the page (marp would keep it inside the padding).
+# Let the SVG fill the height left under the title, out to the slide's side
+# edges and almost to its bottom, so the diagram dominates the page (marp
+# sizes it to the content width instead, which is the default).
+size = "fill"
 margin_x_ratio = 0.0
 margin_bottom_ratio = 0.005

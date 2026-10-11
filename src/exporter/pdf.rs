@@ -11,7 +11,7 @@
 //! font size and paddings are fractions of the page, and every other size
 //! is a multiple of the base font size (see `config.rs`).
 
-use crate::config::{Color, Config};
+use crate::config::{Color, Config, SvgSize};
 use crate::exporter::text::{
     FontBytes, FontKind, FontSet, Line, Span, TextMetrics, parse_inline, wrap,
 };
@@ -296,11 +296,21 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
     let content_align = slide.content_align.unwrap_or(align);
     let x0 = ctx.pad_x();
     let width = ctx.content_width();
+    // In "fill" mode the picture is laid out separately, in the space the
+    // rest leaves; in "width" mode it is an ordinary block of the body.
     let Split {
         above: body,
         picture,
         below: after,
-    } = split_picture(&slide.body)?;
+    } = if cfg.svg.size == SvgSize::Fill {
+        split_picture(&slide.body)?
+    } else {
+        Split {
+            above: &slide.body,
+            picture: None,
+            below: &[],
+        }
+    };
 
     // Every block of the slide above its picture (all of them, without a
     // picture), with its code shrunk by `scale`.
@@ -429,7 +439,13 @@ fn ink_bottom(ctx: &Ctx, ops: &[Op]) -> f32 {
             Op::Ring {
                 y, radius, stroke, ..
             } => y + radius + stroke / 2.0,
-            Op::Svg { tree, y, scale, .. } => y + tree.size().height() * scale,
+            // The drawing, not its canvas: an SVG's empty canvas may run off
+            // the page (marp sizes 1280x720 diagrams to the content width).
+            // The stroke box, not the layer box: a filter's region (a drop
+            // shadow allocates 10% beyond its shape) is not drawn ink.
+            Op::Svg { tree, y, scale, .. } => {
+                y + tree.root().abs_stroke_bounding_box().bottom() * scale
+            }
         })
         .fold(f32::MIN, f32::max)
 }
@@ -462,7 +478,16 @@ fn element_blocks(
         Element::Table(table) => vec![table_block(ctx, table, x0, width, align)?],
         Element::Columns(columns) => vec![columns_block(ctx, columns, x0, width, align)?],
         Element::Image(_) | Element::Svg(_) => {
-            unreachable!("split_picture removes the image")
+            if ctx.cfg.svg.size == SvgSize::Fill {
+                unreachable!("split_picture removes the picture in fill mode")
+            }
+            vec![picture_block(
+                ctx,
+                &picture_source(element)?,
+                x0,
+                width,
+                align,
+            )?]
         }
     })
 }
@@ -496,21 +521,53 @@ fn split_picture(body: &[Element]) -> Result<Split<'_>> {
             below: &[],
         });
     };
-    let svg = match &body[i] {
-        Element::Svg(svg) => svg.clone(),
+    let svg = picture_source(&body[i])?;
+    Ok(Split {
+        above: &body[..i],
+        picture: Some(svg),
+        below: &body[i + 1..],
+    })
+}
+
+/// The SVG source of an `image` (read from its file) or `svg` element.
+fn picture_source(element: &Element) -> Result<String> {
+    match element {
+        Element::Svg(svg) => Ok(svg.clone()),
         Element::Image(path) => {
             if !path.to_lowercase().ends_with(".svg") {
                 bail!("image path {path:?} is not an .svg (raster images not yet supported)");
             }
             std::fs::read_to_string(path)
-                .with_context(|| format!("failed to read SVG file {path:?}"))?
+                .with_context(|| format!("failed to read SVG file {path:?}"))
         }
-        _ => unreachable!("index of a picture"),
-    };
-    Ok(Split {
-        above: &body[..i],
-        picture: Some(svg),
-        below: &body[i + 1..],
+        _ => unreachable!("only pictures have an SVG source"),
+    }
+}
+
+/// A picture as a block in the flow, sized as marp sizes an `<img>` in a
+/// paragraph: its own width (its SVG size, in marp's CSS px) but no wider
+/// than the content area (`max-width: 100%`), keeping its aspect ratio.
+fn picture_block(ctx: &Ctx, svg: &str, x0: f32, width: f32, align: Align) -> Result<Block> {
+    let cfg = ctx.cfg;
+    let tree = parse_svg(ctx, svg)?;
+    let pt_per_px = ctx.width / cfg.svg.slide_width_px;
+    let natural = tree.size().width() * pt_per_px;
+    let (scale, w, h) = fit(&tree, natural.min(width), f32::INFINITY)?;
+    // The image sits on the baseline of its paragraph's only line, which
+    // reaches below it by the text's descent and half-leading.
+    let style = body_style(ctx);
+    let line = style.line_height * ctx.em;
+    let below = line - baseline_offset(ctx, FontKind::Regular, ctx.em, style.line_height);
+    Ok(Block {
+        ops: vec![Op::Svg {
+            tree: Box::new(tree),
+            x: line_x(x0, width, w, align),
+            y: 0.0,
+            scale,
+        }],
+        height: h + below,
+        margin_top: 0.0,
+        margin_bottom: cfg.block.margin_bottom_em * ctx.em,
     })
 }
 
@@ -2062,9 +2119,87 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
         assert_eq!(a, ["a", "b", "z", "aa", "az", "ba"]);
     }
 
+    /// A teaching-slides style diagram: a 1280x720 canvas whose drawing
+    /// spans x 32..1247 and y 36..`bottom`.
+    fn diagram(bottom: u32) -> String {
+        format!(
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1280 720'>\
+             <defs><filter id='s'><feDropShadow dx='2' dy='2' stdDeviation='3'/></filter></defs>\
+             <rect x='32' y='36' width='1215' height='{}' filter='url(#s)'/></svg>",
+            bottom - 36
+        )
+    }
+
+    fn svg_op_of(ops: &[Op]) -> (f32, f32, f32, f32) {
+        ops.iter()
+            .find_map(|op| match op {
+                Op::Svg { tree, x, y, scale } => {
+                    Some((*x, *y, *scale, tree.size().width() * scale))
+                }
+                _ => None,
+            })
+            .expect("an SVG op")
+    }
+
+    #[test]
+    fn picture_is_placed_as_marp_places_it() {
+        // Measured from marp's PDF of a teaching-slides slide: `## Title`
+        // over a 1280x720 diagram draws its canvas at x 58.9 pt, 842.8 pt
+        // wide, from y 114.3 pt, on the 960 x 540 pt page.
+        let cfg = Config::default();
+        assert_eq!(cfg.svg.size, SvgSize::Width);
+        with_ctx(&cfg, |ctx| {
+            let s = one_slide(&format!(
+                "title: AI in CI/CD\ntitle_level: 2\nbody:\n  - svg: \"{}\"",
+                diagram(620)
+            ));
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let (x, y, _, w) = svg_op_of(&ops);
+            assert!((x - 58.9).abs() < 1.0, "x {x}");
+            assert!((w - 842.8).abs() < 1.0, "width {w}");
+            assert!((y - 114.3).abs() < 1.5, "top {y}");
+            // The canvas runs past the page, the drawing does not.
+            assert!(y + w * 720.0 / 1280.0 > ctx.height);
+            assert!(ink_bottom(ctx, &ops) < ctx.height);
+        });
+    }
+
+    #[test]
+    fn a_small_picture_keeps_its_size_and_is_centred_with_the_text() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200'><rect width='400' height='200'/></svg>";
+            let s = one_slide(&format!("title: T\nbody:\n  - svg: \"{svg}\""));
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let (_, y, _, w) = svg_op_of(&ops);
+            let natural = 400.0 * ctx.width / cfg.svg.slide_width_px;
+            assert!((w - natural).abs() < 1e-3, "{w} vs {natural}");
+            let title = first_baseline(&ops);
+            assert!(
+                title > ctx.pad_y() + ctx.em,
+                "the slide is vertically centred"
+            );
+            assert!(y > title);
+        });
+    }
+
+    #[test]
+    fn a_drawing_that_runs_off_the_page_is_an_error() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let s = one_slide(&format!(
+                "title: T\ntitle_level: 2\nbody:\n  - svg: \"{}\"",
+                diagram(715)
+            ));
+            let err = layout_slide(ctx, &s, None).err().expect("must fail");
+            assert!(err.to_string().contains("does not fit"), "{err}");
+        });
+    }
+
     #[test]
     fn content_below_a_picture_follows_it() {
-        let cfg = Config::default();
+        let mut cfg = Config::default();
+        cfg.svg.size = SvgSize::Fill;
         with_ctx(&cfg, |ctx| {
             let svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 2'><rect width='4' height='2'/></svg>";
             let s = one_slide(&format!(

@@ -120,10 +120,18 @@ filter_scale = 2.0
 # Pre-resolve CSS `var(--x)` references before usvg parses the SVG.
 # Leave on — usvg otherwise silently drops strokes using CSS vars.
 flatten_css_vars = true
-# An SVG fills the space left below the slide's other content. Gap above it:
+# How an image or inline SVG is sized:
+#   "width" - as marp does: a block in the flow, as wide as the content area
+#             (or its own width, if smaller). Its empty canvas may run past
+#             the bottom of the page; its drawing may not.
+#   "fill"  - it takes all the height the slide's other elements leave, with
+#             the gap and margins below.
+size = "width"
+# marp's slide is this many CSS px wide; an SVG's own width is in these px.
+slide_width_px = 1280.0
+# "fill" only: the gap above the picture, and its side and bottom margins as
+# fractions of the page width and height (defaults: the content padding).
 top_gap_em = 0.551724
-# Side and bottom margins of that space, as fractions of the page width and
-# height. Defaults to the content padding.
 margin_x_ratio = 0.061328125
 margin_bottom_ratio = 0.109028
 
@@ -258,9 +266,19 @@ pub struct Pagination {
 pub struct Svg {
     pub filter_scale: f32,
     pub flatten_css_vars: bool,
+    pub size: SvgSize,
+    pub slide_width_px: f32,
     pub top_gap_em: f32,
     pub margin_x_ratio: f32,
     pub margin_bottom_ratio: f32,
+}
+
+/// How a slide's image or inline SVG is sized; see `[svg] size`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SvgSize {
+    Width,
+    Fill,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -424,6 +442,8 @@ impl Default for Svg {
         Self {
             filter_scale: 2.0,
             flatten_css_vars: true,
+            size: SvgSize::Width,
+            slide_width_px: 1280.0,
             top_gap_em: 0.551724,
             margin_x_ratio: 0.061328125,
             margin_bottom_ratio: 0.109028,
