@@ -6,17 +6,14 @@ repo's own build produces (`out/chapters/courses/`, `_site/marp/lectures/`).
 
 ## Summary
 
+Done: teaching-slides renders with rsslide. Its build (`rsconstruct.toml`)
+runs `rsslide generate` on the marp decks directly instead of marp, and
+all 1,691 decks render with no slide running off the page.
+
 | Result | Decks |
 |---|---|
-| Import and render | 1,457 (86%) |
-| Render fails | 234 |
-| Import fails | 0 |
-
-Every deck now imports. Of the 234 that fail to render, 233 fail only on
-content that does not fit (section 1), all of it cut off in marp too. The
-other one has a table too wide for the slide. On the rsslide side the
-migration is done but for that table; what is left is splitting slides in
-teaching-slides.
+| Render (strict: overflow is an error) | 1,691 (100%) |
+| Render fails | 0 |
 
 Rendered decks keep their text: compared word by word with marp's PDFs,
 0.02% of words are missing, all of them words split across lines.
@@ -67,38 +64,26 @@ Done since the first measurement:
   flowing under the heading; checked within 1 pt against marp's PDF). A
   diagram's empty canvas may run off the page; its drawing may not.
 
-## Blocks the build
+## What it took in teaching-slides
 
-### 1. Content that does not fit: 709 slides
-
-**All 709 are cut off in marp too**: some by a whole paragraph, some by the
-descenders of the last line, some by the bottom edge of a table or code
-box (the last row's padding and border; the text itself ends above the
-edge), 13 by a diagram drawn past the page (a two-line title pushing a
-full-height diagram down, two diagrams on one slide, a title SVG drawn to
-y=680, and `networking-basics/04_dns_deep_dive` slide 25, whose diagram
-text is broken in marp too). Chromium clips at the page edge and leaves the
-clipped text out of the PDF, so the cut goes unnoticed today. rsslide
-reports them as errors; each must be split in teaching-slides by hand (its
-CLAUDE.md forbids scripted content edits). This is the remaining migration
-work. Until they are split, `rsslide generate --warn-overflow` renders
-every deck but the wide-table one (1,690 of 1,691), each cut slide
-reported as a warning and drawn cut off as marp draws it.
-
-No slide overflows in rsslide alone any more. The suspects that did were
-rsslide bugs, now fixed: undecoded character references (the "math
-slides" of earlier measurements), and code shrunk away when the text only
-ran into the bottom padding (`elasticsearch-administration/08` slide 12).
-
-### 2. A table too wide for the slide: 1 slide
-
-Even with every cell wrapped.
+- 709 slides that ran off the page (marp cut them off silently) split by
+  hand into `## Title (cont.)` slides; numbered lists split across slides
+  count on in sequence (`6. 7. 8.`), a rule `check_marp_md.py --numbering`
+  and its CLAUDE.md now state.
+- The clock table in `linux-systems-programming/15_time` split in two;
+  the MIPS registers in `assembly-programming-using-gas/20_arch_comparison`
+  in code spans (marp had read them as math).
+- 146 doubled list markers (`1. 1. text`) in 22 decks made single.
+- 7 generic headings over full-canvas title artwork removed; one long
+  heading shortened; two SVGs whose text `svg_fix.py --fit` had scaled to
+  130px laid out again by hand. That fitter measures text by its anchor
+  point only, so it can do the same to any text-only diagram.
 
 ## Renders, but not like marp
 
 | Gap | Slides / decks | What rsslide does today |
 |---|---|---|
-| Code that does not fit | most of the 162 code-overflow slides | Shrinks the code until it fits, sometimes to a barely readable size; marp clips it. These are in the 709 above: split the slides |
+| Code that does not fit | most of the 162 code-overflow slides | Shrinks the code until it fits, sometimes to a barely readable size; marp clips it. All of them were split |
 | Emoji in text | about 20 decks | Noto Color Emoji glyphs; marp draws twemoji pictures (same emoji, different artwork) |
 
 ### Syntax highlighting
@@ -135,15 +120,10 @@ bat grammar scopes a token differently from highlight.js.
 - `<T>`, `<service>` and similar in prose are not HTML; marp shows them as
   text, and so does rsslide.
 
-## Suggested order
+## What is left
 
-1. In teaching-slides: split the 709 slides marp clips today, narrow the
-   one wide table, and put the MIPS registers of
-   `assembly-programming-using-gas/20_arch_comparison` in code spans.
-2. Optionally, draw emoji as twemoji pictures, as marp does.
-3. Replace the `marp.courses` / `marp.lectures` processors in
-   teaching-slides' `rsconstruct.toml` with rsslide import + generate (the
-   per-chapter PDFs still feed its `ipdfunite` merge).
+Nothing blocks. Optional: draw emoji as twemoji pictures, as marp does,
+instead of Noto Color Emoji glyphs.
 
 ## How to measure again
 
