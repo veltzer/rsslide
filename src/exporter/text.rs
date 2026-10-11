@@ -508,18 +508,39 @@ fn atoms(spans: &[Span], fonts: &FontSet, m: TextMetrics) -> Vec<Atom> {
             }
             .unwrap_or(rest.len());
             let last = end == rest.len();
-            let text = if is_space { " " } else { &rest[..end] };
-            let piece = Span {
-                text: text.to_string(),
-                ..span.clone()
-            };
             let left = if first { pad } else { 0.0 };
             let right = if last { pad } else { 0.0 };
-            let frag = measure(piece, fonts, m, left, right);
             if is_space {
-                flush(&mut current, Some(frag));
+                let space = Span {
+                    text: " ".into(),
+                    ..span.clone()
+                };
+                flush(&mut current, Some(measure(space, fonts, m, left, right)));
+            } else if span.code {
+                let word = Span {
+                    text: rest[..end].to_string(),
+                    ..span.clone()
+                };
+                current.push(measure(word, fonts, m, left, right));
             } else {
-                current.push(frag);
+                // A word may break after a hyphen inside it; each part but
+                // the last ends an atom with a zero-width break.
+                let parts = hyphen_parts(&rest[..end]);
+                let n = parts.len();
+                for (k, part) in parts.into_iter().enumerate() {
+                    let word = Span {
+                        text: part.to_string(),
+                        ..span.clone()
+                    };
+                    current.push(measure(word, fonts, m, 0.0, 0.0));
+                    if k + 1 < n {
+                        let soft = Span {
+                            text: String::new(),
+                            ..span.clone()
+                        };
+                        flush(&mut current, Some(measure(soft, fonts, m, 0.0, 0.0)));
+                    }
+                }
             }
             first = false;
             rest = &rest[end..];
@@ -527,6 +548,27 @@ fn atoms(spans: &[Span], fonts: &FontSet, m: TextMetrics) -> Vec<Atom> {
     }
     flush(&mut current, None);
     out
+}
+
+/// Split a word after each hyphen a line may break at: one between a letter
+/// or digit and a letter (`AI-generated`, `x86-based`), as browsers break
+/// per Unicode line breaking. A hyphen at the start (`-5`, `--flag`) or
+/// before a digit is not a break.
+fn hyphen_parts(word: &str) -> Vec<&str> {
+    let chars: Vec<(usize, char)> = word.char_indices().collect();
+    let mut parts = Vec::new();
+    let mut start = 0;
+    for w in chars.windows(3) {
+        let [(_, before), (i, '-'), (_, after)] = w else {
+            continue;
+        };
+        if before.is_alphanumeric() && after.is_alphabetic() {
+            parts.push(&word[start..=*i]);
+            start = i + 1;
+        }
+    }
+    parts.push(&word[start..]);
+    parts
 }
 
 /// Greedily break `spans` into lines no wider than `max_width`. A single
@@ -809,6 +851,45 @@ mod tests {
         let last = &lines[2].pieces[0];
         assert_eq!(last.pad_left, 0.0);
         assert!((last.width - (mono("gamma") + M.code_pad)).abs() < 1e-3);
+    }
+
+    #[test]
+    fn a_line_may_break_after_a_hyphen_inside_a_word() {
+        let bytes = font_bytes();
+        let fonts = bytes.load().unwrap();
+        let spans = parse_inline("review all AI-generated code");
+        // One point short of "review all AI-generated": the line breaks
+        // after the hyphen, and "generated code" fits on the next line.
+        let width = fonts.regular.width("review all AI-generated", M.size) - 1.0;
+        assert!(fonts.regular.width("generated code", M.size) < width);
+        let lines = wrap(&spans, width, &fonts, M);
+        let texts: Vec<String> = lines.iter().map(line_text).collect();
+        assert_eq!(texts, ["review all AI-", "generated code"]);
+        // Unbroken, the word is drawn whole, with nothing between its parts.
+        let one = wrap(&spans, f32::INFINITY, &fonts, M);
+        assert_eq!(line_text(&one[0]), "review all AI-generated code");
+        let natural = fonts.regular.width("review all AI-generated code", M.size);
+        assert!(
+            (one[0].width - natural).abs() < 0.5,
+            "{} vs {natural}",
+            one[0].width
+        );
+    }
+
+    #[test]
+    fn hyphens_that_are_not_inside_a_word_do_not_break() {
+        let bytes = font_bytes();
+        let fonts = bytes.load().unwrap();
+        for text in ["value -5", "use --verbose", "x - y"] {
+            let lines = wrap(&parse_inline(text), 0.0, &fonts, M);
+            let texts: Vec<String> = lines.iter().map(line_text).collect();
+            let words: Vec<&str> = text.split(' ').filter(|w| *w != "-").collect();
+            assert!(
+                texts.iter().all(|t| !t.ends_with('-') || t == "-"),
+                "{text}: {texts:?}"
+            );
+            assert!(texts.len() >= words.len(), "{text}: {texts:?}");
+        }
     }
 
     #[test]

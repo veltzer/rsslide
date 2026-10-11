@@ -70,6 +70,9 @@ item_gap_em = 0.25
 disc_size_em = 0.345
 disc_offset_em = 0.741
 disc_rise_em = 0.345
+# Nested lists: second-level bullets are a ring of the disc's size with
+# this stroke width; deeper ones are squares of the disc's size.
+ring_stroke_em = 0.037
 
 [columns]
 # Gap between side-by-side columns.
@@ -203,6 +206,7 @@ pub struct List {
     pub disc_size_em: f32,
     pub disc_offset_em: f32,
     pub disc_rise_em: f32,
+    pub ring_stroke_em: f32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -358,6 +362,7 @@ impl Default for List {
             disc_size_em: 0.345,
             disc_offset_em: 0.741,
             disc_rise_em: 0.345,
+            ring_stroke_em: 0.037,
         }
     }
 }

@@ -9,36 +9,15 @@ pub struct Presentation {
     pub slides: Vec<Slide>,
 }
 
-#[derive(Debug, Deserialize)]
+/// One slide: its title and everything below it, in drawing order.
+#[derive(Debug)]
 pub struct Slide {
     pub title: Option<String>,
     /// Markdown heading depth of the title: 1 for `#` (the default), 2 for
     /// `##`, and so on. Selects the heading style, as marp does.
-    #[serde(
-        default = "default_title_level",
-        deserialize_with = "deserialize_level"
-    )]
     pub title_level: u8,
-    /// Zero or more sub-headings rendered stacked below the title rule, in
-    /// declaration order. The YAML key may be `subtitle:` (one item) or
-    /// `subtitles:` (list); each item is either a bare string (level 2) or
-    /// `{text, level}`.
-    #[serde(
-        default,
-        alias = "subtitle",
-        deserialize_with = "deserialize_subtitles"
-    )]
-    pub subtitles: Vec<Subtitle>,
-    pub content: Option<String>,
-    pub bullets: Option<Vec<String>>,
-    /// Zero or more code blocks, drawn one below the other in order. The
-    /// YAML `code:` is either one block or a list of them.
-    #[serde(default, deserialize_with = "deserialize_code")]
-    pub code: Vec<CodeBlock>,
-    /// Path to an SVG (or raster image) file on disk.
-    pub image: Option<String>,
-    /// Inline SVG content as a string. Takes precedence over `image` if both are set.
-    pub svg: Option<String>,
+    /// Everything below the title, top to bottom.
+    pub body: Vec<Element>,
     #[allow(dead_code)]
     pub class: Option<String>,
     #[allow(dead_code)]
@@ -47,16 +26,256 @@ pub struct Slide {
     pub align: Option<Align>,
     /// Overrides `align` for the title only.
     pub title_align: Option<Align>,
-    /// Overrides `align` for subtitles, content text and bullets.
+    /// Overrides `align` for everything below the title.
     pub content_align: Option<Align>,
     /// Vertical placement of the content block. Defaults to the configured
     /// `slide.valign` (middle, like marp).
     pub valign: Option<VAlign>,
-    pub columns: Option<Vec<Column>>,
-    /// When true, render bullets before columns instead of after.
+}
+
+/// One element of a slide's body.
+#[derive(Debug)]
+pub enum Element {
+    /// A paragraph; each newline is a line break.
+    Text(String),
+    Heading(Subtitle),
+    List(List),
+    Code(CodeBlock),
+    Table(Table),
+    /// Path to an SVG file.
+    Image(String),
+    /// Inline SVG markup.
+    Svg(String),
+    Columns(Vec<Column>),
+}
+
+/// A bulleted (`ordered: false`) or numbered list.
+#[derive(Debug)]
+pub struct List {
+    pub ordered: bool,
+    pub items: Vec<ListItem>,
+}
+
+#[derive(Debug)]
+pub struct ListItem {
+    pub text: String,
+    /// A list nested under this item.
+    pub children: Option<List>,
+}
+
+/// The YAML form of a slide. A slide lists its content either in `body`,
+/// in source order, or in the older fixed fields (`subtitle(s)`,
+/// `content`, `bullets`, `columns`, `table`, `code`, `image`, `svg`),
+/// which are drawn in that order (with `bullets_first` swapping bullets and
+/// columns). Mixing the two is an error.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawSlide {
+    title: Option<String>,
+    #[serde(
+        default = "default_title_level",
+        deserialize_with = "deserialize_level"
+    )]
+    title_level: u8,
+    body: Option<Vec<Element>>,
+    #[serde(
+        default,
+        alias = "subtitle",
+        deserialize_with = "deserialize_subtitles"
+    )]
+    subtitles: Vec<Subtitle>,
+    content: Option<String>,
+    bullets: Option<Vec<ListItem>>,
+    #[serde(default, deserialize_with = "deserialize_code")]
+    code: Vec<CodeBlock>,
+    image: Option<String>,
+    svg: Option<String>,
+    columns: Option<Vec<Column>>,
     #[serde(default)]
-    pub bullets_first: bool,
-    pub table: Option<Table>,
+    bullets_first: bool,
+    table: Option<Table>,
+    class: Option<String>,
+    background: Option<String>,
+    align: Option<Align>,
+    title_align: Option<Align>,
+    content_align: Option<Align>,
+    valign: Option<VAlign>,
+}
+
+impl<'de> Deserialize<'de> for Slide {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+        let raw = RawSlide::deserialize(d)?;
+        let has_fields = !raw.subtitles.is_empty()
+            || raw.content.is_some()
+            || raw.bullets.is_some()
+            || !raw.code.is_empty()
+            || raw.image.is_some()
+            || raw.svg.is_some()
+            || raw.columns.is_some()
+            || raw.bullets_first
+            || raw.table.is_some();
+        let body = match raw.body {
+            Some(body) => {
+                if has_fields {
+                    return Err(D::Error::custom(
+                        "a slide with `body` cannot also use subtitle(s), content, bullets, \
+                         columns, bullets_first, table, code, image or svg",
+                    ));
+                }
+                body
+            }
+            None => {
+                if raw.image.is_some() && raw.svg.is_some() {
+                    return Err(D::Error::custom(
+                        "a slide cannot have both `image` and `svg`",
+                    ));
+                }
+                let mut body: Vec<Element> =
+                    raw.subtitles.into_iter().map(Element::Heading).collect();
+                body.extend(raw.content.map(Element::Text));
+                let bullets = raw.bullets.map(|items| {
+                    Element::List(List {
+                        ordered: false,
+                        items,
+                    })
+                });
+                let columns = raw.columns.map(Element::Columns);
+                if raw.bullets_first {
+                    body.extend(bullets);
+                    body.extend(columns);
+                } else {
+                    body.extend(columns);
+                    body.extend(bullets);
+                }
+                body.extend(raw.table.map(Element::Table));
+                body.extend(raw.code.into_iter().map(Element::Code));
+                body.extend(raw.image.map(Element::Image));
+                body.extend(raw.svg.map(Element::Svg));
+                body
+            }
+        };
+        Ok(Slide {
+            title: raw.title,
+            title_level: raw.title_level,
+            body,
+            class: raw.class,
+            background: raw.background,
+            align: raw.align,
+            title_align: raw.title_align,
+            content_align: raw.content_align,
+            valign: raw.valign,
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for Element {
+    /// A single-key map naming the element: `text`, `heading`, `bullets`,
+    /// `numbered`, `code`, `table`, `image`, `svg` or `columns`.
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Raw {
+            text: Option<String>,
+            heading: Option<Subtitle>,
+            bullets: Option<Vec<ListItem>>,
+            numbered: Option<Vec<ListItem>>,
+            code: Option<CodeBlock>,
+            table: Option<Table>,
+            image: Option<String>,
+            svg: Option<String>,
+            columns: Option<Vec<Column>>,
+        }
+        let raw = Raw::deserialize(d)?;
+        let mut found: Vec<Element> = Vec::new();
+        found.extend(raw.text.map(Element::Text));
+        found.extend(raw.heading.map(Element::Heading));
+        found.extend(raw.bullets.map(|items| {
+            Element::List(List {
+                ordered: false,
+                items,
+            })
+        }));
+        found.extend(raw.numbered.map(|items| {
+            Element::List(List {
+                ordered: true,
+                items,
+            })
+        }));
+        found.extend(raw.code.map(Element::Code));
+        found.extend(raw.table.map(Element::Table));
+        found.extend(raw.image.map(Element::Image));
+        found.extend(raw.svg.map(Element::Svg));
+        found.extend(raw.columns.map(Element::Columns));
+        if found.len() != 1 {
+            return Err(D::Error::custom(format!(
+                "a body element must have exactly one of text, heading, bullets, numbered, \
+                 code, table, image, svg, columns; found {}",
+                found.len()
+            )));
+        }
+        if let Some(Element::List(list)) = found.first()
+            && list.items.is_empty()
+        {
+            return Err(D::Error::custom("a list must have at least one item"));
+        }
+        Ok(found.remove(0))
+    }
+}
+
+impl<'de> Deserialize<'de> for ListItem {
+    /// A plain string, or `{text, bullets|numbered}` for an item with a
+    /// nested list.
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Raw {
+            Plain(String),
+            Full(Full),
+        }
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Full {
+            text: String,
+            bullets: Option<Vec<ListItem>>,
+            numbered: Option<Vec<ListItem>>,
+        }
+        Ok(match Raw::deserialize(d)? {
+            Raw::Plain(text) => ListItem {
+                text,
+                children: None,
+            },
+            Raw::Full(full) => {
+                let children = match (full.bullets, full.numbered) {
+                    (Some(_), Some(_)) => {
+                        return Err(D::Error::custom(
+                            "a list item can nest `bullets` or `numbered`, not both",
+                        ));
+                    }
+                    (Some(items), None) => Some(List {
+                        ordered: false,
+                        items,
+                    }),
+                    (None, Some(items)) => Some(List {
+                        ordered: true,
+                        items,
+                    }),
+                    (None, None) => None,
+                };
+                if children.as_ref().is_some_and(|l| l.items.is_empty()) {
+                    return Err(D::Error::custom(
+                        "a nested list must have at least one item",
+                    ));
+                }
+                ListItem {
+                    text: full.text,
+                    children,
+                }
+            }
+        })
+    }
 }
 
 /// Horizontal alignment of a slide element.
@@ -94,7 +313,7 @@ fn deserialize_level<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
 #[derive(Debug, Deserialize)]
 pub struct Column {
     pub header: Option<String>,
-    pub bullets: Vec<String>,
+    pub bullets: Vec<ListItem>,
 }
 
 fn deserialize_code<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<CodeBlock>, D::Error> {

@@ -15,7 +15,9 @@ use crate::config::{Color, Config};
 use crate::exporter::text::{
     FontBytes, FontKind, FontSet, Line, Span, TextMetrics, parse_inline, wrap,
 };
-use crate::model::{Align, Column, Presentation, Slide, Table, TableAlign, VAlign};
+use crate::model::{
+    Align, Column, Element, ListItem, Presentation, Slide, Table, TableAlign, VAlign,
+};
 use anyhow::{Context, Result, bail};
 use krilla::Document;
 use krilla::color::rgb;
@@ -212,6 +214,15 @@ enum Op {
         radius: f32,
         color: Color,
     },
+    /// A circle outline: `x`, `y` is the centre, `radius` the middle of the
+    /// stroke.
+    Ring {
+        x: f32,
+        y: f32,
+        radius: f32,
+        stroke: f32,
+        color: Color,
+    },
     Svg {
         tree: Box<usvg::Tree>,
         x: f32,
@@ -223,7 +234,10 @@ enum Op {
 impl Op {
     fn shift(&mut self, dx: f32, dy: f32) {
         match self {
-            Op::Text { x, y, .. } | Op::Rect { x, y, .. } | Op::Svg { x, y, .. } => {
+            Op::Text { x, y, .. }
+            | Op::Rect { x, y, .. }
+            | Op::Ring { x, y, .. }
+            | Op::Svg { x, y, .. } => {
                 *x += dx;
                 *y += dy;
             }
@@ -282,113 +296,107 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
     let content_align = slide.content_align.unwrap_or(align);
     let x0 = ctx.pad_x();
     let width = ctx.content_width();
+    let Split {
+        above: body,
+        picture,
+        below: after,
+    } = split_picture(&slide.body)?;
 
-    let mut blocks = Vec::new();
-    if let Some(title) = &slide.title {
-        blocks.push(heading_block(
-            ctx,
-            title,
-            slide.title_level,
-            x0,
-            width,
-            title_align,
-        ));
-    }
-    for sub in &slide.subtitles {
-        blocks.push(heading_block(
-            ctx,
-            &sub.text,
-            sub.level,
-            x0,
-            width,
-            content_align,
-        ));
-    }
-    if let Some(content) = &slide.content {
-        for paragraph in paragraphs(content) {
-            blocks.push(paragraph_block(ctx, &paragraph, x0, width, content_align));
-        }
-    }
-    let bullets = slide
-        .bullets
-        .as_ref()
-        .map(|b| list_block(ctx, b, x0, width, content_align));
-    let columns = slide
-        .columns
-        .as_ref()
-        .map(|c| columns_block(ctx, c, x0, width, content_align))
-        .transpose()?;
-    if slide.bullets_first {
-        blocks.extend(bullets);
-        blocks.extend(columns);
-    } else {
-        blocks.extend(columns);
-        blocks.extend(bullets);
-    }
-    if let Some(table) = &slide.table {
-        blocks.push(table_block(ctx, table, x0, width, content_align)?);
-    }
-    let svg = svg_source(slide)?;
-    let mut ops = Vec::new();
-    let top = ctx.pad_y();
-    let available = ctx.height - 2.0 * top;
-
-    if !slide.code.is_empty() {
-        let sources: Vec<&str> = slide
-            .code
-            .iter()
-            .map(|code| {
-                if code.trim {
-                    code.source.trim_end_matches(['\n', '\r'])
-                } else {
-                    code.source.as_str()
-                }
-            })
-            .collect();
-        // The code blocks share whatever height the other blocks leave,
-        // all shrunk by one factor so the code reads at one size.
-        let above = stack_height(&blocks);
-        let gap = blocks.last().map_or(0.0, |b| b.margin_bottom);
-        let scale = if svg.is_some() {
-            code_scale(ctx, &sources, width, f32::INFINITY)?
-        } else {
-            code_scale(ctx, &sources, width, available - above - gap)?
-        };
-        for (code, source) in slide.code.iter().zip(sources) {
-            blocks.push(code_block(
+    // Every block of the slide above its picture (all of them, without a
+    // picture), with its code shrunk by `scale`.
+    let build = |scale: f32| -> Result<Vec<Block>> {
+        let mut blocks = Vec::new();
+        if let Some(title) = &slide.title {
+            blocks.push(heading_block(
                 ctx,
-                source,
-                code.language.as_deref(),
+                title,
+                slide.title_level,
                 x0,
                 width,
+                title_align,
+            ));
+        }
+        for element in body {
+            blocks.extend(element_blocks(
+                ctx,
+                element,
+                x0,
+                width,
+                content_align,
                 scale,
             )?);
         }
+        Ok(blocks)
+    };
+
+    let top = ctx.pad_y();
+    let available = ctx.height - 2.0 * top;
+    let sources: Vec<&str> = body
+        .iter()
+        .chain(after)
+        .filter_map(|e| match e {
+            Element::Code(code) => Some(code_source(code)),
+            _ => None,
+        })
+        .collect();
+    // Code first shrinks to fit the width, like marp's auto-scaling of
+    // `<pre>`; all of a slide's code shares one factor so it reads at one
+    // size.
+    let mut scale = code_width_scale(ctx, &sources, width);
+    let mut blocks = build(scale)?;
+    if picture.is_none() && !sources.is_empty() && stack_height(&blocks) > available {
+        // Then, if the slide is too tall, it shrinks to fit the height. The
+        // stack height is linear in the scale (only the code's text and
+        // padding scale), so two layouts give the exact factor.
+        let full = stack_height(&blocks);
+        let half = stack_height(&build(scale / 2.0)?);
+        let per_unit = 2.0 * (full - half) / scale;
+        let fixed = full - per_unit * scale;
+        let fit = (available - fixed) / per_unit;
+        if fit <= 0.0 {
+            bail!("no room left for the code below the slide's other content");
+        }
+        scale = fit.min(scale);
+        blocks = build(scale)?;
     }
     let stack = stack_height(&blocks);
+    let mut ops = Vec::new();
 
-    if let Some(svg) = svg {
-        // The SVG takes all the room the stack leaves, so the stack sits at
-        // the top and vertical alignment does not apply.
-        let has_stack = !blocks.is_empty();
-        let bottom = place(blocks, top, &mut ops);
-        let svg_top = if has_stack {
-            bottom + cfg.svg.top_gap_em * ctx.em
-        } else {
+    if let Some(svg) = picture {
+        // The picture takes all the room the other elements leave, so they
+        // sit at the top and vertical alignment does not apply.
+        let mut below = Vec::new();
+        for element in after {
+            below.extend(element_blocks(
+                ctx,
+                element,
+                x0,
+                width,
+                content_align,
+                scale,
+            )?);
+        }
+        let gap = cfg.svg.top_gap_em * ctx.em;
+        let picture_top = if blocks.is_empty() {
             top
+        } else {
+            place(blocks, top, &mut ops) + gap
         };
-        ops.push(svg_op(ctx, &svg, svg_top)?);
+        let reserved = if below.is_empty() {
+            0.0
+        } else {
+            stack_height(&below) + gap
+        };
+        let (op, height) = svg_op(ctx, &svg, picture_top, reserved)?;
+        ops.push(op);
+        if !below.is_empty() {
+            place(below, picture_top + height + gap, &mut ops);
+        }
     } else {
         // Content taller than the padded area starts at the top and runs
-        // into the bottom padding, like marp's `safe center`. Content that
-        // would run off the page is an error.
-        if top + stack > ctx.height {
-            bail!(
-                "content does not fit on the slide: it is {:.0}% of the page height \
-                 below the top padding; split the slide or shorten it",
-                stack / (ctx.height - top) * 100.0
-            );
-        }
+        // into the bottom padding, like marp's `safe center`. Content whose
+        // ink would run off the page (marp would cut it) is an error; the
+        // empty leading under the last line may hang past the edge.
         let slack = (available - stack).max(0.0);
         let y = match slide.valign.unwrap_or(cfg.slide.valign) {
             VAlign::Top => top,
@@ -396,12 +404,121 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
             VAlign::Bottom => top + slack,
         };
         place(blocks, y, &mut ops);
+        if ink_bottom(ctx, &ops) > ctx.height {
+            bail!(
+                "content does not fit on the slide: it is {:.0}% of the page height \
+                 below the top padding; split the slide or shorten it",
+                stack / (ctx.height - top) * 100.0
+            );
+        }
     }
 
     if let Some(n) = page_number {
         ops.push(page_number_op(ctx, n));
     }
     Ok(ops)
+}
+
+/// The lowest point anything in `ops` draws: text descenders, box bottoms,
+/// rings, pictures.
+fn ink_bottom(ctx: &Ctx, ops: &[Op]) -> f32 {
+    ops.iter()
+        .map(|op| match op {
+            Op::Text { y, font, size, .. } => y - ctx.fonts.get(*font).descent * size,
+            Op::Rect { y, h, .. } => y + h,
+            Op::Ring {
+                y, radius, stroke, ..
+            } => y + radius + stroke / 2.0,
+            Op::Svg { tree, y, scale, .. } => y + tree.size().height() * scale,
+        })
+        .fold(f32::MIN, f32::max)
+}
+
+/// The blocks one body element lays out as. Images are handled by the
+/// caller (see `split_picture`).
+fn element_blocks(
+    ctx: &Ctx,
+    element: &Element,
+    x0: f32,
+    width: f32,
+    align: Align,
+    code_scale: f32,
+) -> Result<Vec<Block>> {
+    Ok(match element {
+        Element::Text(text) => paragraphs(text)
+            .iter()
+            .map(|p| paragraph_block(ctx, p, x0, width, align))
+            .collect(),
+        Element::Heading(h) => vec![heading_block(ctx, &h.text, h.level, x0, width, align)],
+        Element::List(list) => vec![list_block(ctx, list.ordered, &list.items, x0, width, align)],
+        Element::Code(code) => vec![code_block(
+            ctx,
+            code_source(code),
+            code.language.as_deref(),
+            x0,
+            width,
+            code_scale,
+        )?],
+        Element::Table(table) => vec![table_block(ctx, table, x0, width, align)?],
+        Element::Columns(columns) => vec![columns_block(ctx, columns, x0, width, align)?],
+        Element::Image(_) | Element::Svg(_) => {
+            unreachable!("split_picture removes the image")
+        }
+    })
+}
+
+fn code_source(code: &crate::model::CodeBlock) -> &str {
+    if code.trim {
+        code.source.trim_end_matches(['\n', '\r'])
+    } else {
+        &code.source
+    }
+}
+
+/// Separate the slide's picture (an `image` file or inline `svg`) from the
+/// rest of its body: the elements above it, its SVG source, and the
+/// elements below it. A slide has at most one picture; it fills the space
+/// the other elements leave.
+fn split_picture(body: &[Element]) -> Result<Split<'_>> {
+    let mut at = None;
+    for (i, e) in body.iter().enumerate() {
+        if matches!(e, Element::Image(_) | Element::Svg(_)) {
+            if at.is_some() {
+                bail!("a slide can have one image or svg; split the slide");
+            }
+            at = Some(i);
+        }
+    }
+    let Some(i) = at else {
+        return Ok(Split {
+            above: body,
+            picture: None,
+            below: &[],
+        });
+    };
+    let svg = match &body[i] {
+        Element::Svg(svg) => svg.clone(),
+        Element::Image(path) => {
+            if !path.to_lowercase().ends_with(".svg") {
+                bail!("image path {path:?} is not an .svg (raster images not yet supported)");
+            }
+            std::fs::read_to_string(path)
+                .with_context(|| format!("failed to read SVG file {path:?}"))?
+        }
+        _ => unreachable!("index of a picture"),
+    };
+    Ok(Split {
+        above: &body[..i],
+        picture: Some(svg),
+        below: &body[i + 1..],
+    })
+}
+
+/// A slide body split around its picture (see `split_picture`).
+struct Split<'a> {
+    above: &'a [Element],
+    picture: Option<String>,
+    below: &'a [Element],
 }
 
 /// Split slide content into paragraphs on blank lines. Within a paragraph
@@ -482,6 +599,10 @@ fn line_ops(ctx: &Ctx, line: &Line, x: f32, y: f32, style: &TextStyle, ops: &mut
     }
     for piece in &line.pieces {
         let span = &piece.span;
+        if span.text.is_empty() {
+            // A zero-width break opportunity (after a hyphen).
+            continue;
+        }
         let color = if span.link {
             cfg.colors.link
         } else {
@@ -579,51 +700,196 @@ fn paragraph_block(ctx: &Ctx, lines: &[String], x0: f32, width: f32, align: Alig
     }
 }
 
-/// A bulleted list. The text is indented by `list.indent_em`; a disc hangs
-/// to the left of each item's first line, as a CSS outside marker.
-fn list_block(ctx: &Ctx, items: &[String], x0: f32, width: f32, align: Align) -> Block {
+/// A bulleted or numbered list, with nested lists under their items.
+fn list_block(
+    ctx: &Ctx,
+    ordered: bool,
+    items: &[ListItem],
+    x0: f32,
+    width: f32,
+    align: Align,
+) -> Block {
+    let mut ops = Vec::new();
+    let area = Area { x0, width, align };
+    let height = list_ops(ctx, ordered, items, 1, area, 0.0, &mut ops);
+    Block {
+        ops,
+        height,
+        margin_top: 0.0,
+        margin_bottom: ctx.cfg.block.margin_bottom_em * ctx.em,
+    }
+}
+
+/// A horizontal band of the slide to lay text out in.
+#[derive(Clone, Copy)]
+struct Area {
+    x0: f32,
+    width: f32,
+    align: Align,
+}
+
+/// Lay out a list at nesting `depth` (1 for the outermost) in `area` from
+/// `y`, and return where it ends. Text is indented by `list.indent_em` per level and
+/// each item's marker hangs to the left of its first line, as a CSS outside
+/// marker. Items are `list.item_gap_em` apart; a nested list follows its
+/// item's text directly.
+fn list_ops(
+    ctx: &Ctx,
+    ordered: bool,
+    items: &[ListItem],
+    depth: usize,
+    area: Area,
+    mut y: f32,
+    ops: &mut Vec<Op>,
+) -> f32 {
+    let Area { x0, width, align } = area;
     let cfg = ctx.cfg;
     let style = body_style(ctx);
     let indent = cfg.list.indent_em * ctx.em;
     let text_x0 = x0 + indent;
     let text_w = width - indent;
-    let disc = cfg.list.disc_size_em * ctx.em;
     let lh = style.line_height * ctx.em;
     let base = baseline_offset(ctx, FontKind::Regular, ctx.em, style.line_height);
-
-    let mut ops = Vec::new();
-    let mut y = 0.0;
     for (i, item) in items.iter().enumerate() {
         if i > 0 {
             y += cfg.list.item_gap_em * ctx.em;
         }
-        let lines = wrap(&parse_inline(item), text_w, ctx.fonts, style.metrics);
-        for (j, line) in lines.iter().enumerate() {
+        let lines = wrap(&parse_inline(&item.text), text_w, ctx.fonts, style.metrics);
+        let first_x = lines
+            .first()
+            .map_or(text_x0, |l| line_x(text_x0, text_w, l.width, align));
+        marker_ops(ctx, ordered, depth, i, first_x, y + base, ops);
+        for line in &lines {
             let x = line_x(text_x0, text_w, line.width, align);
-            let baseline = y + base;
-            if j == 0 {
-                // The disc is a circle, as browsers draw it, not a glyph.
-                let cx = x - cfg.list.disc_offset_em * ctx.em;
-                let cy = baseline - cfg.list.disc_rise_em * ctx.em;
-                ops.push(Op::Rect {
-                    x: cx - disc / 2.0,
-                    y: cy - disc / 2.0,
-                    w: disc,
-                    h: disc,
-                    radius: disc / 2.0,
-                    color: cfg.colors.text,
-                });
-            }
-            line_ops(ctx, line, x, baseline, &style, &mut ops);
+            line_ops(ctx, line, x, y + base, &style, ops);
             y += lh;
         }
+        if lines.is_empty() {
+            // An empty item still takes a line, like an empty `<li>`.
+            y += lh;
+        }
+        if let Some(children) = &item.children {
+            let inner = Area {
+                x0: text_x0,
+                width: text_w,
+                align,
+            };
+            y = list_ops(
+                ctx,
+                children.ordered,
+                &children.items,
+                depth + 1,
+                inner,
+                y,
+                ops,
+            );
+        }
     }
-    Block {
-        ops,
-        height: y,
-        margin_top: 0.0,
-        margin_bottom: cfg.block.margin_bottom_em * ctx.em,
+    y
+}
+
+/// The marker of item `index` of a list at `depth`, for a first line that
+/// starts at `x` with its baseline at `baseline`. As in browsers: bullets
+/// are a disc, then a ring, then a square; numbers are decimal, then lower
+/// roman, then lower alpha (GitHub's `ol ol` / `ol ol ol` styles).
+fn marker_ops(
+    ctx: &Ctx,
+    ordered: bool,
+    depth: usize,
+    index: usize,
+    x: f32,
+    baseline: f32,
+    ops: &mut Vec<Op>,
+) {
+    let cfg = ctx.cfg;
+    let color = cfg.colors.text;
+    if ordered {
+        let number = index + 1;
+        let label = match depth {
+            1 => number.to_string(),
+            2 => roman(number),
+            _ => alpha(number),
+        };
+        // The marker is "N. ", right-aligned against the text.
+        let text = format!("{label}.");
+        let w = ctx.fonts.regular.width(&format!("{text} "), ctx.em);
+        ops.push(Op::Text {
+            x: x - w,
+            y: baseline,
+            font: FontKind::Regular,
+            size: ctx.em,
+            color,
+            text,
+        });
+        return;
     }
+    let size = cfg.list.disc_size_em * ctx.em;
+    let cx = x - cfg.list.disc_offset_em * ctx.em;
+    let cy = baseline - cfg.list.disc_rise_em * ctx.em;
+    match depth {
+        1 => ops.push(Op::Rect {
+            x: cx - size / 2.0,
+            y: cy - size / 2.0,
+            w: size,
+            h: size,
+            radius: size / 2.0,
+            color,
+        }),
+        2 => ops.push(Op::Ring {
+            x: cx,
+            y: cy,
+            radius: size / 2.0,
+            stroke: cfg.list.ring_stroke_em * ctx.em,
+            color,
+        }),
+        _ => ops.push(Op::Rect {
+            x: cx - size / 2.0,
+            y: cy - size / 2.0,
+            w: size,
+            h: size,
+            radius: 0.0,
+            color,
+        }),
+    }
+}
+
+/// Lower-case roman numeral (1 -> i, 4 -> iv, 9 -> ix, ...).
+fn roman(mut n: usize) -> String {
+    const DIGITS: [(usize, &str); 13] = [
+        (1000, "m"),
+        (900, "cm"),
+        (500, "d"),
+        (400, "cd"),
+        (100, "c"),
+        (90, "xc"),
+        (50, "l"),
+        (40, "xl"),
+        (10, "x"),
+        (9, "ix"),
+        (5, "v"),
+        (4, "iv"),
+        (1, "i"),
+    ];
+    let mut out = String::new();
+    for (value, digits) in DIGITS {
+        while n >= value {
+            out.push_str(digits);
+            n -= value;
+        }
+    }
+    out
+}
+
+/// Lower-case letters as CSS `lower-alpha` counts: a..z, aa, ab, ...
+fn alpha(mut n: usize) -> String {
+    let mut out = Vec::new();
+    while n > 0 {
+        n -= 1;
+        out.push(b'a' + (n % 26) as u8);
+        n /= 26;
+    }
+    out.reverse();
+    String::from_utf8(out).expect("ASCII letters")
 }
 
 /// Side-by-side columns of equal width, each an optional level-3 header
@@ -651,7 +917,7 @@ fn columns_block(
             // marp decks write column headers as `###`.
             blocks.push(heading_block(ctx, header, 3, cx, col_w, align));
         }
-        blocks.push(list_block(ctx, &col.bullets, cx, col_w, align));
+        blocks.push(list_block(ctx, false, &col.bullets, cx, col_w, align));
         height = height.max(stack_height(&blocks));
         place(blocks, 0.0, &mut ops);
     }
@@ -900,49 +1166,23 @@ fn code_block(
     })
 }
 
-/// How much a slide's code blocks must shrink to fit, like marp's
-/// auto-scaling of `<pre>`: every block's widest line must fit `width`,
-/// and the blocks stacked (with the gaps between them) must fit
-/// `max_height`. One factor for all of them; never enlarges. Borders and
-/// gaps do not scale; the padding and the text inside do.
-fn code_scale(ctx: &Ctx, sources: &[&str], width: f32, max_height: f32) -> Result<f32> {
+/// How much a slide's code must shrink so that the widest line of every
+/// block fits `width`. Never enlarges. The border does not scale; the
+/// padding and the text inside it do.
+fn code_width_scale(ctx: &Ctx, sources: &[&str], width: f32) -> f32 {
     let cfg = ctx.cfg;
     let border = 2.0 * cfg.code.border_em * ctx.em;
     let pad = 2.0 * cfg.code.padding_em * ctx.em;
     let size = ctx.em * cfg.code.font_size_em;
-    let gaps = sources.len().saturating_sub(1) as f32 * cfg.block.margin_bottom_em * ctx.em;
-    let fixed = sources.len() as f32 * border + gaps;
-    if max_height <= fixed {
-        bail!("no room left for the code below the slide's other content");
-    }
-    let mut fit_w = f32::INFINITY;
-    let mut scalable = 0.0;
-    for source in sources {
-        let lines = LinesWithEndings::from(source).count() as f32;
-        let widest = LinesWithEndings::from(source)
-            .map(|l| ctx.fonts.mono.width(l.trim_end_matches(['\n', '\r']), size))
-            .fold(0.0, f32::max);
-        fit_w = fit_w.min((width - border) / (widest + pad));
-        scalable += pad + lines * size * cfg.code.line_height;
-    }
-    let fit_h = (max_height - fixed) / scalable;
-    Ok(fit_w.min(fit_h).min(1.0))
-}
-
-/// The slide's SVG: inline `svg` takes precedence over an `image` path.
-fn svg_source(slide: &Slide) -> Result<Option<String>> {
-    if let Some(inline) = &slide.svg {
-        return Ok(Some(inline.clone()));
-    }
-    let Some(path) = &slide.image else {
-        return Ok(None);
-    };
-    if !path.to_lowercase().ends_with(".svg") {
-        bail!("image path {path:?} is not an .svg (raster images not yet supported)");
-    }
-    let text = std::fs::read_to_string(path)
-        .with_context(|| format!("failed to read SVG file {path:?}"))?;
-    Ok(Some(text))
+    sources
+        .iter()
+        .map(|source| {
+            let widest = LinesWithEndings::from(source)
+                .map(|l| ctx.fonts.mono.width(l.trim_end_matches(['\n', '\r']), size))
+                .fold(0.0, f32::max);
+            (width - border) / (widest + pad)
+        })
+        .fold(1.0, f32::min)
 }
 
 fn parse_svg(ctx: &Ctx, svg: &str) -> Result<usvg::Tree> {
@@ -972,24 +1212,26 @@ fn fit(tree: &usvg::Tree, w: f32, h: f32) -> Result<(f32, f32, f32)> {
 }
 
 /// The slide's SVG, filling the area from `top` down to the SVG bottom
-/// margin, centered horizontally.
-fn svg_op(ctx: &Ctx, svg: &str, top: f32) -> Result<Op> {
+/// margin less `reserved` (room kept for elements below it), centred
+/// horizontally. Returns the op and the SVG's drawn height.
+fn svg_op(ctx: &Ctx, svg: &str, top: f32, reserved: f32) -> Result<(Op, f32)> {
     let cfg = ctx.cfg;
     let margin_x = ctx.width * cfg.svg.margin_x_ratio;
-    let bottom = ctx.height * (1.0 - cfg.svg.margin_bottom_ratio);
+    let bottom = ctx.height * (1.0 - cfg.svg.margin_bottom_ratio) - reserved;
     let avail_w = ctx.width - 2.0 * margin_x;
     let avail_h = bottom - top;
     if avail_h <= 0.0 {
-        bail!("no room left for the SVG below the slide's other content");
+        bail!("no room left for the SVG between the slide's other content");
     }
     let tree = parse_svg(ctx, svg)?;
-    let (scale, w, _) = fit(&tree, avail_w, avail_h)?;
-    Ok(Op::Svg {
+    let (scale, w, h) = fit(&tree, avail_w, avail_h)?;
+    let op = Op::Svg {
         tree: Box::new(tree),
         x: margin_x + (avail_w - w) / 2.0,
         y: top,
         scale,
-    })
+    };
+    Ok((op, h))
 }
 
 /// The page number, right-aligned at marp's pagination position.
@@ -1047,6 +1289,29 @@ fn draw_ops(surface: &mut Surface<'_>, ctx: &Ctx, ops: Vec<Op>) -> Result<()> {
                     .with_context(|| format!("degenerate rectangle {w}x{h} at ({x}, {y})"))?;
                 surface.draw_path(&path);
             }
+            Op::Ring {
+                x,
+                y,
+                radius,
+                stroke,
+                color,
+            } => {
+                surface.set_fill(Some(Fill {
+                    paint: {
+                        let (r, g, b) = color.rgb();
+                        rgb::Color::new(r, g, b).into()
+                    },
+                    opacity: NormalizedF32::ONE,
+                    rule: FillRule::EvenOdd,
+                }));
+                let mut pb = PathBuilder::new();
+                push_circle(&mut pb, x, y, radius + stroke / 2.0);
+                push_circle(&mut pb, x, y, radius - stroke / 2.0);
+                let path = pb
+                    .finish()
+                    .with_context(|| format!("degenerate ring of radius {radius}"))?;
+                surface.draw_path(&path);
+            }
             Op::Svg { tree, x, y, scale } => {
                 let size = Size::from_wh(tree.size().width(), tree.size().height())
                     .context("invalid SVG size")?;
@@ -1068,6 +1333,17 @@ fn set_fill(surface: &mut Surface<'_>, c: Color) {
         opacity: NormalizedF32::ONE,
         rule: FillRule::default(),
     }));
+}
+
+/// Append a closed circle to `pb`, as four cubic arcs.
+fn push_circle(pb: &mut PathBuilder, cx: f32, cy: f32, r: f32) {
+    let k = r * KAPPA;
+    pb.move_to(cx + r, cy);
+    pb.cubic_to(cx + r, cy + k, cx + k, cy + r, cx, cy + r);
+    pb.cubic_to(cx - k, cy + r, cx - r, cy + k, cx - r, cy);
+    pb.cubic_to(cx - r, cy - k, cx - k, cy - r, cx, cy - r);
+    pb.cubic_to(cx + k, cy - r, cx + r, cy - k, cx + r, cy);
+    pb.close();
 }
 
 fn rounded_rect(x: f32, y: f32, w: f32, h: f32, radius: f32) -> Option<krilla::geom::Path> {
@@ -1188,13 +1464,34 @@ mod tests {
     }
 
     fn table_slide(yaml_table: &str) -> Table {
-        one_slide(&format!("table:\n{yaml_table}")).table.unwrap()
+        match one_slide(&format!("table:\n{yaml_table}")).body.remove(0) {
+            Element::Table(t) => t,
+            _ => panic!("a table"),
+        }
+    }
+
+    /// Text ops in the mono font, as (text, size).
+    fn mono_sizes(ops: &[Op]) -> Vec<f32> {
+        ops.iter()
+            .filter_map(|op| match op {
+                Op::Text {
+                    font: FontKind::Mono,
+                    size,
+                    ..
+                } => Some(*size),
+                _ => None,
+            })
+            .collect()
     }
 
     const FULL_SLIDE: &str = "title: Scaling **check**
 subtitle: {text: A subtitle, level: 3}
 content: Body with `inline code` and https://example.org
-bullets: [one, two **bold**, three]
+bullets:
+  - text: two **bold**
+    bullets:
+      - text: nested
+        numbered: [deep]
 table:
   headers: [Name, Value]
   aligns: [auto, right]
@@ -1288,6 +1585,27 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
                         }
                     }
                     (
+                        Op::Ring {
+                            x,
+                            y,
+                            radius,
+                            stroke,
+                            color,
+                        },
+                        Op::Ring {
+                            x: x2,
+                            y: y2,
+                            radius: r2,
+                            stroke: s2,
+                            color: c2,
+                        },
+                    ) => {
+                        assert_eq!(color, c2);
+                        for (v, v2) in [(x, x2), (y, y2), (radius, r2), (stroke, s2)] {
+                            close(*v, *v2, "ring");
+                        }
+                    }
+                    (
                         Op::Svg { x, y, scale, .. },
                         Op::Svg {
                             x: x2,
@@ -1353,6 +1671,50 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
                 "the stack runs into the bottom padding"
             );
             assert!(last < ctx.height, "but stays on the page");
+        });
+    }
+
+    #[test]
+    fn ink_bottom_counts_descenders_and_boxes() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let text = Op::Text {
+                x: 0.0,
+                y: 100.0,
+                font: FontKind::Regular,
+                size: 20.0,
+                color: cfg.colors.text,
+                text: "g".into(),
+            };
+            let descent = -ctx.fonts.regular.descent * 20.0;
+            assert!(descent > 0.0);
+            assert!(
+                (ink_bottom(ctx, std::slice::from_ref(&text)) - (100.0 + descent)).abs() < 1e-4
+            );
+            let rect = Op::Rect {
+                x: 0.0,
+                y: 90.0,
+                w: 5.0,
+                h: 30.0,
+                radius: 0.0,
+                color: cfg.colors.text,
+            };
+            assert_eq!(ink_bottom(ctx, &[text, rect]), 120.0);
+        });
+    }
+
+    #[test]
+    fn the_last_lines_leading_may_hang_past_the_page() {
+        // Find the largest bullet count that lays out; its last line box
+        // may end below the page as long as the text itself does not.
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let fits = |n: usize| layout_slide(ctx, &one_slide(&bullets_yaml(n)), None).is_ok();
+            let n = (1..60).take_while(|&n| fits(n)).last().unwrap();
+            let ops = layout_slide(ctx, &one_slide(&bullets_yaml(n)), None).unwrap();
+            assert!(ink_bottom(ctx, &ops) <= ctx.height);
+            let next = layout_slide(ctx, &one_slide(&bullets_yaml(n + 1)), None);
+            assert!(next.is_err(), "one more bullet runs off the page");
         });
     }
 
@@ -1491,7 +1853,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
     fn code_that_fits_is_not_scaled() {
         let cfg = Config::default();
         with_ctx(&cfg, |ctx| {
-            let s = code_scale(ctx, &["fn main() {}\n"], ctx.content_width(), 1000.0).unwrap();
+            let s = code_width_scale(ctx, &["fn main() {}\n"], ctx.content_width());
             assert_eq!(s, 1.0, "code is never enlarged");
         });
     }
@@ -1502,7 +1864,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
         with_ctx(&cfg, |ctx| {
             let line = "x".repeat(400);
             let width = ctx.content_width();
-            let s = code_scale(ctx, &[&line], width, f32::INFINITY).unwrap();
+            let s = code_width_scale(ctx, &["short", &line], width);
             assert!(s < 1.0);
             let text = ctx
                 .fonts
@@ -1517,16 +1879,56 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
         });
     }
 
+    /// The lowest point any op of `ops` reaches: text baselines, box bottoms.
+    fn lowest(ops: &[Op]) -> f32 {
+        ops.iter()
+            .map(|op| match op {
+                Op::Text { y, .. } => *y,
+                Op::Rect { y, h, .. } => y + h,
+                Op::Ring { y, radius, .. } => y + radius,
+                Op::Svg { y, .. } => *y,
+            })
+            .fold(f32::MIN, f32::max)
+    }
+
     #[test]
-    fn code_taller_than_the_room_shrinks_to_fit_it() {
+    fn code_too_tall_for_the_slide_shrinks_to_fill_the_padded_area() {
         let cfg = Config::default();
         with_ctx(&cfg, |ctx| {
             let source = "let x = 1;\n".repeat(200);
-            let width = ctx.content_width();
-            let s = code_scale(ctx, &[&source], width, 100.0).unwrap();
-            assert!(s < 1.0);
-            let block = code_block(ctx, &source, None, 0.0, width, s).unwrap();
-            assert!((block.height - 100.0).abs() < 1e-2, "{}", block.height);
+            let s = one_slide(&format!(
+                "title: T\nbody:\n  - text: before\n  - code: {{source: {source:?}}}\n  - text: after"
+            ));
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let sizes = mono_sizes(&ops);
+            assert!(sizes[0] < ctx.em * cfg.code.font_size_em, "the code shrank");
+            let bottom = ctx.height - ctx.pad_y();
+            let low = lowest(&ops);
+            assert!(
+                low <= bottom + 1e-2 && low > bottom - ctx.em,
+                "{low} vs {bottom}"
+            );
+        });
+    }
+
+    #[test]
+    fn code_blocks_share_one_scale() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let a = "let a = 1;\n".repeat(30);
+            let b = "let b = 2;\n".repeat(30);
+            let s = one_slide(&format!(
+                "title: T\nbody:\n  - code: {{source: {a:?}}}\n  - text: between\n  - code: {{source: {b:?}}}"
+            ));
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let sizes = mono_sizes(&ops);
+            assert_eq!(sizes.len(), 60);
+            assert!(
+                sizes.iter().all(|&z| (z - sizes[0]).abs() < 1e-4),
+                "one size"
+            );
+            assert!(sizes[0] < ctx.em * cfg.code.font_size_em);
+            assert!(lowest(&ops) <= ctx.height - ctx.pad_y() + 1e-2);
         });
     }
 
@@ -1545,35 +1947,150 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
     }
 
     #[test]
-    fn code_blocks_share_one_scale_that_fits_them_together() {
+    fn code_with_no_room_left_is_an_error() {
         let cfg = Config::default();
         with_ctx(&cfg, |ctx| {
-            let a = "let a = 1;\n".repeat(60);
-            let b = "let b = 2;\n".repeat(60);
-            let width = ctx.content_width();
-            let s = code_scale(ctx, &[&a, &b], width, 200.0).unwrap();
-            assert!(
-                s < code_scale(ctx, &[&a], width, 200.0).unwrap(),
-                "two blocks shrink more"
+            let yaml = format!("{}\ncode: {{source: x}}", bullets_yaml(40));
+            let err = layout_slide(ctx, &one_slide(&yaml), None)
+                .err()
+                .expect("must fail");
+            assert!(err.to_string().contains("no room left"), "{err}");
+        });
+    }
+
+    // ── source order and lists ────────────────────────────────────────────
+
+    #[test]
+    fn body_is_drawn_top_to_bottom_in_order() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let s = one_slide(
+                "title: T\nbody:\n  - text: alpha\n  - code: {source: beta}\n  - bullets: [gamma]\n  - text: delta",
             );
-            let blocks = vec![
-                code_block(ctx, &a, None, 0.0, width, s).unwrap(),
-                code_block(ctx, &b, None, 0.0, width, s).unwrap(),
-            ];
-            assert!(
-                (stack_height(&blocks) - 200.0).abs() < 1e-2,
-                "{}",
-                stack_height(&blocks)
-            );
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let found = texts(&ops);
+            let y = |w: &str| found.iter().find(|(t, ..)| t.contains(w)).unwrap().2;
+            assert!(y("alpha") < y("beta") && y("beta") < y("gamma") && y("gamma") < y("delta"));
         });
     }
 
     #[test]
-    fn code_with_no_room_left_is_an_error() {
+    fn nested_items_indent_and_follow_their_parent_without_a_gap() {
         let cfg = Config::default();
         with_ctx(&cfg, |ctx| {
-            let err = code_scale(ctx, &["x\n"], ctx.content_width(), 0.0).unwrap_err();
-            assert!(err.to_string().contains("no room left"), "{err}");
+            let s = one_slide(
+                "body:\n  - bullets:\n      - text: parent\n        bullets: [child]\n      - sibling",
+            );
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let found = texts(&ops);
+            let at = |w: &str| *found.iter().find(|(t, ..)| *t == w).unwrap();
+            let (parent, child, sibling) = (at("parent"), at("child"), at("sibling"));
+            let indent = cfg.list.indent_em * ctx.em;
+            let lh = cfg.slide.line_height * ctx.em;
+            let gap = cfg.list.item_gap_em * ctx.em;
+            assert!(
+                (child.1 - parent.1 - indent).abs() < 1e-3,
+                "one more indent"
+            );
+            assert!(
+                (child.2 - parent.2 - lh).abs() < 1e-3,
+                "no gap before a nested list"
+            );
+            assert!(
+                (sibling.2 - child.2 - lh - gap).abs() < 1e-3,
+                "item gap between siblings"
+            );
+            assert!((sibling.1 - parent.1).abs() < 1e-3);
+        });
+    }
+
+    #[test]
+    fn markers_follow_the_nesting_depth() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let numbered = one_slide(
+                "body:\n  - numbered:\n      - one\n      - text: two\n        numbered:\n          - text: x\n            numbered: [y]\n      - three",
+            );
+            let ops = layout_slide(ctx, &numbered, None).unwrap();
+            let labels: Vec<&str> = texts(&ops)
+                .iter()
+                .map(|t| t.0)
+                .filter(|t| t.ends_with('.'))
+                .collect();
+            assert_eq!(labels, ["1.", "2.", "i.", "a.", "3."]);
+
+            let bullets = one_slide(
+                "body:\n  - bullets:\n      - text: a\n        bullets:\n          - text: b\n            bullets: [c]",
+            );
+            let ops = layout_slide(ctx, &bullets, None).unwrap();
+            let size = cfg.list.disc_size_em * ctx.em;
+            let shapes: Vec<&str> = ops
+                .iter()
+                .filter_map(|op| match op {
+                    Op::Rect { radius, w, .. } if (*w - size).abs() < 1e-3 => {
+                        Some(if *radius > 0.0 { "disc" } else { "square" })
+                    }
+                    Op::Ring { .. } => Some("ring"),
+                    _ => None,
+                })
+                .collect();
+            assert_eq!(shapes, ["disc", "ring", "square"]);
+        });
+    }
+
+    #[test]
+    fn numbered_marker_ends_one_space_before_the_text() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let ops = layout_slide(ctx, &one_slide("body:\n  - numbered: [word]"), None).unwrap();
+            let found = texts(&ops);
+            let marker = found.iter().find(|t| t.0 == "1.").unwrap();
+            let text = found.iter().find(|t| t.0 == "word").unwrap();
+            let end = marker.1 + ctx.fonts.regular.width("1. ", ctx.em);
+            assert!((end - text.1).abs() < 1e-3, "{end} vs {}", text.1);
+        });
+    }
+
+    #[test]
+    fn roman_and_alpha_counters() {
+        let r: Vec<String> = [1, 2, 3, 4, 9, 14, 40, 1994]
+            .iter()
+            .map(|&n| roman(n))
+            .collect();
+        assert_eq!(r, ["i", "ii", "iii", "iv", "ix", "xiv", "xl", "mcmxciv"]);
+        let a: Vec<String> = [1, 2, 26, 27, 52, 53].iter().map(|&n| alpha(n)).collect();
+        assert_eq!(a, ["a", "b", "z", "aa", "az", "ba"]);
+    }
+
+    #[test]
+    fn content_below_a_picture_follows_it() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 2'><rect width='4' height='2'/></svg>";
+            let s = one_slide(&format!(
+                "title: T\nbody:\n  - text: above\n  - svg: \"{svg}\"\n  - bullets: [below]"
+            ));
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let found = texts(&ops);
+            let y = |w: &str| found.iter().find(|(t, ..)| *t == w).unwrap().2;
+            let (pic_top, pic_bottom) = ops
+                .iter()
+                .find_map(|op| match op {
+                    Op::Svg { tree, y, scale, .. } => Some((*y, y + tree.size().height() * scale)),
+                    _ => None,
+                })
+                .unwrap();
+            assert!(
+                y("above") < pic_top && pic_bottom < y("below"),
+                "above, picture, below"
+            );
+            assert!(
+                ink_bottom(ctx, &ops) <= ctx.height * (1.0 - cfg.svg.margin_bottom_ratio) + 1e-2
+            );
+
+            let two = one_slide(&format!("body:\n  - svg: \"{svg}\"\n  - svg: \"{svg}\""));
+            let err = layout_slide(ctx, &two, None).err().expect("must fail");
+            assert!(err.to_string().contains("one image or svg"), "{err}");
         });
     }
 

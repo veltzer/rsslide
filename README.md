@@ -43,18 +43,49 @@ slides:
 
 ### Slide fields
 
+A slide's content is either a `body`, drawn top to bottom in the order
+written, or the older fixed fields below `title_level` (`subtitle(s)`,
+`content`, `bullets`, `columns`, `table`, `code`, `image`, `svg`), drawn in
+that order. A slide uses one or the other; mixing them is an error, as is
+any unknown field.
+
+```yaml
+- title: Why Chat-Based Development?
+  title_level: 2
+  body:
+    - text: "**Advantages**:"
+    - numbered:
+        - Natural expression
+        - text: Interactive refinement
+          bullets:
+            - Iterate through conversation
+    - code: {language: bash, source: echo hi}
+    - heading: {text: Next, level: 3}
+    - table: {headers: [A, B], rows: [[1, 2]]}
+    - image: svg/diagram.svg
+```
+
+A body element names exactly one of `text` (a paragraph; newlines are line
+breaks), `heading` (`{text, level}`), `bullets` or `numbered` (a list),
+`code`, `table`, `image`, `svg` or `columns`. A list item is a string, or
+`{text, bullets}` / `{text, numbered}` to nest a list under it; markers
+follow the depth as in marp (disc, ring, square; 1., i., a.). A slide has at
+most one `image` or `svg`; it fills the height the other elements leave.
+`rsslide import` writes every marp slide as a `body`.
+
 | Field        | Type                              | Description                         |
 |--------------|-----------------------------------|-------------------------------------|
 | `title`      | string                            | Slide heading                       |
+| `body`       | list of elements (see above)      | Everything below the title, in order |
 | `title_level` | 1..6                             | Heading level of the title (default 1, like `#`; `rsslide import` keeps the marp level) |
 | `subtitle` / `subtitles` | string \| `{text, level}` \| list of either | One or more sub-headings rendered stacked under the title (level 2..6, default 2) |
 | `content`    | string                            | Body text                           |
-| `bullets`    | list of strings                   | Bullet point list                   |
+| `bullets`    | list of items (see above)         | Bullet list, items may nest         |
 | `code`       | `{language, source, trim?}` \| list of them | One or more syntax-highlighted code blocks, stacked in order |
 | `align`      | `left` \| `center` \| `right`    | Horizontal text alignment (default `left`) |
 | `title_align` / `content_align` | `left` \| `center` \| `right` | Override `align` for the title / for everything else |
 | `valign`     | `top` \| `middle` \| `bottom`    | Vertical content alignment (default from config: `middle`, like marp) |
-| `columns`    | list of `{header?, bullets}`      | Side-by-side bullet columns         |
+| `columns`    | list of `{header?, bullets}`      | Side-by-side bullet columns (also a `body` element) |
 | `bullets_first` | bool                           | Draw `bullets` above `columns` (default: below) |
 | `image`      | string                            | Path to an SVG file                 |
 | `svg`        | string                            | Inline SVG markup                   |
@@ -185,7 +216,8 @@ Some slide fields defined in the YAML schema are not yet rendered by the PDF exp
 | `title`      | ✅ rendered  |
 | `subtitle` / `subtitles` | ✅ rendered (font size scales with `level` 2..6; multiple stack vertically) |
 | `content`    | ✅ rendered  |
-| `bullets`    | ✅ rendered  |
+| `bullets`    | ✅ rendered (nested; disc/ring/square markers) |
+| `body`       | ✅ rendered (source order; numbered lists 1./i./a.) |
 | `code`       | ✅ rendered (one or more blocks; syntax-highlighted, language icon, shrinks to fit) |
 | `align`      | ✅ rendered (`left` / `center` / `right`) |
 | `valign`     | ✅ rendered (`top` / `middle` / `bottom`) |
