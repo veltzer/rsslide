@@ -88,36 +88,43 @@ args = ["run"]
 
 # The decks themselves, built with the rsslide on PATH. CI puts the binary
 # the test job just compiled there (scripts/ci-install-tools.sh); locally it
-# is the installed release.
-[processor.generator.generic.generate1]
+# is the installed release. Each processor and its output directory are
+# named for what they produce and from what:
+#   yaml/*.yaml                                     -> out/pdf_from_yaml/
+#   marp/*.md -> out/yaml_from_marp/ (rsslide import) -> out/pdf_from_marp/
+
+# PDFs of the hand-written YAML decks.
+[processor.generator.generic.pdf_from_yaml]
 command = "rsslide"
 args = ["generate", "--format=pdf"]
 src_dirs = ["yaml"]
 src_extensions = [".yaml"]
-output_dir = "out/generate1"
+output_dir = "out/pdf_from_yaml"
 output_extension = "pdf"
 batch = true
 
-[processor.generator.generic.generate2]
+# PDFs of the marp decks, rendered from their imported YAML.
+[processor.generator.generic.pdf_from_marp]
 command = "rsslide"
 args = ["generate", "--format=pdf"]
-src_dirs = ["out/import"]
+src_dirs = ["out/yaml_from_marp"]
 src_extensions = [".yaml"]
-output_dir = "out/generate2"
+output_dir = "out/pdf_from_marp"
 output_extension = "pdf"
 batch = true
 
-[processor.generator.generic.import]
+# The marp decks converted to rsslide YAML.
+[processor.generator.generic.yaml_from_marp]
 command = "rsslide"
 args = ["import"]
 src_dirs = ["marp"]
 src_extensions = [".md"]
-output_dir = "out/import"
+output_dir = "out/yaml_from_marp"
 output_extension = "yaml"
 batch = true
 
 [processor.checker.iyamllint]
-src_dirs = ["out/import","yaml"]
+src_dirs = ["out/yaml_from_marp", "yaml"]
 
 # lint the GitHub Actions workflow files with actionlint
 [processor.checker.iactionlint]

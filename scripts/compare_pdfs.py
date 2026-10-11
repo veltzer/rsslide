@@ -17,7 +17,7 @@ import pymupdf
 
 REPO = Path(__file__).resolve().parent.parent
 MARP_SRC = REPO / "marp"
-RSSLIDE_PDFS = REPO / "out" / "generate2"
+RSSLIDE_PDFS = REPO / "out" / "pdf_from_marp"
 MARP_PDFS = REPO / "out" / "marp-ref"
 
 # Examples we want to compare (exclude the numbered networking course decks
