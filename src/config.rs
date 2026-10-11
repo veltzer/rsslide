@@ -151,6 +151,54 @@ italic      = "/usr/share/fonts/truetype/noto/NotoSans-Italic.ttf"
 bold_italic = "/usr/share/fonts/truetype/noto/NotoSans-SemiBoldItalic.ttf"
 mono        = "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf"
 
+[fonts.fallback]
+# Fonts for the characters a role's font lacks, tried in order; a character
+# none of them has is an error. Noto Sans has no arrows or math operators;
+# Chromium, rendering marp, takes them from Liberation Sans in the same
+# style, then Noto Sans Math, DejaVu Sans and FreeSans, and CJK from Noto
+# Sans CJK.
+# Emoji come last, from Noto Color Emoji (marp draws twemoji pictures
+# instead). A .ttc collection is read at its first face.
+regular = [
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSansMath-Regular.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+]
+bold = [
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSansMath-Regular.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+    "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+]
+italic = [
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSansMath-Regular.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSansOblique.ttf",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+]
+bold_italic = [
+    "/usr/share/fonts/truetype/liberation/LiberationSans-BoldItalic.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSansMath-Regular.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSansBoldOblique.ttf",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+    "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+]
+mono = [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSansMath-Regular.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeMono.ttf",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+]
+
 [colors]
 # Colors as CSS-style hex strings.
 text                   = "#1f2328"
@@ -305,6 +353,18 @@ pub struct Fonts {
     pub italic: PathBuf,
     pub bold_italic: PathBuf,
     pub mono: PathBuf,
+    pub fallback: FontFallback,
+}
+
+/// Per role, the fonts tried in order for characters its font lacks.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct FontFallback {
+    pub regular: Vec<PathBuf>,
+    pub bold: Vec<PathBuf>,
+    pub italic: Vec<PathBuf>,
+    pub bold_italic: Vec<PathBuf>,
+    pub mono: Vec<PathBuf>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -486,6 +546,61 @@ impl Default for Fonts {
             italic: "/usr/share/fonts/truetype/noto/NotoSans-Italic.ttf".into(),
             bold_italic: "/usr/share/fonts/truetype/noto/NotoSans-SemiBoldItalic.ttf".into(),
             mono: "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf".into(),
+            fallback: FontFallback::default(),
+        }
+    }
+}
+
+impl Default for FontFallback {
+    fn default() -> Self {
+        const LIB: &str = "/usr/share/fonts/truetype/liberation";
+        const NOTO: &str = "/usr/share/fonts/truetype/noto";
+        const DEJAVU: &str = "/usr/share/fonts/truetype/dejavu";
+        const FREE: &str = "/usr/share/fonts/truetype/freefont";
+        const CJK: &str = "/usr/share/fonts/opentype/noto";
+        let chain = |liberation: &str, dejavu: &str, free: &str, cjk: &str| -> Vec<PathBuf> {
+            vec![
+                format!("{LIB}/{liberation}").into(),
+                format!("{NOTO}/NotoSansMath-Regular.ttf").into(),
+                format!("{DEJAVU}/{dejavu}").into(),
+                format!("{FREE}/{free}").into(),
+                format!("{CJK}/{cjk}").into(),
+                format!("{NOTO}/NotoColorEmoji.ttf").into(),
+            ]
+        };
+        let (cjk, cjk_bold) = ("NotoSansCJK-Regular.ttc", "NotoSansCJK-Bold.ttc");
+        Self {
+            regular: chain(
+                "LiberationSans-Regular.ttf",
+                "DejaVuSans.ttf",
+                "FreeSans.ttf",
+                cjk,
+            ),
+            bold: chain(
+                "LiberationSans-Bold.ttf",
+                "DejaVuSans-Bold.ttf",
+                "FreeSansBold.ttf",
+                cjk_bold,
+            ),
+            italic: chain(
+                "LiberationSans-Italic.ttf",
+                "DejaVuSans-Oblique.ttf",
+                "FreeSansOblique.ttf",
+                cjk,
+            ),
+            bold_italic: chain(
+                "LiberationSans-BoldItalic.ttf",
+                "DejaVuSans-BoldOblique.ttf",
+                "FreeSansBoldOblique.ttf",
+                cjk_bold,
+            ),
+            mono: vec![
+                format!("{DEJAVU}/DejaVuSansMono.ttf").into(),
+                format!("{NOTO}/NotoSansMath-Regular.ttf").into(),
+                format!("{FREE}/FreeMono.ttf").into(),
+                format!("{CJK}/{cjk}").into(),
+                format!("{NOTO}/NotoColorEmoji.ttf").into(),
+            ],
         }
     }
 }

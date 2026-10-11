@@ -131,7 +131,8 @@ preserved.
 
 Text in titles, subtitles, content, bullets, columns and table cells may use
 inline markdown: `**bold**`, `*italic*`, `` `code` ``, `[text](url)`; bare
-URLs and e-mail addresses are shown as links.
+URLs and e-mail addresses are shown as links. HTML character references
+(`&theta;`, `&#8321;`) are decoded outside code, as in CommonMark.
 
 #### Code block fields
 
@@ -230,6 +231,12 @@ drawn in a bordered, rounded box, and shrunk to fit the slide when they are
 too large, like marp's auto-scaling. When a `language` is recognised, its icon is placed in
 the top-right corner of the box. Supported icons: Rust, Python, JavaScript,
 TypeScript, Go (Gopher), Java, C++, Ruby, Bash, HTML, CSS.
+
+Characters the configured fonts lack are taken from fallback fonts
+(`[fonts.fallback]`), in the order Chromium falls back when it renders
+marp: Liberation Sans, Noto Sans Math, DejaVu Sans, FreeSans, Noto Sans CJK
+and Noto Color Emoji. A character none of them has is a hard error, never a
+blank box.
 
 Content that does not fit on the page is a hard error naming the slide;
 marp would silently cut it off at the page edge.

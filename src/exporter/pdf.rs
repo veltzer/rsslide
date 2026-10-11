@@ -477,6 +477,12 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
     if let Some(bg) = &slide.background {
         ops.insert(0, background_op(ctx, bg)?);
     }
+    // Every character must be in one of its role's fonts.
+    for op in &ops {
+        if let Op::Text { font, text, .. } = op {
+            ctx.fonts.get(*font).runs(text)?;
+        }
+    }
     Ok(ops)
 }
 
@@ -1500,14 +1506,19 @@ fn draw_ops(surface: &mut Surface<'_>, ctx: &Ctx, ops: Vec<Op>) -> Result<()> {
                 text,
             } => {
                 set_fill(surface, color);
-                surface.draw_text(
-                    Point::from_xy(x, y),
-                    ctx.fonts.get(font).krilla.clone(),
-                    size,
-                    &text,
-                    false,
-                    TextDirection::Auto,
-                );
+                let chain = ctx.fonts.get(font);
+                let mut x = x;
+                for (face, run) in chain.runs(&text)? {
+                    surface.draw_text(
+                        Point::from_xy(x, y),
+                        chain.krilla(face),
+                        size,
+                        run,
+                        false,
+                        TextDirection::Auto,
+                    );
+                    x += chain.run_width(face, run, size);
+                }
             }
             Op::Rect {
                 x,
@@ -2736,6 +2747,20 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
                 ));
                 assert!(layout_slide(ctx, &s, None).is_err(), "{image}");
             }
+        });
+    }
+
+    #[test]
+    fn a_slide_with_a_character_no_font_has_fails() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let s = one_slide("title: T\nbody:\n  - text: \"a \\U0010FFFD b\"");
+            let Err(err) = layout_slide(ctx, &s, None) else {
+                panic!("a character no font has must fail the slide");
+            };
+            assert!(format!("{err:#}").contains("U+10FFFD"), "{err:#}");
+            let ok = one_slide("title: T → U\nbody:\n  - text: \"&theta; ≤ x\"");
+            assert!(layout_slide(ctx, &ok, None).is_ok());
         });
     }
 }

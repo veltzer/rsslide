@@ -4,9 +4,10 @@
 //! Text is measured with rustybuzz, the shaper krilla itself draws with, so
 //! measured widths match the drawn glyphs exactly.
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use krilla::text::Font;
 use rustybuzz::{Face, UnicodeBuffer};
+use std::path::PathBuf;
 
 /// Which face of the configured font family a run is set in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,85 +19,234 @@ pub enum FontKind {
     Mono,
 }
 
-/// One loaded font: the krilla handle used for drawing plus the rustybuzz
-/// face used for measuring, both over the same bytes.
-pub struct LoadedFont<'a> {
-    pub krilla: Font,
+/// One font file, loaded: the krilla handle used for drawing plus the
+/// rustybuzz face used for measuring, both over the same bytes.
+struct ChainFont<'a> {
+    krilla: Font,
     face: Face<'a>,
-    /// Ascender and descender as fractions of the em (descender negative).
+}
+
+/// The fonts one role draws with: its own font, then the fallbacks for the
+/// characters it lacks, tried in order (as a browser falls back).
+pub struct LoadedFont<'a> {
+    faces: Vec<ChainFont<'a>>,
+    /// Ascender and descender of the role's own font, as fractions of the
+    /// em (descender negative).
     pub ascent: f32,
     pub descent: f32,
 }
 
 impl<'a> LoadedFont<'a> {
-    pub fn new(bytes: &'a [u8], what: &str) -> Result<Self> {
-        let face = Face::from_slice(bytes, 0).with_context(|| format!("parsing {what} font"))?;
-        let krilla = Font::new(bytes.to_vec().into(), 0)
-            .with_context(|| format!("loading {what} font into krilla"))?;
-        let upem = face.units_per_em() as f32;
-        Ok(Self {
-            krilla,
-            ascent: face.ascender() as f32 / upem,
-            descent: face.descender() as f32 / upem,
-            face,
-        })
+    fn new(faces: Vec<ChainFont<'a>>) -> Self {
+        let primary = &faces[0].face;
+        let upem = primary.units_per_em() as f32;
+        Self {
+            ascent: primary.ascender() as f32 / upem,
+            descent: primary.descender() as f32 / upem,
+            faces,
+        }
+    }
+
+    /// `text` split into runs that one font draws, each with the index of
+    /// the first font of the chain that has its characters. A character
+    /// that modifies the one before it (a variation selector, a combining
+    /// mark, a skin tone, or anything joined by a zero-width joiner) stays
+    /// in that one's run. A character no font has is an error.
+    pub fn runs<'t>(&self, text: &'t str) -> Result<Vec<(usize, &'t str)>> {
+        let mut runs: Vec<(usize, usize, usize)> = Vec::new();
+        let mut joined = false;
+        for (at, c) in text.char_indices() {
+            let end = at + c.len_utf8();
+            if let Some(last) = runs.last_mut()
+                && (joined || modifies_previous(c) || is_ignorable(c))
+            {
+                last.2 = end;
+                joined = c == '\u{200D}';
+                continue;
+            }
+            joined = false;
+            if is_ignorable(c) {
+                // Invisible, so any font draws it (as nothing).
+                runs.push((0, at, end));
+                continue;
+            }
+            let face = self
+                .faces
+                .iter()
+                .position(|f| f.face.glyph_index(c).is_some())
+                .ok_or_else(|| {
+                    anyhow!("no configured font has {c:?} (U+{:04X}); add one that does to [fonts.fallback]", c as u32)
+                })?;
+            match runs.last_mut() {
+                Some(last) if last.0 == face => last.2 = end,
+                _ => runs.push((face, at, end)),
+            }
+        }
+        Ok(runs
+            .into_iter()
+            .map(|(face, a, b)| (face, &text[a..b]))
+            .collect())
+    }
+
+    /// The krilla font of face `index` of the chain (see `runs`).
+    pub fn krilla(&self, index: usize) -> Font {
+        self.faces[index].krilla.clone()
     }
 
     /// Advance width of `text` set at `size`, in the same unit as `size`.
+    /// A character no font has is measured in the role's own font (and
+    /// reported by `runs` when the text is checked).
     pub fn width(&self, text: &str, size: f32) -> f32 {
-        let mut buffer = UnicodeBuffer::new();
-        buffer.push_str(text);
-        buffer.guess_segment_properties();
-        let shaped = rustybuzz::shape(&self.face, &[], buffer);
-        let units: i32 = shaped.glyph_positions().iter().map(|p| p.x_advance).sum();
-        units as f32 / self.face.units_per_em() as f32 * size
+        match self.runs(text) {
+            Ok(runs) => runs
+                .into_iter()
+                .map(|(face, run)| shaped_width(&self.faces[face].face, run, size))
+                .sum(),
+            Err(_) => shaped_width(&self.faces[0].face, text, size),
+        }
+    }
+
+    /// Advance width of a run `runs` returned for face `index`.
+    pub fn run_width(&self, index: usize, run: &str, size: f32) -> f32 {
+        shaped_width(&self.faces[index].face, run, size)
     }
 }
 
-/// The raw bytes of the configured fonts; `FontSet` borrows from them.
-pub struct FontBytes {
-    regular: Vec<u8>,
-    bold: Vec<u8>,
-    italic: Vec<u8>,
-    bold_italic: Vec<u8>,
-    mono: Vec<u8>,
+fn shaped_width(face: &Face, text: &str, size: f32) -> f32 {
+    let mut buffer = UnicodeBuffer::new();
+    buffer.push_str(text);
+    buffer.guess_segment_properties();
+    let shaped = rustybuzz::shape(face, &[], buffer);
+    let units: i32 = shaped.glyph_positions().iter().map(|p| p.x_advance).sum();
+    units as f32 / face.units_per_em() as f32 * size
 }
+
+/// Whether `c` is a default-ignorable character (a zero-width space or
+/// joiner, a direction mark, a soft hyphen, a byte-order mark): drawn as
+/// nothing, so it needs no glyph.
+fn is_ignorable(c: char) -> bool {
+    matches!(c as u32,
+        0x00AD | 0x034F | 0x061C | 0x180E
+        | 0x200B..=0x200F
+        | 0x202A..=0x202E
+        | 0x2060..=0x206F
+        | 0xFEFF
+    )
+}
+
+/// Whether `c` belongs with the character before it rather than starting
+/// a run of its own.
+fn modifies_previous(c: char) -> bool {
+    matches!(c as u32,
+        0x0300..=0x036F      // combining diacritical marks
+        | 0x200D             // zero-width joiner
+        | 0x20D0..=0x20FF    // combining marks for symbols (keycap)
+        | 0xFE00..=0xFE0F    // variation selectors
+        | 0x1F3FB..=0x1F3FF  // emoji skin tones
+        | 0xE0020..=0xE007F  // tag characters (flag sequences)
+    )
+}
+
+/// The bytes of every configured font file, each read once, and which of
+/// them each role uses; `FontSet` borrows from them.
+pub struct FontBytes {
+    files: Vec<(PathBuf, Vec<u8>)>,
+    /// Per role, in `ROLES` order: indices into `files`, the role's own
+    /// font first and then its fallbacks.
+    roles: [Vec<usize>; 5],
+}
+
+const ROLES: [FontKind; 5] = [
+    FontKind::Regular,
+    FontKind::Bold,
+    FontKind::Italic,
+    FontKind::BoldItalic,
+    FontKind::Mono,
+];
 
 impl FontBytes {
     pub fn read(fonts: &crate::config::Fonts) -> Result<Self> {
-        let read = |path: &std::path::Path, what: &str| {
-            std::fs::read(path).with_context(|| format!("reading {what} font {}", path.display()))
-        };
-        Ok(Self {
-            regular: read(&fonts.regular, "regular")?,
-            bold: read(&fonts.bold, "bold")?,
-            italic: read(&fonts.italic, "italic")?,
-            bold_italic: read(&fonts.bold_italic, "bold_italic")?,
-            mono: read(&fonts.mono, "mono")?,
-        })
+        let fb = &fonts.fallback;
+        let chains: [(&str, &PathBuf, &Vec<PathBuf>); 5] = [
+            ("regular", &fonts.regular, &fb.regular),
+            ("bold", &fonts.bold, &fb.bold),
+            ("italic", &fonts.italic, &fb.italic),
+            ("bold_italic", &fonts.bold_italic, &fb.bold_italic),
+            ("mono", &fonts.mono, &fb.mono),
+        ];
+        let mut files: Vec<(PathBuf, Vec<u8>)> = Vec::new();
+        let mut roles: [Vec<usize>; 5] = Default::default();
+        for (role, (what, own, fallback)) in roles.iter_mut().zip(chains) {
+            for path in std::iter::once(own).chain(fallback) {
+                let index = match files.iter().position(|(p, _)| p == path) {
+                    Some(index) => index,
+                    None => {
+                        let bytes = std::fs::read(path)
+                            .with_context(|| format!("reading {what} font {}", path.display()))?;
+                        files.push((path.clone(), bytes));
+                        files.len() - 1
+                    }
+                };
+                if role.contains(&index) {
+                    bail!("font {} appears twice in the {what} fonts", path.display());
+                }
+                role.push(index);
+            }
+        }
+        Ok(Self { files, roles })
     }
 
     pub fn load(&self) -> Result<FontSet<'_>> {
+        let loaded: Vec<(Font, Face<'_>)> = self
+            .files
+            .iter()
+            .map(|(path, bytes)| {
+                let face = Face::from_slice(bytes, 0)
+                    .with_context(|| format!("parsing font {}", path.display()))?;
+                let krilla = Font::new(bytes.clone().into(), 0)
+                    .with_context(|| format!("loading font {} into krilla", path.display()))?;
+                Ok((krilla, face))
+            })
+            .collect::<Result<_>>()?;
+        let chain = |kind: FontKind| {
+            let role = ROLES.iter().position(|k| *k == kind).expect("every role");
+            LoadedFont::new(
+                self.roles[role]
+                    .iter()
+                    .map(|&i| ChainFont {
+                        krilla: loaded[i].0.clone(),
+                        face: loaded[i].1.clone(),
+                    })
+                    .collect(),
+            )
+        };
         Ok(FontSet {
-            regular: LoadedFont::new(&self.regular, "regular")?,
-            bold: LoadedFont::new(&self.bold, "bold")?,
-            italic: LoadedFont::new(&self.italic, "italic")?,
-            bold_italic: LoadedFont::new(&self.bold_italic, "bold_italic")?,
-            mono: LoadedFont::new(&self.mono, "mono")?,
+            regular: chain(FontKind::Regular),
+            bold: chain(FontKind::Bold),
+            italic: chain(FontKind::Italic),
+            bold_italic: chain(FontKind::BoldItalic),
+            mono: chain(FontKind::Mono),
         })
     }
 
+    /// The regular role's own font.
     pub fn regular(&self) -> &[u8] {
-        &self.regular
+        &self.files[self.roles[0][0]].1
     }
 
+    /// The mono role's own font.
     pub fn mono(&self) -> &[u8] {
-        &self.mono
+        &self.files[self.roles[4][0]].1
     }
 
-    /// The faces other than regular and mono.
-    pub fn others(&self) -> [&[u8]; 3] {
-        [&self.bold, &self.italic, &self.bold_italic]
+    /// Every font file other than those two: the other faces and all
+    /// fallbacks.
+    pub fn others(&self) -> Vec<&[u8]> {
+        let (regular, mono) = (self.roles[0][0], self.roles[4][0]);
+        (0..self.files.len())
+            .filter(|i| *i != regular && *i != mono)
+            .map(|i| self.files[i].1.as_slice())
+            .collect()
     }
 }
 
@@ -153,7 +303,8 @@ struct InlineState {
 
 /// Parse the inline markdown marp renders inside a line of text: `code`,
 /// **bold** / __bold__, *italic* / _italic_, [links](url), backslash
-/// escapes, and bare URLs and e-mail addresses (marp autolinks them).
+/// escapes, character references (`&theta;`, `&#8321;`, `&#x2192;`), and
+/// bare URLs and e-mail addresses (marp autolinks them).
 /// A delimiter with no matching closer is kept as literal text, as in
 /// CommonMark.
 pub fn parse_inline(text: &str) -> Vec<Span> {
@@ -185,6 +336,14 @@ fn parse_range(chars: &[char], st: InlineState, out: &mut Vec<Span>) {
         if c == '\\' && i + 1 < chars.len() && chars[i + 1].is_ascii_punctuation() {
             buf.push(chars[i + 1]);
             i += 2;
+            continue;
+        }
+        if c == '&'
+            && let Some((decoded, len)) = char_ref(&chars[i..])
+        {
+            // Literal text: a decoded `*` does not start emphasis.
+            buf.push_str(&decoded);
+            i += len;
             continue;
         }
         if c == '`' {
@@ -246,6 +405,40 @@ fn parse_range(chars: &[char], st: InlineState, out: &mut Vec<Span>) {
         i += 1;
     }
     push(out, &buf, st, false);
+}
+
+/// The character reference `chars` starts with, as CommonMark reads one,
+/// and its length: `&#` and 1-7 decimal digits, `&#x` and 1-6 hex digits
+/// (an invalid code point or 0 is U+FFFD), or an HTML5 entity name, each
+/// ended by `;`. Anything else, an unknown name included, is not one.
+fn char_ref(chars: &[char]) -> Option<(String, usize)> {
+    let end = chars.iter().take(34).position(|&c| c == ';')?;
+    let body: String = chars[1..end].iter().collect();
+    let numeric = |digits: &str, radix: u32, max_len: usize| {
+        if digits.is_empty() || digits.len() > max_len || !digits.chars().all(|c| c.is_digit(radix))
+        {
+            return None;
+        }
+        let code = u32::from_str_radix(digits, radix).ok()?;
+        Some(
+            char::from_u32(code)
+                .filter(|&c| c != '\0')
+                .unwrap_or('\u{FFFD}')
+                .to_string(),
+        )
+    };
+    let decoded = if let Some(hex) = body.strip_prefix("#x").or_else(|| body.strip_prefix("#X")) {
+        numeric(hex, 16, 6)?
+    } else if let Some(dec) = body.strip_prefix('#') {
+        numeric(dec, 10, 7)?
+    } else {
+        if body.is_empty() || !body.chars().all(|c| c.is_ascii_alphanumeric()) {
+            return None;
+        }
+        let bytes = htmlize::ENTITIES.get(format!("&{body};").as_bytes())?;
+        String::from_utf8(bytes.to_vec()).ok()?
+    };
+    Some((decoded, end + 1))
 }
 
 fn count_run(chars: &[char], start: usize, c: char) -> usize {
@@ -901,5 +1094,76 @@ mod tests {
         assert!((plain - fonts.regular.width("Wide", M.size)).abs() < 1e-3);
         assert!((bold - fonts.bold.width("Wide", M.size)).abs() < 1e-3);
         assert!(bold > plain);
+    }
+
+    #[test]
+    fn character_references_are_decoded_outside_code() {
+        let plain = |t: &str| {
+            parse_inline(t)
+                .into_iter()
+                .map(|s| s.text)
+                .collect::<String>()
+        };
+        assert_eq!(
+            plain("X&#8321; &isin; &Ropf;&#x207F; &rarr; &amp;"),
+            "X₁ ∈ ℝⁿ → &"
+        );
+        assert_eq!(
+            plain("&#0; &#99999999; &#xD800;"),
+            "\u{FFFD} &#99999999; \u{FFFD}"
+        );
+        // Not references: unknown names, no `;`, empty.
+        assert_eq!(plain("&nosuch; &amp &; AT&T"), "&nosuch; &amp &; AT&T");
+        let s = parse_inline("`&theta;` &theta;");
+        assert_eq!(s[0].text, "&theta;");
+        assert!(s[0].code);
+        assert_eq!(s[1].text, " θ");
+        // A decoded delimiter is text, not emphasis.
+        assert_eq!(plain("&ast;a&ast;"), "*a*");
+    }
+
+    #[test]
+    fn characters_the_font_lacks_come_from_the_fallbacks() {
+        let bytes = font_bytes();
+        let fonts = bytes.load().unwrap();
+        let regular = &fonts.regular;
+        // Noto Sans has the letters, Liberation Sans the arrow, Noto Sans
+        // Math the element-of sign.
+        let runs = regular.runs("A → B ∈ C").unwrap();
+        let faces: Vec<usize> = runs.iter().map(|(face, _)| *face).collect();
+        assert_eq!(
+            runs.iter().map(|(_, r)| *r).collect::<String>(),
+            "A → B ∈ C"
+        );
+        assert_eq!(faces[0], 0);
+        assert!(faces.contains(&1) && faces.contains(&2), "{runs:?}");
+        // A width sums its runs.
+        let sum: f32 = runs
+            .iter()
+            .map(|(f, r)| regular.run_width(*f, r, 10.0))
+            .sum();
+        assert!((regular.width("A → B ∈ C", 10.0) - sum).abs() < 1e-4);
+    }
+
+    #[test]
+    fn a_joined_emoji_stays_in_one_run() {
+        let bytes = font_bytes();
+        let fonts = bytes.load().unwrap();
+        // Woman, zero-width joiner, laptop; then a thumb with a skin tone.
+        let runs = fonts
+            .regular
+            .runs("\u{1F469}\u{200D}\u{1F4BB}\u{1F44D}\u{1F3FD}")
+            .unwrap();
+        assert_eq!(runs.len(), 1, "{runs:?}");
+        // Invisible characters need no glyph, first in the text or not.
+        assert!(fonts.mono.runs("\u{200B}a\u{200B}b\u{FEFF}").is_ok());
+    }
+
+    #[test]
+    fn a_character_no_font_has_is_an_error() {
+        let bytes = font_bytes();
+        let fonts = bytes.load().unwrap();
+        let err = fonts.regular.runs("a \u{10FFFD} b").unwrap_err();
+        assert!(err.to_string().contains("U+10FFFD"), "{err}");
     }
 }

@@ -27,6 +27,8 @@ two-face = { version = "0.5", default-features = false, features = ["syntect-fan
 anyhow = "1"
 toml = "1"
 dirs = "7"
+# The HTML5 named character references, for `&name;` in text.
+htmlize = { version = "1", features = ["entities"] }
 
 # Dev builds favour compile speed: line tables keep file:line in backtraces
 # at a fraction of full debug info's link cost, and dependencies get light
