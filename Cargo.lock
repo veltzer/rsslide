@@ -767,7 +767,6 @@ dependencies = [
  "anyhow",
  "clap",
  "dirs",
- "fontdb",
  "krilla",
  "krilla-svg",
  "rustybuzz",

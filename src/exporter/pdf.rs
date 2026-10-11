@@ -17,7 +17,6 @@ use crate::exporter::text::{
 };
 use crate::model::{Align, Column, Presentation, Slide, Table, TableAlign, VAlign};
 use anyhow::{Context, Result, bail};
-use fontdb::Database;
 use krilla::Document;
 use krilla::color::rgb;
 use krilla::geom::{PathBuilder, Point, Size, Transform};
@@ -33,6 +32,7 @@ use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, Theme, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
+use usvg::fontdb::Database;
 
 const PT_PER_MM: f32 = 72.0 / 25.4;
 

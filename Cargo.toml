@@ -13,8 +13,10 @@ serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 krilla = "0.8"
 krilla-svg = "0.8"
+# usvg also provides the font database (`usvg::fontdb`): the one handed to
+# usvg must be its own fontdb version, so there is no separate dependency
+# on fontdb to drift out of step with it.
 usvg = "0.47"
-fontdb = "0.23"
 # Text measurement. Must be the rustybuzz krilla shapes with, so measured
 # widths equal drawn widths: move it together with krilla.
 rustybuzz = "0.20"
