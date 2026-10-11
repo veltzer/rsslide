@@ -1,5 +1,17 @@
 # Project conventions
 
+## Purpose
+
+rsslide exists to replace marp in `teaching-slides` (~/git/teaching-slides):
+its ~1,700 marp decks under `marp/courses/` and `marp/lectures/` are to be
+built with rsslide instead of marp-cli/Chromium.
+
+- The target is that corpus, not marp in general. A marp feature matters
+  when teaching-slides uses it; prioritise by how many of its decks need it.
+- Output must look like marp's `default` theme, which is what those decks
+  render with today.
+- `doc/teaching-slides-gap.md` tracks what is still missing before the move.
+
 ## Strictness
 
 Always be strict. Always fail on any minor issue.
