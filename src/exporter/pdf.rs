@@ -17,7 +17,7 @@ use crate::exporter::text::{
     FontBytes, FontKind, FontSet, Line, Span, TextMetrics, parse_inline, wrap, wrap_within,
 };
 use crate::model::{
-    Align, Background, BackgroundSize, Column, Element, ListItem, Presentation, Side, Slide, Table,
+    Align, Background, BackgroundSize, Column, Element, List, Presentation, Side, Slide, Table,
     TableAlign, VAlign,
 };
 use anyhow::{Context, Result, bail};
@@ -618,14 +618,7 @@ fn element_blocks(
             .map(|p| paragraph_block(ctx, p, x0, width, align))
             .collect::<Result<_>>()?,
         Element::Heading(h) => vec![heading_block(ctx, &h.text, h.level, x0, width, align)?],
-        Element::List(list) => vec![list_block(
-            ctx,
-            list.ordered,
-            &list.items,
-            x0,
-            width,
-            align,
-        )?],
+        Element::List(list) => vec![list_block(ctx, list, x0, width, align)?],
         Element::Code(code) => vec![code_block(
             ctx,
             code_source(code),
@@ -949,17 +942,10 @@ fn paragraph_block(
 }
 
 /// A bulleted or numbered list, with nested lists under their items.
-fn list_block(
-    ctx: &Ctx,
-    ordered: bool,
-    items: &[ListItem],
-    x0: f32,
-    width: f32,
-    align: Align,
-) -> Result<Block> {
+fn list_block(ctx: &Ctx, list: &List, x0: f32, width: f32, align: Align) -> Result<Block> {
     let mut ops = Vec::new();
     let area = Area { x0, width, align };
-    let height = list_ops(ctx, ordered, items, 1, area, 0.0, &mut ops)?;
+    let height = list_ops(ctx, list, 1, area, 0.0, &mut ops)?;
     Ok(Block {
         ops,
         height,
@@ -983,8 +969,7 @@ struct Area {
 /// item's text directly.
 fn list_ops(
     ctx: &Ctx,
-    ordered: bool,
-    items: &[ListItem],
+    list: &List,
     depth: usize,
     area: Area,
     mut y: f32,
@@ -998,7 +983,7 @@ fn list_ops(
     let text_w = width - indent;
     let lh = style.line_height * ctx.em;
     let base = baseline_offset(ctx, FontKind::Regular, ctx.em, style.line_height);
-    for (i, item) in items.iter().enumerate() {
+    for (i, item) in list.items.iter().enumerate() {
         if i > 0 {
             y += cfg.list.item_gap_em * ctx.em;
         }
@@ -1006,7 +991,8 @@ fn list_ops(
         let first_x = lines
             .first()
             .map_or(text_x0, |l| line_x(text_x0, text_w, l.width, align));
-        marker_ops(ctx, ordered, depth, i, first_x, y + base, ops);
+        let number = list.start as usize + i;
+        marker_ops(ctx, list.ordered, depth, number, first_x, y + base, ops);
         for line in &lines {
             let x = line_x(text_x0, text_w, line.width, align);
             line_ops(ctx, line, x, y + base, &style, ops);
@@ -1022,29 +1008,22 @@ fn list_ops(
                 width: text_w,
                 align,
             };
-            y = list_ops(
-                ctx,
-                children.ordered,
-                &children.items,
-                depth + 1,
-                inner,
-                y,
-                ops,
-            )?;
+            y = list_ops(ctx, children, depth + 1, inner, y, ops)?;
         }
     }
     Ok(y)
 }
 
-/// The marker of item `index` of a list at `depth`, for a first line that
-/// starts at `x` with its baseline at `baseline`. As in browsers: bullets
+/// The marker of the item numbered `number` (counting from the list's
+/// start) of a list at `depth`, for a first line that starts at `x` with
+/// its baseline at `baseline`. As in browsers: bullets
 /// are a disc, then a ring, then a square; numbers are decimal, then lower
 /// roman, then lower alpha (GitHub's `ol ol` / `ol ol ol` styles).
 fn marker_ops(
     ctx: &Ctx,
     ordered: bool,
     depth: usize,
-    index: usize,
+    number: usize,
     x: f32,
     baseline: f32,
     ops: &mut Vec<Op>,
@@ -1052,7 +1031,6 @@ fn marker_ops(
     let cfg = ctx.cfg;
     let color = cfg.colors.text;
     if ordered {
-        let number = index + 1;
         let label = match depth {
             1 => number.to_string(),
             2 => roman(number),
@@ -2585,7 +2563,12 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
             };
             let block = columns_block(ctx, cols, area, 1.0).unwrap();
             let heading = heading_block(ctx, "H", 3, 0.0, 100.0, Align::Left).unwrap();
-            let list = list_block(ctx, false, &[], 0.0, 100.0, Align::Left).unwrap();
+            let empty = List {
+                ordered: false,
+                start: 1,
+                items: Vec::new(),
+            };
+            let list = list_block(ctx, &empty, 0.0, 100.0, Align::Left).unwrap();
             let gap = heading.margin_bottom.max(list.margin_top);
             let lines = cfg.slide.line_height * ctx.em;
             let expected = heading.margin_top + heading.height + gap + lines + list.margin_bottom;
@@ -2917,5 +2900,24 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
             let ok = one_slide("title: T → U\nbody:\n  - text: \"&theta; ≤ x\"");
             assert!(layout_slide(ctx, &ok, None).is_ok());
         });
+    }
+
+    #[test]
+    fn a_numbered_list_counts_from_its_start() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let s = one_slide("title: T\nbody:\n  - numbered: [six, seven]\n    start: 6");
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let labels: Vec<&str> = texts(&ops)
+                .into_iter()
+                .map(|(t, _, _)| t)
+                .filter(|t| t.ends_with('.'))
+                .collect();
+            assert_eq!(labels, ["6.", "7."]);
+        });
+        assert!(
+            crate::parser::parse("slides:\n  - body:\n      - bullets: [a]\n        start: 2\n")
+                .is_err()
+        );
     }
 }

@@ -56,6 +56,9 @@ pub enum Element {
 #[derive(Debug)]
 pub struct List {
     pub ordered: bool,
+    /// The number of a numbered list's first item (1 unless the list
+    /// carries on one that an earlier slide began).
+    pub start: u32,
     pub items: Vec<ListItem>,
 }
 
@@ -140,6 +143,7 @@ impl<'de> Deserialize<'de> for Slide {
                 let bullets = raw.bullets.map(|items| {
                     Element::List(List {
                         ordered: false,
+                        start: 1,
                         items,
                     })
                 });
@@ -184,6 +188,7 @@ impl<'de> Deserialize<'de> for Element {
             heading: Option<Subtitle>,
             bullets: Option<Vec<ListItem>>,
             numbered: Option<Vec<ListItem>>,
+            start: Option<u32>,
             code: Option<CodeBlock>,
             table: Option<Table>,
             image: Option<String>,
@@ -192,18 +197,23 @@ impl<'de> Deserialize<'de> for Element {
             quote: Option<Vec<Element>>,
         }
         let raw = Raw::deserialize(d)?;
+        if raw.start.is_some() && raw.numbered.is_none() {
+            return Err(D::Error::custom("`start` belongs to a `numbered` list"));
+        }
         let mut found: Vec<Element> = Vec::new();
         found.extend(raw.text.map(Element::Text));
         found.extend(raw.heading.map(Element::Heading));
         found.extend(raw.bullets.map(|items| {
             Element::List(List {
                 ordered: false,
+                start: 1,
                 items,
             })
         }));
         found.extend(raw.numbered.map(|items| {
             Element::List(List {
                 ordered: true,
+                start: raw.start.unwrap_or(1),
                 items,
             })
         }));
@@ -246,6 +256,7 @@ impl<'de> Deserialize<'de> for ListItem {
             text: String,
             bullets: Option<Vec<ListItem>>,
             numbered: Option<Vec<ListItem>>,
+            start: Option<u32>,
         }
         Ok(match Raw::deserialize(d)? {
             Raw::Plain(text) => ListItem {
@@ -253,6 +264,9 @@ impl<'de> Deserialize<'de> for ListItem {
                 children: None,
             },
             Raw::Full(full) => {
+                if full.start.is_some() && full.numbered.is_none() {
+                    return Err(D::Error::custom("`start` belongs to a `numbered` list"));
+                }
                 let children = match (full.bullets, full.numbered) {
                     (Some(_), Some(_)) => {
                         return Err(D::Error::custom(
@@ -261,10 +275,12 @@ impl<'de> Deserialize<'de> for ListItem {
                     }
                     (Some(items), None) => Some(List {
                         ordered: false,
+                        start: 1,
                         items,
                     }),
                     (None, Some(items)) => Some(List {
                         ordered: true,
+                        start: full.start.unwrap_or(1),
                         items,
                     }),
                     (None, None) => None,
@@ -430,6 +446,7 @@ impl<'de> Deserialize<'de> for Column {
                 body.extend(bullets.map(|items| {
                     Element::List(List {
                         ordered: false,
+                        start: 1,
                         items,
                     })
                 }));

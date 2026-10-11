@@ -75,8 +75,10 @@ A body element names exactly one of `text` (a paragraph; newlines are line
 breaks), `heading` (`{text, level}`), `bullets` or `numbered` (a list),
 `code`, `table`, `image`, `svg` or `columns`. A list item is a string, or
 `{text, bullets}` / `{text, numbered}` to nest a list under it; markers
-follow the depth as in marp (disc, ring, square; 1., i., a.).
-`rsslide import` writes every marp slide as a `body`.
+follow the depth as in marp (disc, ring, square; 1., i., a.). A `numbered`
+list may set `start: N` beside it to count from N, as a marp list does
+whose first item is written `N.` (a list carried on from an earlier
+slide). `rsslide import` writes every marp slide as a `body`.
 
 An `image` or `svg` is sized as marp sizes an image: as wide as the content
 area, or its own width (in marp's CSS px) if smaller, in the flow of the

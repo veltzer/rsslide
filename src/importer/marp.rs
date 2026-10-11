@@ -55,6 +55,8 @@ pub enum OutElement {
 #[derive(Debug, Default, PartialEq)]
 pub struct OutList {
     pub ordered: bool,
+    /// A numbered list's first number, as its first item writes it.
+    pub start: u32,
     pub items: Vec<OutItem>,
 }
 
@@ -427,20 +429,26 @@ impl Fence {
 /// `(indent, ordered, text)` of a list item line: `- x`, `* x`, `+ x`,
 /// `1. x` or `1) x`, indented by any amount (a tab counts as four spaces).
 fn list_item(line: &str) -> Option<(usize, bool, &str)> {
+    list_item_number(line).map(|(indent, number, text)| (indent, number.is_some(), text))
+}
+
+/// `list_item`, with the number a numbered item is written with.
+fn list_item_number(line: &str) -> Option<(usize, Option<u32>, &str)> {
     let body = line.trim_start_matches([' ', '\t']);
     let lead = &line[..line.len() - body.len()];
     let indent = lead.chars().map(|c| if c == '\t' { 4 } else { 1 }).sum();
     for marker in ["- ", "* ", "+ "] {
         if let Some(text) = body.strip_prefix(marker) {
-            return Some((indent, false, text.trim()));
+            return Some((indent, None, text.trim()));
         }
     }
     let digits = body.bytes().take_while(u8::is_ascii_digit).count();
     if (1..=9).contains(&digits) {
+        let number = body[..digits].parse().expect("1-9 digits fit a u32");
         let rest = &body[digits..];
         for marker in [". ", ") "] {
             if let Some(text) = rest.strip_prefix(marker) {
-                return Some((indent, true, text.trim()));
+                return Some((indent, Some(number), text.trim()));
             }
         }
     }
@@ -472,7 +480,7 @@ fn parse_list(lines: &[&str], start: usize) -> Result<(OutList, usize)> {
                 _ => break,
             }
         }
-        let Some((indent, ordered, text)) = list_item(line) else {
+        let Some((indent, number, text)) = list_item_number(line) else {
             let interrupts = Fence::open(trimmed).is_some()
                 || parse_heading(trimmed).is_some()
                 || is_table_row(trimmed)
@@ -489,27 +497,22 @@ fn parse_list(lines: &[&str], start: usize) -> Result<(OutList, usize)> {
             i += 1;
             continue;
         };
+        let ordered = number.is_some();
+        // A list starts at its first item's number, as in CommonMark.
+        let new_list = || OutList {
+            ordered,
+            start: number.unwrap_or(1),
+            items: Vec::new(),
+        };
         if stack.is_empty() {
-            stack.push((
-                indent,
-                OutList {
-                    ordered,
-                    items: Vec::new(),
-                },
-            ));
+            stack.push((indent, new_list()));
         } else {
             while stack.len() > 1 && indent < stack[stack.len() - 1].0 {
                 close_level(&mut stack);
             }
             let (top_indent, top) = stack.last().expect("stack is not empty");
             if indent > *top_indent {
-                stack.push((
-                    indent,
-                    OutList {
-                        ordered,
-                        items: Vec::new(),
-                    },
-                ));
+                stack.push((indent, new_list()));
             } else if ordered != top.ordered {
                 if stack.len() == 1 {
                     break;
@@ -847,6 +850,9 @@ fn emit_element(out: &mut String, element: &OutElement, col: usize) {
             let key = if list.ordered { "numbered" } else { "bullets" };
             out.push_str(&format!("{pad}- {key}:\n"));
             emit_items(out, &list.items, col + 4);
+            if list.start != 1 {
+                out.push_str(&format!("{pad}  start: {}\n", list.start));
+            }
         }
         OutElement::Code(code) => {
             out.push_str(&format!("{pad}- code:\n"));
@@ -906,6 +912,9 @@ fn emit_items(out: &mut String, items: &[OutItem], col: usize) {
                 out.push_str(&format!("{pad}- text: {}\n", scalar(&item.text)));
                 out.push_str(&format!("{pad}  {key}:\n"));
                 emit_items(out, &children.items, col + 4);
+                if children.start != 1 {
+                    out.push_str(&format!("{pad}  start: {}\n", children.start));
+                }
             }
         }
     }
@@ -1066,7 +1075,36 @@ mod tests {
     }
 
     fn list(ordered: bool, items: Vec<OutItem>) -> OutList {
-        OutList { ordered, items }
+        OutList {
+            ordered,
+            start: 1,
+            items,
+        }
+    }
+
+    #[test]
+    fn a_numbered_list_starts_at_its_first_number() {
+        let md = "# T\n\n7. seven\n1. eight\n\n- a\n    3. three\n    1. four\n";
+        let body = slide(md).body;
+        let OutElement::List(first) = &body[0] else {
+            panic!("a list")
+        };
+        assert_eq!(first.start, 7);
+        let OutElement::List(second) = &body[1] else {
+            panic!("a list")
+        };
+        assert_eq!(second.items[0].children.as_ref().expect("nested").start, 3);
+        let pres = round_trip(md);
+        let Element::List(first) = &pres.slides[0].body[0] else {
+            panic!("a list")
+        };
+        assert_eq!((first.ordered, first.start), (true, 7));
+        let Element::List(second) = &pres.slides[0].body[1] else {
+            panic!("a list")
+        };
+        assert_eq!(second.items[0].children.as_ref().expect("nested").start, 3);
+        // A list that starts at 1 says nothing about it.
+        assert!(!import("# T\n\n1. one\n").unwrap().contains("start:"));
     }
 
     // ── slides and front matter ───────────────────────────────────────────
