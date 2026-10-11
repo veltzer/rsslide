@@ -78,6 +78,12 @@ ring_stroke_em = 0.037
 # Gap between side-by-side columns.
 gap_em = 1.0
 
+[quote]
+# Blockquotes: the width of the bar down the left edge, and the padding
+# on each side of the content (marp: 0.25em and 1em).
+border_em = 0.25
+padding_em = 1.0
+
 [code]
 # Code blocks. Font size in em of the base font; line height as a multiple
 # of the code font size; the rest in em of the base font.
@@ -157,6 +163,8 @@ inline_code_background = "#f0f1f3"
 table_border           = "#d1d9e0"
 table_stripe           = "#f6f8fa"
 pagination             = "#777777"
+quote_text             = "#59636e"
+quote_border           = "#d1d9e0"
 "##;
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -167,6 +175,7 @@ pub struct Config {
     pub block: Block,
     pub list: List,
     pub columns: Columns,
+    pub quote: Quote,
     pub code: Code,
     pub inline_code: InlineCode,
     pub table: Table,
@@ -221,6 +230,13 @@ pub struct List {
 #[serde(default, deny_unknown_fields)]
 pub struct Columns {
     pub gap_em: f32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Quote {
+    pub border_em: f32,
+    pub padding_em: f32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -304,6 +320,8 @@ pub struct Colors {
     pub table_border: Color,
     pub table_stripe: Color,
     pub pagination: Color,
+    pub quote_text: Color,
+    pub quote_border: Color,
 }
 
 /// Newtype around an RGB triple, serialized as a CSS-style `#rrggbb` string.
@@ -388,6 +406,15 @@ impl Default for List {
 impl Default for Columns {
     fn default() -> Self {
         Self { gap_em: 1.0 }
+    }
+}
+
+impl Default for Quote {
+    fn default() -> Self {
+        Self {
+            border_em: 0.25,
+            padding_em: 1.0,
+        }
     }
 }
 
@@ -476,6 +503,8 @@ impl Default for Colors {
             table_border: Color(0xd1, 0xd9, 0xe0),
             table_stripe: Color(0xf6, 0xf8, 0xfa),
             pagination: Color(0x77, 0x77, 0x77),
+            quote_text: Color(0x59, 0x63, 0x6e),
+            quote_border: Color(0xd1, 0xd9, 0xe0),
         }
     }
 }

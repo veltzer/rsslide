@@ -47,6 +47,8 @@ pub enum Element {
     /// Inline SVG markup.
     Svg(String),
     Columns(Vec<Column>),
+    /// A blockquote, holding its own elements.
+    Quote(Vec<Element>),
 }
 
 /// A bulleted (`ordered: false`) or numbered list.
@@ -186,6 +188,7 @@ impl<'de> Deserialize<'de> for Element {
             image: Option<String>,
             svg: Option<String>,
             columns: Option<Vec<Column>>,
+            quote: Option<Vec<Element>>,
         }
         let raw = Raw::deserialize(d)?;
         let mut found: Vec<Element> = Vec::new();
@@ -208,10 +211,11 @@ impl<'de> Deserialize<'de> for Element {
         found.extend(raw.image.map(Element::Image));
         found.extend(raw.svg.map(Element::Svg));
         found.extend(raw.columns.map(Element::Columns));
+        found.extend(raw.quote.map(Element::Quote));
         if found.len() != 1 {
             return Err(D::Error::custom(format!(
                 "a body element must have exactly one of text, heading, bullets, numbered, \
-                 code, table, image, svg, columns; found {}",
+                 code, table, image, svg, columns, quote; found {}",
                 found.len()
             )));
         }
@@ -310,10 +314,49 @@ fn deserialize_level<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
     Ok(level)
 }
 
-#[derive(Debug, Deserialize)]
+/// One of a slide's side-by-side columns.
+#[derive(Debug)]
 pub struct Column {
-    pub header: Option<String>,
-    pub bullets: Vec<ListItem>,
+    /// The column's content, top to bottom.
+    pub body: Vec<Element>,
+}
+
+impl<'de> Deserialize<'de> for Column {
+    /// `{body}`, or the older `{header?, bullets}` (a level-3 heading over a
+    /// bulleted list).
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Raw {
+            body: Option<Vec<Element>>,
+            header: Option<String>,
+            bullets: Option<Vec<ListItem>>,
+        }
+        let raw = Raw::deserialize(d)?;
+        match (raw.body, raw.header, raw.bullets) {
+            (Some(body), None, None) => Ok(Column { body }),
+            (Some(_), ..) => Err(D::Error::custom(
+                "a column has either `body` or `header`/`bullets`, not both",
+            )),
+            (None, header, bullets) => {
+                let mut body = Vec::new();
+                body.extend(header.map(|text| Element::Heading(Subtitle { text, level: 3 })));
+                body.extend(bullets.map(|items| {
+                    Element::List(List {
+                        ordered: false,
+                        items,
+                    })
+                }));
+                if body.is_empty() {
+                    return Err(D::Error::custom(
+                        "a column needs `body`, `header` or `bullets`",
+                    ));
+                }
+                Ok(Column { body })
+            }
+        }
+    }
 }
 
 fn deserialize_code<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<CodeBlock>, D::Error> {

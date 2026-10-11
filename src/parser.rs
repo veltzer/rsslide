@@ -28,6 +28,7 @@ mod tests {
                 Element::Image(_) => "image",
                 Element::Svg(_) => "svg",
                 Element::Columns(_) => "columns",
+                Element::Quote(_) => "quote",
             })
             .collect()
     }
@@ -267,5 +268,30 @@ slides:
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn columns_take_a_body_or_the_old_fields() {
+        let b = body(
+            "slides:\n  - body:\n      - columns:\n          - body: [{text: a}, {code: {source: x}}]\n          - {header: H, bullets: [b]}\n",
+        );
+        let Element::Columns(cols) = &b[0] else {
+            panic!("columns")
+        };
+        assert_eq!(kinds(&cols[0].body), ["text", "code"]);
+        assert_eq!(kinds(&cols[1].body), ["heading", "bullets"]);
+        assert!(parse("slides:\n  - columns: [{body: [{text: a}], header: H}]\n").is_err());
+        assert!(parse("slides:\n  - columns: [{}]\n").is_err());
+    }
+
+    #[test]
+    fn quote_holds_elements() {
+        let b = body(
+            "slides:\n  - body:\n      - quote:\n          - text: a\n          - quote: [{text: nested}]\n",
+        );
+        let Element::Quote(q) = &b[0] else {
+            panic!("quote")
+        };
+        assert_eq!(kinds(q), ["text", "quote"]);
     }
 }

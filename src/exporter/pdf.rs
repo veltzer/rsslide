@@ -312,6 +312,11 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
         }
     };
 
+    let area = Area {
+        x0,
+        width,
+        align: content_align,
+    };
     // Every block of the slide above its picture (all of them, without a
     // picture), with its code shrunk by `scale`.
     let build = |scale: f32| -> Result<Vec<Block>> {
@@ -327,32 +332,20 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
             ));
         }
         for element in body {
-            blocks.extend(element_blocks(
-                ctx,
-                element,
-                x0,
-                width,
-                content_align,
-                scale,
-            )?);
+            blocks.extend(element_blocks(ctx, element, area, scale, false)?);
         }
         Ok(blocks)
     };
 
     let top = ctx.pad_y();
     let available = ctx.height - 2.0 * top;
-    let sources: Vec<&str> = body
-        .iter()
-        .chain(after)
-        .filter_map(|e| match e {
-            Element::Code(code) => Some(code_source(code)),
-            _ => None,
-        })
-        .collect();
+    let mut sources: Vec<(&str, f32)> = Vec::new();
+    code_sources(ctx, body, width, &mut sources);
+    code_sources(ctx, after, width, &mut sources);
     // Code first shrinks to fit the width, like marp's auto-scaling of
     // `<pre>`; all of a slide's code shares one factor so it reads at one
     // size.
-    let mut scale = code_width_scale(ctx, &sources, width);
+    let mut scale = code_width_scale(ctx, &sources);
     let mut blocks = build(scale)?;
     if picture.is_none() && !sources.is_empty() && stack_height(&blocks) > available {
         // Then, if the slide is too tall, it shrinks to fit the height. The
@@ -377,14 +370,7 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
         // sit at the top and vertical alignment does not apply.
         let mut below = Vec::new();
         for element in after {
-            below.extend(element_blocks(
-                ctx,
-                element,
-                x0,
-                width,
-                content_align,
-                scale,
-            )?);
+            below.extend(element_blocks(ctx, element, area, scale, false)?);
         }
         let gap = cfg.svg.top_gap_em * ctx.em;
         let picture_top = if blocks.is_empty() {
@@ -450,16 +436,17 @@ fn ink_bottom(ctx: &Ctx, ops: &[Op]) -> f32 {
         .fold(f32::MIN, f32::max)
 }
 
-/// The blocks one body element lays out as. Images are handled by the
-/// caller (see `split_picture`).
+/// The blocks one body element lays out as. A top-level picture in "fill"
+/// mode is handled by the caller (see `split_picture`); a `nested` one (in
+/// a column or a quote) is always an ordinary block.
 fn element_blocks(
     ctx: &Ctx,
     element: &Element,
-    x0: f32,
-    width: f32,
-    align: Align,
+    area: Area,
     code_scale: f32,
+    nested: bool,
 ) -> Result<Vec<Block>> {
+    let Area { x0, width, align } = area;
     Ok(match element {
         Element::Text(text) => paragraphs(text)
             .iter()
@@ -476,9 +463,10 @@ fn element_blocks(
             code_scale,
         )?],
         Element::Table(table) => vec![table_block(ctx, table, x0, width, align)?],
-        Element::Columns(columns) => vec![columns_block(ctx, columns, x0, width, align)?],
+        Element::Columns(columns) => vec![columns_block(ctx, columns, area, code_scale)?],
+        Element::Quote(body) => vec![quote_block(ctx, body, area, code_scale)?],
         Element::Image(_) | Element::Svg(_) => {
-            if ctx.cfg.svg.size == SvgSize::Fill {
+            if ctx.cfg.svg.size == SvgSize::Fill && !nested {
                 unreachable!("split_picture removes the picture in fill mode")
             }
             vec![picture_block(
@@ -490,6 +478,24 @@ fn element_blocks(
             )?]
         }
     })
+}
+
+/// Every code block of `elements` (also those in columns and quotes) with
+/// the width it is drawn at.
+fn code_sources<'a>(ctx: &Ctx, elements: &'a [Element], width: f32, out: &mut Vec<(&'a str, f32)>) {
+    for element in elements {
+        match element {
+            Element::Code(code) => out.push((code_source(code), width)),
+            Element::Columns(columns) => {
+                let col_w = column_width(ctx, columns.len(), width);
+                for col in columns {
+                    code_sources(ctx, &col.body, col_w, out);
+                }
+            }
+            Element::Quote(body) => code_sources(ctx, body, quote_inner_width(ctx, width), out),
+            _ => {}
+        }
+    }
 }
 
 fn code_source(code: &crate::model::CodeBlock) -> &str {
@@ -949,34 +955,89 @@ fn alpha(mut n: usize) -> String {
     String::from_utf8(out).expect("ASCII letters")
 }
 
-/// Side-by-side columns of equal width, each an optional level-3 header
-/// over a bulleted list.
-fn columns_block(
-    ctx: &Ctx,
-    columns: &[Column],
-    x0: f32,
-    width: f32,
-    align: Align,
-) -> Result<Block> {
+/// The width of each of `n` columns sharing `width`.
+fn column_width(ctx: &Ctx, n: usize, width: f32) -> f32 {
+    let gap = ctx.cfg.columns.gap_em * ctx.em;
+    (width - gap * (n as f32 - 1.0)) / n as f32
+}
+
+/// Side-by-side columns of equal width, each laying out its own body. As
+/// in a CSS grid (marp's `.columns`), a column keeps the margins of its
+/// first and last elements inside it instead of collapsing them with the
+/// slide's other elements, and the columns block has no margins of its own.
+fn columns_block(ctx: &Ctx, columns: &[Column], area: Area, code_scale: f32) -> Result<Block> {
     if columns.is_empty() {
         bail!("columns: must contain at least one column");
     }
     let cfg = ctx.cfg;
-    let n = columns.len() as f32;
     let gap = cfg.columns.gap_em * ctx.em;
-    let col_w = (width - gap * (n - 1.0)) / n;
+    let col_w = column_width(ctx, columns.len(), area.width);
     let mut ops = Vec::new();
     let mut height: f32 = 0.0;
     for (i, col) in columns.iter().enumerate() {
-        let cx = x0 + i as f32 * (col_w + gap);
+        let inner = Area {
+            x0: area.x0 + i as f32 * (col_w + gap),
+            width: col_w,
+            align: area.align,
+        };
         let mut blocks = Vec::new();
-        if let Some(header) = &col.header {
-            // marp decks write column headers as `###`.
-            blocks.push(heading_block(ctx, header, 3, cx, col_w, align));
+        for element in &col.body {
+            blocks.extend(element_blocks(ctx, element, inner, code_scale, true)?);
         }
-        blocks.push(list_block(ctx, false, &col.bullets, cx, col_w, align));
-        height = height.max(stack_height(&blocks));
-        place(blocks, 0.0, &mut ops);
+        let top = blocks.first().map_or(0.0, |b| b.margin_top);
+        let bottom = blocks.last().map_or(0.0, |b| b.margin_bottom);
+        height = height.max(top + stack_height(&blocks) + bottom);
+        place(blocks, top, &mut ops);
+    }
+    Ok(Block {
+        ops,
+        height,
+        margin_top: 0.0,
+        margin_bottom: 0.0,
+    })
+}
+
+/// The width left for a quote's content inside `width`: its border and
+/// the padding on both sides.
+fn quote_inner_width(ctx: &Ctx, width: f32) -> f32 {
+    let q = &ctx.cfg.quote;
+    width - (q.border_em + 2.0 * q.padding_em) * ctx.em
+}
+
+/// A blockquote as marp draws it: its content in the muted text color,
+/// padded on both sides, with a bar down its left edge.
+fn quote_block(ctx: &Ctx, body: &[Element], area: Area, code_scale: f32) -> Result<Block> {
+    let cfg = ctx.cfg;
+    let border = cfg.quote.border_em * ctx.em;
+    let inner = Area {
+        x0: area.x0 + border + cfg.quote.padding_em * ctx.em,
+        width: quote_inner_width(ctx, area.width),
+        align: area.align,
+    };
+    let mut blocks = Vec::new();
+    for element in body {
+        blocks.extend(element_blocks(ctx, element, inner, code_scale, true)?);
+    }
+    let height = stack_height(&blocks);
+    let mut ops = vec![Op::Rect {
+        x: area.x0,
+        y: 0.0,
+        w: border,
+        h: height,
+        radius: 0.0,
+        color: cfg.colors.quote_border,
+    }];
+    let mut content = Vec::new();
+    place(blocks, 0.0, &mut content);
+    // Text in the body color becomes muted (CSS `color` inherits); links,
+    // highlighted code and other colors keep theirs.
+    for mut op in content {
+        if let Op::Text { color, .. } | Op::Rect { color, .. } | Op::Ring { color, .. } = &mut op
+            && *color == cfg.colors.text
+        {
+            *color = cfg.colors.quote_text;
+        }
+        ops.push(op);
     }
     Ok(Block {
         ops,
@@ -1224,16 +1285,16 @@ fn code_block(
 }
 
 /// How much a slide's code must shrink so that the widest line of every
-/// block fits `width`. Never enlarges. The border does not scale; the
-/// padding and the text inside it do.
-fn code_width_scale(ctx: &Ctx, sources: &[&str], width: f32) -> f32 {
+/// block fits the width it is drawn at. Never enlarges. The border does
+/// not scale; the padding and the text inside it do.
+fn code_width_scale(ctx: &Ctx, sources: &[(&str, f32)]) -> f32 {
     let cfg = ctx.cfg;
     let border = 2.0 * cfg.code.border_em * ctx.em;
     let pad = 2.0 * cfg.code.padding_em * ctx.em;
     let size = ctx.em * cfg.code.font_size_em;
     sources
         .iter()
-        .map(|source| {
+        .map(|(source, width)| {
             let widest = LinesWithEndings::from(source)
                 .map(|l| ctx.fonts.mono.width(l.trim_end_matches(['\n', '\r']), size))
                 .fold(0.0, f32::max);
@@ -1562,6 +1623,19 @@ code:
         println!(\"hi\");
     }";
 
+    const QUOTE_SLIDE: &str = "title: Quotes and columns
+title_level: 2
+body:
+  - quote:
+      - text: A quote with a https://example.org link
+      - bullets: [quoted item]
+  - columns:
+      - body:
+          - heading: {text: Left, level: 3}
+          - code: {language: bash, source: echo left}
+      - body:
+          - text: right side";
+
     const SVG_SLIDE: &str = "title: Columns and a diagram
 columns:
   - header: Left
@@ -1579,7 +1653,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
         let mut large = Config::default();
         large.slide.width_mm *= factor;
         large.slide.height_mm *= factor;
-        for item in [FULL_SLIDE, SVG_SLIDE] {
+        for item in [FULL_SLIDE, SVG_SLIDE, QUOTE_SLIDE] {
             let a = with_ctx(&small, |ctx| {
                 layout_slide(ctx, &one_slide(item), Some(3)).unwrap()
             });
@@ -1910,7 +1984,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
     fn code_that_fits_is_not_scaled() {
         let cfg = Config::default();
         with_ctx(&cfg, |ctx| {
-            let s = code_width_scale(ctx, &["fn main() {}\n"], ctx.content_width());
+            let s = code_width_scale(ctx, &[("fn main() {}\n", ctx.content_width())]);
             assert_eq!(s, 1.0, "code is never enlarged");
         });
     }
@@ -1921,7 +1995,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
         with_ctx(&cfg, |ctx| {
             let line = "x".repeat(400);
             let width = ctx.content_width();
-            let s = code_width_scale(ctx, &["short", &line], width);
+            let s = code_width_scale(ctx, &[("short", width), (&line, width)]);
             assert!(s < 1.0);
             let text = ctx
                 .fonts
@@ -2193,6 +2267,114 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
             ));
             let err = layout_slide(ctx, &s, None).err().expect("must fail");
             assert!(err.to_string().contains("does not fit"), "{err}");
+        });
+    }
+
+    #[test]
+    fn quote_has_a_bar_and_muted_inset_text() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let s = one_slide(
+                "body:\n  - quote:\n      - text: plain and https://example.org\n      - bullets: [item]",
+            );
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let border = cfg.quote.border_em * ctx.em;
+            let bar = ops
+                .iter()
+                .find_map(|op| match op {
+                    Op::Rect {
+                        x, y, w, h, color, ..
+                    } if *color == cfg.colors.quote_border => Some((*x, *y, *w, *h)),
+                    _ => None,
+                })
+                .expect("the quote bar");
+            assert!((bar.0 - ctx.pad_x()).abs() < 1e-3 && (bar.2 - border).abs() < 1e-3);
+            let text_x = ctx.pad_x() + border + cfg.quote.padding_em * ctx.em;
+            for op in &ops {
+                match op {
+                    Op::Text {
+                        text, x, y, color, ..
+                    } if text == "plain" => {
+                        assert!((x - text_x).abs() < 1e-3, "inset by bar and padding");
+                        assert!(
+                            *y > bar.1 && *y < bar.1 + bar.3,
+                            "the bar spans the content"
+                        );
+                        assert_eq!(*color, cfg.colors.quote_text);
+                    }
+                    Op::Text { text, color, .. } if text.starts_with("https") => {
+                        assert_eq!(*color, cfg.colors.link, "links keep their color");
+                    }
+                    Op::Rect { radius, color, .. } if *radius > 0.0 => {
+                        assert_eq!(
+                            *color, cfg.colors.quote_text,
+                            "the bullet disc is muted too"
+                        );
+                    }
+                    _ => {}
+                }
+            }
+        });
+    }
+
+    #[test]
+    fn a_column_keeps_its_first_and_last_margins_inside() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let s = one_slide(
+                "body:\n  - columns:\n      - body:\n          - heading: {text: H, level: 3}\n          - bullets: [b]",
+            );
+            let Element::Columns(cols) = &s.body[0] else {
+                panic!("columns")
+            };
+            let area = Area {
+                x0: 0.0,
+                width: ctx.content_width(),
+                align: Align::Left,
+            };
+            let block = columns_block(ctx, cols, area, 1.0).unwrap();
+            let heading = heading_block(ctx, "H", 3, 0.0, 100.0, Align::Left);
+            let list = list_block(ctx, false, &[], 0.0, 100.0, Align::Left);
+            let gap = heading.margin_bottom.max(list.margin_top);
+            let lines = cfg.slide.line_height * ctx.em;
+            let expected = heading.margin_top + heading.height + gap + lines + list.margin_bottom;
+            assert!(
+                (block.height - expected).abs() < 1e-3,
+                "{} vs {expected}",
+                block.height
+            );
+            assert_eq!((block.margin_top, block.margin_bottom), (0.0, 0.0));
+        });
+    }
+
+    #[test]
+    fn code_in_a_column_fits_the_column() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let long = "x".repeat(60);
+            let s = one_slide(&format!(
+                "body:\n  - columns:\n      - body:\n          - code: {{source: {long}}}\n      - body:\n          - text: other"
+            ));
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let col_w = column_width(ctx, 2, ctx.content_width());
+            let (size, x) = ops
+                .iter()
+                .find_map(|op| match op {
+                    Op::Text {
+                        font: FontKind::Mono,
+                        size,
+                        x,
+                        ..
+                    } => Some((*size, *x)),
+                    _ => None,
+                })
+                .unwrap();
+            let right = x + ctx.fonts.mono.width(&long, size);
+            assert!(
+                right <= ctx.pad_x() + col_w + 1e-2,
+                "{right} beyond the column"
+            );
+            assert!(size < ctx.em * cfg.code.font_size_em, "it shrank");
         });
     }
 

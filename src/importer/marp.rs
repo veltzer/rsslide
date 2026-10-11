@@ -28,6 +28,7 @@ pub enum OutElement {
     Image(String),
     Svg(String),
     Columns(Vec<OutColumn>),
+    Quote(Vec<OutElement>),
 }
 
 #[derive(Debug, Default, PartialEq)]
@@ -44,8 +45,7 @@ pub struct OutItem {
 
 #[derive(Debug, Default, PartialEq)]
 pub struct OutColumn {
-    pub header: Option<String>,
-    pub bullets: Vec<String>,
+    pub body: Vec<OutElement>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -184,17 +184,33 @@ fn is_slide_separator(line: &str) -> bool {
 }
 
 fn parse_slide(block: String) -> Result<OutSlide> {
-    let mut slide = OutSlide::default();
-    let mut paragraph: Vec<String> = Vec::new();
-
     let lines: Vec<&str> = block.lines().collect();
+    let mut title = None;
+    let body = parse_body(&lines, Some(&mut title))?;
+    let (title, title_level) = title.unzip();
+    Ok(OutSlide {
+        title,
+        title_level: title_level.unwrap_or(0),
+        body,
+    })
+}
+
+/// The elements of `lines`, in order. With `title`, the first heading
+/// becomes the slide's title (and a second `#` heading is an error);
+/// without it (inside a column or a quote), every heading is an element.
+fn parse_body(
+    lines: &[&str],
+    mut title: Option<&mut Option<(String, u8)>>,
+) -> Result<Vec<OutElement>> {
+    let mut body: Vec<OutElement> = Vec::new();
+    let mut paragraph: Vec<String> = Vec::new();
     let mut i = 0;
     while i < lines.len() {
         let line = lines[i];
         let trimmed = line.trim();
 
         if trimmed.is_empty() {
-            flush_paragraph(&mut paragraph, &mut slide.body);
+            flush_paragraph(&mut paragraph, &mut body);
             i += 1;
             continue;
         }
@@ -213,21 +229,19 @@ fn parse_slide(block: String) -> Result<OutSlide> {
         // Raw HTML. marp decks use three idioms, each mapped onto the
         // model; anything else is rejected rather than leaked as text.
         if trimmed.starts_with('<') {
-            flush_paragraph(&mut paragraph, &mut slide.body);
+            flush_paragraph(&mut paragraph, &mut body);
             if trimmed.starts_with("<style") {
                 // The stylesheet only defines the `.columns` grid, which
                 // the `columns` element below replaces; rsslide applies no
                 // custom CSS.
-                i = skip_past(&lines, i, "</style>")?;
+                i = skip_past(lines, i, "</style>")?;
             } else if trimmed.starts_with("<svg") {
-                let end = skip_past(&lines, i, "</svg>")?;
-                slide.body.push(OutElement::Svg(lines[i..end].join("\n")));
+                let end = skip_past(lines, i, "</svg>")?;
+                body.push(OutElement::Svg(lines[i..end].join("\n")));
                 i = end;
             } else if trimmed == "<div class=\"columns\">" {
-                let end = skip_past_div(&lines, i)?;
-                slide
-                    .body
-                    .push(OutElement::Columns(parse_columns(&lines[i + 1..end - 1])?));
+                let end = skip_past_div(lines, i)?;
+                body.push(OutElement::Columns(parse_columns(&lines[i + 1..end - 1])?));
                 i = end;
             } else {
                 return Err(anyhow!("unsupported raw HTML: {trimmed:?}"));
@@ -235,15 +249,33 @@ fn parse_slide(block: String) -> Result<OutSlide> {
             continue;
         }
 
+        // A blockquote: the run of `>` lines, parsed again with one `>`
+        // stripped (so `>>` nests).
+        if trimmed.starts_with('>') {
+            flush_paragraph(&mut paragraph, &mut body);
+            let end = (i..lines.len())
+                .find(|&j| !lines[j].trim_start().starts_with('>'))
+                .unwrap_or(lines.len());
+            let inner: Vec<&str> = lines[i..end]
+                .iter()
+                .map(|l| {
+                    let l = l.trim_start().strip_prefix('>').expect("a `>` line");
+                    l.strip_prefix(' ').unwrap_or(l)
+                })
+                .collect();
+            body.push(OutElement::Quote(parse_body(&inner, None)?));
+            i = end;
+            continue;
+        }
+
         if let Some((level, heading)) = parse_heading(trimmed) {
-            flush_paragraph(&mut paragraph, &mut slide.body);
-            if slide.title.is_none() {
-                slide.title = Some(heading.to_string());
-                slide.title_level = level;
+            flush_paragraph(&mut paragraph, &mut body);
+            if let Some(title) = title.as_deref_mut()
+                && title.is_none()
+            {
+                *title = Some((heading.to_string(), level));
             } else if level >= 2 {
-                slide
-                    .body
-                    .push(OutElement::Heading(heading.to_string(), level));
+                body.push(OutElement::Heading(heading.to_string(), level));
             } else {
                 return Err(anyhow!(
                     "second `# ` heading {:?} on a slide that already has a title — only one title is allowed",
@@ -255,7 +287,7 @@ fn parse_slide(block: String) -> Result<OutSlide> {
         }
 
         if is_fence(trimmed) {
-            flush_paragraph(&mut paragraph, &mut slide.body);
+            flush_paragraph(&mut paragraph, &mut body);
             let fence = &trimmed[..3];
             let language = trimmed[3..].trim().to_string();
             let language = if language.is_empty() {
@@ -277,9 +309,7 @@ fn parse_slide(block: String) -> Result<OutSlide> {
             while source.ends_with('\n') {
                 source.pop();
             }
-            slide
-                .body
-                .push(OutElement::Code(OutCode { language, source }));
+            body.push(OutElement::Code(OutCode { language, source }));
             continue;
         }
 
@@ -288,7 +318,7 @@ fn parse_slide(block: String) -> Result<OutSlide> {
             && i + 1 < lines.len()
             && let Some(aligns) = parse_table_separator(lines[i + 1].trim())
         {
-            flush_paragraph(&mut paragraph, &mut slide.body);
+            flush_paragraph(&mut paragraph, &mut body);
             let headers = split_table_row(trimmed);
             if headers.len() != aligns.len() {
                 return Err(anyhow!(
@@ -315,7 +345,7 @@ fn parse_slide(block: String) -> Result<OutSlide> {
                 rows.push(cells);
                 j += 1;
             }
-            slide.body.push(OutElement::Table(OutTable {
+            body.push(OutElement::Table(OutTable {
                 headers,
                 rows,
                 aligns,
@@ -325,16 +355,16 @@ fn parse_slide(block: String) -> Result<OutSlide> {
         }
 
         if list_item(line).is_some() {
-            flush_paragraph(&mut paragraph, &mut slide.body);
-            let (list, next) = parse_list(&lines, i)?;
-            slide.body.push(OutElement::List(list));
+            flush_paragraph(&mut paragraph, &mut body);
+            let (list, next) = parse_list(lines, i)?;
+            body.push(OutElement::List(list));
             i = next;
             continue;
         }
 
         if let Some(path) = parse_image(trimmed) {
-            flush_paragraph(&mut paragraph, &mut slide.body);
-            slide.body.push(OutElement::Image(path));
+            flush_paragraph(&mut paragraph, &mut body);
+            body.push(OutElement::Image(path));
             i += 1;
             continue;
         }
@@ -342,9 +372,8 @@ fn parse_slide(block: String) -> Result<OutSlide> {
         paragraph.push(trimmed.to_string());
         i += 1;
     }
-    flush_paragraph(&mut paragraph, &mut slide.body);
-
-    Ok(slide)
+    flush_paragraph(&mut paragraph, &mut body);
+    Ok(body)
 }
 
 fn is_fence(trimmed: &str) -> bool {
@@ -404,6 +433,7 @@ fn parse_list(lines: &[&str], start: usize) -> Result<(OutList, usize)> {
                 || parse_heading(trimmed).is_some()
                 || is_table_row(trimmed)
                 || trimmed.starts_with('<')
+                || trimmed.starts_with('>')
                 || is_slide_separator(trimmed);
             if interrupts {
                 break;
@@ -500,47 +530,61 @@ fn skip_past_div(lines: &[&str], start: usize) -> Result<usize> {
     ))
 }
 
-/// The inside of a `<div class="columns">`. Each column is either a
-/// `### header` line followed by bullets, or a bare `<div>` ... `</div>`
-/// holding bullets (a column without a header).
+/// The inside of a `<div class="columns">`. Each column is either a bare
+/// `<div>` ... `</div>`, or a heading line and everything after it up to
+/// the next heading of the same level (headings inside code fences do not
+/// count). A column's content is parsed like a slide body.
 fn parse_columns(lines: &[&str]) -> Result<Vec<OutColumn>> {
-    let mut columns: Vec<OutColumn> = Vec::new();
-    let mut in_bare_div = false;
-    for line in lines {
+    let mut columns: Vec<Vec<&str>> = Vec::new();
+    // The heading level that starts header columns, once one is seen.
+    let mut header_level: Option<u8> = None;
+    let mut in_fence = false;
+    let mut i = 0;
+    while i < lines.len() {
+        let line = lines[i];
         let trimmed = line.trim();
-        if trimmed.is_empty() {
+        if !in_fence && trimmed == "<div>" {
+            let end = skip_past_div(lines, i)?;
+            columns.push(lines[i + 1..end - 1].to_vec());
+            header_level = None;
+            i = end;
             continue;
         }
-        if trimmed == "<div>" && !in_bare_div {
-            in_bare_div = true;
-            columns.push(OutColumn::default());
-        } else if trimmed == "</div>" && in_bare_div {
-            in_bare_div = false;
-        } else if let Some((_, heading)) = parse_heading(trimmed)
-            && !in_bare_div
-        {
-            columns.push(OutColumn {
-                header: Some(heading.to_string()),
-                bullets: Vec::new(),
-            });
-        } else if let Some(bullet) = strip_bullet(trimmed) {
-            let column = columns
-                .last_mut()
-                .ok_or_else(|| anyhow!("bullet {bullet:?} before the first column heading"))?;
-            column.bullets.push(bullet.to_string());
+        let heading = if in_fence {
+            None
         } else {
+            parse_heading(trimmed)
+        };
+        if let Some((level, _)) = heading
+            && header_level.is_none_or(|h| h == level)
+        {
+            header_level = Some(level);
+            columns.push(vec![line]);
+        } else if trimmed.is_empty() && columns.is_empty() {
+            // Blank lines before the first column.
+        } else if header_level.is_none() {
             return Err(anyhow!(
-                "unsupported line inside <div class=\"columns\">: {trimmed:?}"
+                "unsupported line inside <div class=\"columns\"> outside any column: {trimmed:?}"
             ));
+        } else {
+            columns.last_mut().expect("a header column").push(line);
         }
-    }
-    if in_bare_div {
-        return Err(anyhow!("unclosed <div> inside <div class=\"columns\">"));
+        if is_fence(trimmed) {
+            in_fence = !in_fence;
+        }
+        i += 1;
     }
     if columns.is_empty() {
         return Err(anyhow!("<div class=\"columns\"> has no columns"));
     }
-    Ok(columns)
+    columns
+        .iter()
+        .map(|lines| {
+            Ok(OutColumn {
+                body: parse_body(lines, None)?,
+            })
+        })
+        .collect()
 }
 
 fn is_table_row(line: &str) -> bool {
@@ -621,16 +665,6 @@ fn parse_heading(line: &str) -> Option<(u8, &str)> {
     Some((hashes as u8, rest.trim()))
 }
 
-fn strip_bullet(line: &str) -> Option<&str> {
-    let line = line.trim_start();
-    for marker in ["- ", "* ", "+ "] {
-        if let Some(rest) = line.strip_prefix(marker) {
-            return Some(rest.trim());
-        }
-    }
-    None
-}
-
 fn parse_image(line: &str) -> Option<String> {
     let rest = line.strip_prefix("![")?;
     let close_alt = rest.find(']')?;
@@ -683,65 +717,71 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
     }
     out.push_str(&format!("{lead}body:\n"));
     for element in &slide.body {
-        emit_element(out, element);
+        emit_element(out, element, 6);
     }
 }
 
-/// One body element, as a list item at column 6; its value is indented to
-/// column 10.
-fn emit_element(out: &mut String, element: &OutElement) {
-    const VALUE: &str = "          ";
+/// One body element, as a list item at column `col`; its value is
+/// indented to column `col + 4`.
+fn emit_element(out: &mut String, element: &OutElement, col: usize) {
+    let pad = " ".repeat(col);
+    let value = " ".repeat(col + 4);
     match element {
         OutElement::Text(lines) => {
             if lines.len() == 1 && !needs_block_scalar(&lines[0]) {
-                out.push_str(&format!("      - text: {}\n", scalar(&lines[0])));
+                out.push_str(&format!("{pad}- text: {}\n", scalar(&lines[0])));
             } else {
-                out.push_str("      - text: |-\n");
-                push_block_lines(out, lines, VALUE);
+                out.push_str(&format!("{pad}- text: |-\n"));
+                push_block_lines(out, lines, &value);
             }
         }
         OutElement::Heading(text, level) => {
-            out.push_str("      - heading:\n");
-            out.push_str(&format!("{VALUE}text: {}\n", scalar(text)));
-            out.push_str(&format!("{VALUE}level: {level}\n"));
+            out.push_str(&format!("{pad}- heading:\n"));
+            out.push_str(&format!("{value}text: {}\n", scalar(text)));
+            out.push_str(&format!("{value}level: {level}\n"));
         }
         OutElement::List(list) => {
             let key = if list.ordered { "numbered" } else { "bullets" };
-            out.push_str(&format!("      - {key}:\n"));
-            emit_items(out, &list.items, 10);
+            out.push_str(&format!("{pad}- {key}:\n"));
+            emit_items(out, &list.items, col + 4);
         }
         OutElement::Code(code) => {
-            out.push_str("      - code:\n");
-            emit_code(out, code, VALUE, VALUE);
+            out.push_str(&format!("{pad}- code:\n"));
+            emit_code(out, code, &value, &value);
         }
         OutElement::Table(table) => {
-            out.push_str("      - table:\n");
-            emit_table(out, table, 10);
+            out.push_str(&format!("{pad}- table:\n"));
+            emit_table(out, table, col + 4);
         }
         OutElement::Image(path) => {
-            out.push_str(&format!("      - image: {}\n", scalar(path)));
+            out.push_str(&format!("{pad}- image: {}\n", scalar(path)));
         }
         OutElement::Svg(svg) => {
-            out.push_str(&format!("      - svg: {}\n", block_header(svg)));
-            push_block_lines(
-                out,
-                &svg.lines().map(str::to_string).collect::<Vec<_>>(),
-                VALUE,
-            );
+            out.push_str(&format!("{pad}- svg: {}\n", block_header(svg)));
+            let lines: Vec<String> = svg.lines().map(str::to_string).collect();
+            push_block_lines(out, &lines, &value);
         }
         OutElement::Columns(columns) => {
-            out.push_str("      - columns:\n");
-            for col in columns {
-                match &col.header {
-                    Some(h) => out.push_str(&format!(
-                        "{VALUE}- header: {}\n{VALUE}  bullets:\n",
-                        scalar(h)
-                    )),
-                    None => out.push_str(&format!("{VALUE}- bullets:\n")),
+            out.push_str(&format!("{pad}- columns:\n"));
+            for column in columns {
+                if column.body.is_empty() {
+                    out.push_str(&format!("{value}- body: []\n"));
+                    continue;
                 }
-                for b in &col.bullets {
-                    out.push_str(&format!("{VALUE}    - {}\n", scalar(b)));
+                out.push_str(&format!("{value}- body:\n"));
+                for element in &column.body {
+                    emit_element(out, element, col + 8);
                 }
+            }
+        }
+        OutElement::Quote(body) => {
+            if body.is_empty() {
+                out.push_str(&format!("{pad}- quote: []\n"));
+                return;
+            }
+            out.push_str(&format!("{pad}- quote:\n"));
+            for element in body {
+                emit_element(out, element, col + 4);
             }
         }
     }
@@ -986,6 +1026,7 @@ mod tests {
                 OutElement::Image(_) => "image",
                 OutElement::Svg(_) => "svg",
                 OutElement::Columns(_) => "columns",
+                OutElement::Quote(_) => "quote",
             })
             .collect();
         assert_eq!(
@@ -1212,6 +1253,10 @@ mod tests {
         assert!(s.body.is_empty());
     }
 
+    fn heading(text: &str, level: u8) -> OutElement {
+        OutElement::Heading(text.into(), level)
+    }
+
     #[test]
     fn columns_div_becomes_columns() {
         let md = "# T\n\n- first\n\n<div class=\"columns\">\n\n### A\n\n- a1\n- a2\n\n### B\n\n- b1\n\n</div>\n";
@@ -1219,21 +1264,89 @@ mod tests {
         let OutElement::Columns(cols) = &body[1] else {
             panic!("columns after the list")
         };
-        assert_eq!(cols[0].header.as_deref(), Some("A"));
-        assert_eq!(cols[0].bullets, ["a1", "a2"]);
-        assert_eq!(cols[1].bullets, ["b1"]);
+        assert_eq!(
+            cols[0].body,
+            vec![
+                heading("A", 3),
+                OutElement::List(list(false, vec![item("a1"), item("a2")]))
+            ]
+        );
+        assert_eq!(
+            cols[1].body[1],
+            OutElement::List(list(false, vec![item("b1")]))
+        );
         round_trip(md);
     }
 
     #[test]
-    fn bare_div_columns_have_no_header() {
-        let md = "# T\n\n<div class=\"columns\">\n\n<div>\n\n- a\n\n</div>\n\n<div>\n\n- b\n\n</div>\n\n</div>\n";
+    fn bare_div_columns_hold_any_content() {
+        let md = "# T\n\n<div class=\"columns\">\n<div>\n\n### Unix\n\n```bash\ncurl x | sh\n```\n\n</div>\n<div>\n\n**Windows**:\n- run the installer\n\n</div>\n</div>\n";
         let OutElement::Columns(cols) = &slide(md).body[0] else {
             panic!("columns")
         };
-        assert!(cols[0].header.is_none());
-        assert_eq!(cols[1].bullets, ["b"]);
+        assert_eq!(cols.len(), 2);
+        assert_eq!(cols[0].body[0], heading("Unix", 3));
+        assert!(matches!(&cols[0].body[1], OutElement::Code(c) if c.source == "curl x | sh"));
+        assert_eq!(cols[1].body[0], text(&["**Windows**:"]));
+        let pres = round_trip(md);
+        let Element::Columns(cols) = &pres.slides[0].body[0] else {
+            panic!("columns")
+        };
+        assert!(matches!(cols[0].body[1], Element::Code(_)));
+    }
+
+    #[test]
+    fn header_columns_split_only_on_their_own_level_outside_fences() {
+        let md = "# T\n\n<div class=\"columns\">\n\n### A\n\n#### detail\n\n```\n### not a column\n```\n\n### B\n\ntext\n\n</div>\n";
+        let OutElement::Columns(cols) = &slide(md).body[0] else {
+            panic!("columns")
+        };
+        assert_eq!(cols.len(), 2);
+        assert_eq!(cols[0].body[1], heading("detail", 4));
+        assert!(matches!(&cols[0].body[2], OutElement::Code(c) if c.source == "### not a column"));
         round_trip(md);
+    }
+
+    #[test]
+    fn content_outside_any_column_is_an_error() {
+        assert!(parse_marp("# T\n\n<div class=\"columns\">\nstray\n</div>\n").is_err());
+    }
+
+    #[test]
+    fn blockquote_becomes_a_quote() {
+        let md = "# T\n\n> No algorithm can guarantee consensus.\n> Second line\n>\n> Next paragraph\n\nafter\n";
+        let body = slide(md).body;
+        assert_eq!(
+            body,
+            vec![
+                OutElement::Quote(vec![
+                    text(&["No algorithm can guarantee consensus.", "Second line"]),
+                    text(&["Next paragraph"]),
+                ]),
+                text(&["after"]),
+            ]
+        );
+        let pres = round_trip(md);
+        assert!(matches!(&pres.slides[0].body[0], Element::Quote(q) if q.len() == 2));
+    }
+
+    #[test]
+    fn nested_quotes_and_lists_in_quotes() {
+        let md = "# T\n\n> outer\n>\n> > inner\n>\n> - item\n";
+        let OutElement::Quote(q) = &slide(md).body[0] else {
+            panic!("quote")
+        };
+        assert_eq!(q[0], text(&["outer"]));
+        assert_eq!(q[1], OutElement::Quote(vec![text(&["inner"])]));
+        assert_eq!(q[2], OutElement::List(list(false, vec![item("item")])));
+        round_trip(md);
+    }
+
+    #[test]
+    fn a_quote_line_ends_a_list() {
+        let body = slide("# T\n\n- a\n> quoted\n").body;
+        assert!(matches!(body[0], OutElement::List(_)));
+        assert!(matches!(body[1], OutElement::Quote(_)));
     }
 
     #[test]
