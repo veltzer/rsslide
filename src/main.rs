@@ -58,7 +58,8 @@ enum Command {
         #[arg(required = true, num_args = 2..)]
         paths: Vec<PathBuf>,
     },
-    /// Convert many (input, output) pairs.
+    /// Convert many (input, output) pairs. An input is rsslide YAML or a
+    /// marp deck (.md), which is imported in memory first.
     Generate {
         /// Output format for all pairs
         #[arg(short, long, value_enum)]
@@ -175,10 +176,7 @@ fn convert_one(
     cfg: &config::Config,
     overflow: exporter::pdf::Overflow,
 ) -> Result<()> {
-    let input_str =
-        fs::read_to_string(input).with_context(|| format!("Failed to read {}", input.display()))?;
-    let presentation = parser::parse(&input_str)
-        .with_context(|| format!("Failed to parse {}", input.display()))?;
+    let presentation = load_presentation(input)?;
     match format {
         Format::Html => anyhow::bail!("HTML export not yet implemented"),
         Format::Pdf => {
@@ -194,6 +192,27 @@ fn convert_one(
     }
     println!("Written: {}", output.display());
     Ok(())
+}
+
+/// The presentation in `input`: rsslide YAML (`.yaml`, `.yml`), or a marp
+/// deck (`.md`), imported in memory as `rsslide import` imports it.
+fn load_presentation(input: &std::path::Path) -> Result<model::Presentation> {
+    let text =
+        fs::read_to_string(input).with_context(|| format!("Failed to read {}", input.display()))?;
+    let extension = input
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(str::to_lowercase);
+    let yaml = match extension.as_deref() {
+        Some("md") => importer::marp::import(&text)
+            .with_context(|| format!("Failed to import {}", input.display()))?,
+        Some("yaml" | "yml") => text,
+        _ => anyhow::bail!(
+            "{}: unknown input type; expected rsslide YAML (.yaml, .yml) or a marp deck (.md)",
+            input.display()
+        ),
+    };
+    parser::parse(&yaml).with_context(|| format!("Failed to parse {}", input.display()))
 }
 
 fn run_dump_config(output: Option<PathBuf>) -> Result<()> {
@@ -246,4 +265,33 @@ fn import_one(input: &std::path::Path, output: &std::path::Path) -> Result<()> {
     fs::write(output, yaml).with_context(|| format!("Failed to write {}", output.display()))?;
     println!("Written: {}", output.display());
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temp_file(name: &str, text: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("rsslide-main-test-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(name);
+        fs::write(&path, text).unwrap();
+        path
+    }
+
+    #[test]
+    fn a_marp_deck_loads_like_its_import() {
+        let md = "---\ntitle: Deck\n---\n\n# One\n\n- a\n\n---\n\n## Two\n\ntext\n";
+        let from_md = load_presentation(&temp_file("deck.md", md)).unwrap();
+        let yaml = importer::marp::import(md).unwrap();
+        let from_yaml = load_presentation(&temp_file("deck.yaml", &yaml)).unwrap();
+        assert_eq!(format!("{from_md:?}"), format!("{from_yaml:?}"));
+        assert_eq!(from_md.slides.len(), 2);
+    }
+
+    #[test]
+    fn an_unknown_input_type_is_an_error() {
+        let err = load_presentation(&temp_file("deck.txt", "slides: []")).unwrap_err();
+        assert!(err.to_string().contains("unknown input type"), "{err}");
+    }
 }

@@ -165,7 +165,9 @@ rsslide dump-config [-o <FILE>]
 rsslide version
 ```
 
-`generate` converts many decks with one config; `process` converts one
+`generate` converts many decks with one config; an input is rsslide YAML
+(`.yaml`, `.yml`) or a marp deck (`.md`), which it imports in memory first,
+so a marp deck renders in one step. `process` converts one
 (its format defaults to `html`, which is not implemented yet: pass
 `-f pdf`). `import` turns marp Markdown into rsslide YAML. Only PDF output
 is implemented.
