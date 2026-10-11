@@ -333,28 +333,37 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
     let top = ctx.pad_y();
     let available = ctx.height - 2.0 * top;
 
-    if let Some(code) = &slide.code {
-        let source = if code.trim {
-            code.source.trim_end_matches(['\n', '\r'])
-        } else {
-            code.source.as_str()
-        };
-        // The code block gets whatever height the other blocks leave.
+    if !slide.code.is_empty() {
+        let sources: Vec<&str> = slide
+            .code
+            .iter()
+            .map(|code| {
+                if code.trim {
+                    code.source.trim_end_matches(['\n', '\r'])
+                } else {
+                    code.source.as_str()
+                }
+            })
+            .collect();
+        // The code blocks share whatever height the other blocks leave,
+        // all shrunk by one factor so the code reads at one size.
         let above = stack_height(&blocks);
         let gap = blocks.last().map_or(0.0, |b| b.margin_bottom);
         let scale = if svg.is_some() {
-            code_scale(ctx, source, width, f32::INFINITY)?
+            code_scale(ctx, &sources, width, f32::INFINITY)?
         } else {
-            code_scale(ctx, source, width, available - above - gap)?
+            code_scale(ctx, &sources, width, available - above - gap)?
         };
-        blocks.push(code_block(
-            ctx,
-            source,
-            code.language.as_deref(),
-            x0,
-            width,
-            scale,
-        )?);
+        for (code, source) in slide.code.iter().zip(sources) {
+            blocks.push(code_block(
+                ctx,
+                source,
+                code.language.as_deref(),
+                x0,
+                width,
+                scale,
+            )?);
+        }
     }
     let stack = stack_height(&blocks);
 
@@ -891,24 +900,32 @@ fn code_block(
     })
 }
 
-/// How much a code block must shrink to fit, like marp's auto-scaling of
-/// `<pre>`: its widest line must fit `width`, and its height must fit
-/// `max_height`. Never enlarges. The border does not scale; the padding
-/// and the text inside it do.
-fn code_scale(ctx: &Ctx, source: &str, width: f32, max_height: f32) -> Result<f32> {
+/// How much a slide's code blocks must shrink to fit, like marp's
+/// auto-scaling of `<pre>`: every block's widest line must fit `width`,
+/// and the blocks stacked (with the gaps between them) must fit
+/// `max_height`. One factor for all of them; never enlarges. Borders and
+/// gaps do not scale; the padding and the text inside do.
+fn code_scale(ctx: &Ctx, sources: &[&str], width: f32, max_height: f32) -> Result<f32> {
     let cfg = ctx.cfg;
     let border = 2.0 * cfg.code.border_em * ctx.em;
     let pad = 2.0 * cfg.code.padding_em * ctx.em;
     let size = ctx.em * cfg.code.font_size_em;
-    if max_height <= border {
-        bail!("no room left for the code block below the slide's other content");
+    let gaps = sources.len().saturating_sub(1) as f32 * cfg.block.margin_bottom_em * ctx.em;
+    let fixed = sources.len() as f32 * border + gaps;
+    if max_height <= fixed {
+        bail!("no room left for the code below the slide's other content");
     }
-    let lines = LinesWithEndings::from(source).count() as f32;
-    let widest = LinesWithEndings::from(source)
-        .map(|l| ctx.fonts.mono.width(l.trim_end_matches(['\n', '\r']), size))
-        .fold(0.0, f32::max);
-    let fit_w = (width - border) / (widest + pad);
-    let fit_h = (max_height - border) / (pad + lines * size * cfg.code.line_height);
+    let mut fit_w = f32::INFINITY;
+    let mut scalable = 0.0;
+    for source in sources {
+        let lines = LinesWithEndings::from(source).count() as f32;
+        let widest = LinesWithEndings::from(source)
+            .map(|l| ctx.fonts.mono.width(l.trim_end_matches(['\n', '\r']), size))
+            .fold(0.0, f32::max);
+        fit_w = fit_w.min((width - border) / (widest + pad));
+        scalable += pad + lines * size * cfg.code.line_height;
+    }
+    let fit_h = (max_height - fixed) / scalable;
     Ok(fit_w.min(fit_h).min(1.0))
 }
 
@@ -1474,7 +1491,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
     fn code_that_fits_is_not_scaled() {
         let cfg = Config::default();
         with_ctx(&cfg, |ctx| {
-            let s = code_scale(ctx, "fn main() {}\n", ctx.content_width(), 1000.0).unwrap();
+            let s = code_scale(ctx, &["fn main() {}\n"], ctx.content_width(), 1000.0).unwrap();
             assert_eq!(s, 1.0, "code is never enlarged");
         });
     }
@@ -1485,7 +1502,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
         with_ctx(&cfg, |ctx| {
             let line = "x".repeat(400);
             let width = ctx.content_width();
-            let s = code_scale(ctx, &line, width, f32::INFINITY).unwrap();
+            let s = code_scale(ctx, &[&line], width, f32::INFINITY).unwrap();
             assert!(s < 1.0);
             let text = ctx
                 .fonts
@@ -1506,7 +1523,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
         with_ctx(&cfg, |ctx| {
             let source = "let x = 1;\n".repeat(200);
             let width = ctx.content_width();
-            let s = code_scale(ctx, &source, width, 100.0).unwrap();
+            let s = code_scale(ctx, &[&source], width, 100.0).unwrap();
             assert!(s < 1.0);
             let block = code_block(ctx, &source, None, 0.0, width, s).unwrap();
             assert!((block.height - 100.0).abs() < 1e-2, "{}", block.height);
@@ -1514,10 +1531,48 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
     }
 
     #[test]
+    fn every_code_block_is_drawn_in_order() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let s = one_slide(
+                "title: T\ncode:\n  - {language: bash, source: echo first}\n  - {source: echo second}",
+            );
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let found = texts(&ops);
+            let y = |word: &str| found.iter().find(|(t, ..)| t.contains(word)).unwrap().2;
+            assert!(y("first") < y("second"), "the blocks stack in source order");
+        });
+    }
+
+    #[test]
+    fn code_blocks_share_one_scale_that_fits_them_together() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let a = "let a = 1;\n".repeat(60);
+            let b = "let b = 2;\n".repeat(60);
+            let width = ctx.content_width();
+            let s = code_scale(ctx, &[&a, &b], width, 200.0).unwrap();
+            assert!(
+                s < code_scale(ctx, &[&a], width, 200.0).unwrap(),
+                "two blocks shrink more"
+            );
+            let blocks = vec![
+                code_block(ctx, &a, None, 0.0, width, s).unwrap(),
+                code_block(ctx, &b, None, 0.0, width, s).unwrap(),
+            ];
+            assert!(
+                (stack_height(&blocks) - 200.0).abs() < 1e-2,
+                "{}",
+                stack_height(&blocks)
+            );
+        });
+    }
+
+    #[test]
     fn code_with_no_room_left_is_an_error() {
         let cfg = Config::default();
         with_ctx(&cfg, |ctx| {
-            let err = code_scale(ctx, "x\n", ctx.content_width(), 0.0).unwrap_err();
+            let err = code_scale(ctx, &["x\n"], ctx.content_width(), 0.0).unwrap_err();
             assert!(err.to_string().contains("no room left"), "{err}");
         });
     }

@@ -17,7 +17,8 @@ pub struct OutSlide {
     pub subtitles: Vec<(String, u8)>,
     pub content_lines: Vec<String>,
     pub bullets: Vec<String>,
-    pub code: Option<OutCode>,
+    /// Every fenced code block, in source order.
+    pub code: Vec<OutCode>,
     pub image: Option<String>,
     /// Inline `<svg>...</svg>` markup.
     pub svg: Option<String>,
@@ -265,7 +266,7 @@ fn parse_slide(block: String) -> Result<OutSlide> {
             while source.ends_with('\n') {
                 source.pop();
             }
-            slide.code = Some(OutCode { language, source });
+            slide.code.push(OutCode { language, source });
             continue;
         }
 
@@ -590,23 +591,18 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
             out.push('\n');
         }
     }
-    if let Some(code) = &slide.code {
-        out.push_str(prefix(&mut first));
-        out.push_str("code:\n");
-        if let Some(lang) = &code.language {
-            out.push_str("      language: ");
-            out.push_str(&scalar(lang));
-            out.push('\n');
+    match slide.code.as_slice() {
+        [] => {}
+        [code] => {
+            out.push_str(prefix(&mut first));
+            out.push_str("code:\n");
+            emit_code(out, code, "      ", "      ");
         }
-        out.push_str("      source: |-\n");
-        for line in code.source.lines() {
-            let trimmed = line.trim_end();
-            if trimmed.is_empty() {
-                out.push('\n');
-            } else {
-                out.push_str("        ");
-                out.push_str(trimmed);
-                out.push('\n');
+        blocks => {
+            out.push_str(prefix(&mut first));
+            out.push_str("code:\n");
+            for code in blocks {
+                emit_code(out, code, "      - ", "        ");
             }
         }
     }
@@ -669,6 +665,32 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
     }
     if first {
         out.push_str("  - {}\n");
+    }
+}
+
+/// One code block's fields. `first` prefixes its first key (it carries the
+/// `- ` of a list item); `indent` prefixes the others.
+fn emit_code(out: &mut String, code: &OutCode, first: &str, indent: &str) {
+    let mut lead = first;
+    if let Some(lang) = &code.language {
+        out.push_str(lead);
+        out.push_str("language: ");
+        out.push_str(&scalar(lang));
+        out.push('\n');
+        lead = indent;
+    }
+    out.push_str(lead);
+    out.push_str("source: |-\n");
+    for line in code.source.lines() {
+        let trimmed = line.trim_end();
+        if trimmed.is_empty() {
+            out.push('\n');
+        } else {
+            out.push_str(indent);
+            out.push_str("  ");
+            out.push_str(trimmed);
+            out.push('\n');
+        }
     }
 }
 
@@ -785,7 +807,8 @@ mod tests {
         let pres = parse_marp(md).unwrap();
         let s = &pres.slides[0];
         assert_eq!(s.bullets, vec!["one".to_string(), "two".to_string()]);
-        let code = s.code.as_ref().unwrap();
+        assert_eq!(s.code.len(), 1);
+        let code = &s.code[0];
         assert_eq!(code.language.as_deref(), Some("rust"));
         assert_eq!(code.source, "fn main() {}");
     }
@@ -936,6 +959,47 @@ mod tests {
         let md = "# T\n\n| A | B |\n|---|---|\n| 1 | 2 |\n| 3 | 4 | 5 |\n";
         let err = parse_marp(md).unwrap_err().to_string();
         assert!(err.contains("has 3 cells but the header has 2"), "{err}");
+    }
+
+    #[test]
+    fn every_code_block_is_kept_in_order() {
+        let md = "# T\n\nfirst:\n\n```bash\necho one\n```\n\nsecond:\n\n```\nplain two\n```\n";
+        let pres = parse_marp(md).unwrap();
+        let code = &pres.slides[0].code;
+        assert_eq!(code.len(), 2);
+        assert_eq!(code[0].source, "echo one");
+        assert_eq!(code[1].source, "plain two");
+        assert!(code[1].language.is_none());
+
+        let yaml = import(md).unwrap();
+        assert!(
+            yaml.contains(
+                "    code:\n      - language: bash\n        source: |-\n          echo one\n"
+            ),
+            "{yaml}"
+        );
+        assert!(
+            yaml.contains("      - source: |-\n          plain two\n"),
+            "{yaml}"
+        );
+        let parsed = crate::parser::parse(&yaml).expect("emitted YAML parses");
+        let sources: Vec<&str> = parsed.slides[0]
+            .code
+            .iter()
+            .map(|c| c.source.as_str())
+            .collect();
+        assert_eq!(sources, ["echo one", "plain two"]);
+    }
+
+    #[test]
+    fn single_code_block_keeps_the_mapping_form() {
+        let yaml = import("# T\n\n```rust\nfn main() {}\n```\n").unwrap();
+        assert!(
+            yaml.contains(
+                "    code:\n      language: rust\n      source: |-\n        fn main() {}\n"
+            ),
+            "{yaml}"
+        );
     }
 
     #[test]

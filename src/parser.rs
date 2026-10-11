@@ -54,7 +54,8 @@ slides:
       source: "fn main() {}"
 "#;
         let p = parse(yaml).unwrap();
-        let code = p.slides[0].code.as_ref().unwrap();
+        assert_eq!(p.slides[0].code.len(), 1);
+        let code = &p.slides[0].code[0];
         assert_eq!(code.language.as_deref(), Some("rust"));
         assert_eq!(code.source, "fn main() {}");
         assert!(!code.trim); // default false
@@ -190,5 +191,27 @@ slides:
     fn parse_invalid_yaml_returns_error() {
         let yaml = "slides: [{{{{";
         assert!(parse(yaml).is_err());
+    }
+
+    #[test]
+    fn code_accepts_a_list_of_blocks() {
+        let yaml =
+            "slides:\n  - code:\n      - {language: bash, source: echo a}\n      - {source: b}\n";
+        let p = parse(yaml).unwrap();
+        let code = &p.slides[0].code;
+        assert_eq!(code.len(), 2);
+        assert_eq!(code[0].language.as_deref(), Some("bash"));
+        assert_eq!(code[1].source, "b");
+        assert!(
+            parse("slides:\n  - title: no code\n").unwrap().slides[0]
+                .code
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn code_rejects_an_empty_list_and_unknown_keys() {
+        assert!(parse("slides:\n  - code: []\n").is_err());
+        assert!(parse("slides:\n  - code: {langauge: rust, source: x}\n").is_err());
     }
 }

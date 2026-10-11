@@ -31,7 +31,10 @@ pub struct Slide {
     pub subtitles: Vec<Subtitle>,
     pub content: Option<String>,
     pub bullets: Option<Vec<String>>,
-    pub code: Option<CodeBlock>,
+    /// Zero or more code blocks, drawn one below the other in order. The
+    /// YAML `code:` is either one block or a list of them.
+    #[serde(default, deserialize_with = "deserialize_code")]
+    pub code: Vec<CodeBlock>,
     /// Path to an SVG (or raster image) file on disk.
     pub image: Option<String>,
     /// Inline SVG content as a string. Takes precedence over `image` if both are set.
@@ -92,6 +95,25 @@ fn deserialize_level<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
 pub struct Column {
     pub header: Option<String>,
     pub bullets: Vec<String>,
+}
+
+fn deserialize_code<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<CodeBlock>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum OneOrMany {
+        One(CodeBlock),
+        Many(Vec<CodeBlock>),
+    }
+    let blocks = match OneOrMany::deserialize(d)? {
+        OneOrMany::One(c) => vec![c],
+        OneOrMany::Many(v) => v,
+    };
+    if blocks.is_empty() {
+        return Err(serde::de::Error::custom(
+            "code: an empty list; omit the field instead",
+        ));
+    }
+    Ok(blocks)
 }
 
 fn deserialize_subtitles<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<Subtitle>, D::Error> {
@@ -227,6 +249,7 @@ impl<'de> Deserialize<'de> for Table {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CodeBlock {
     pub language: Option<String>,
     pub source: String,

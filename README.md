@@ -50,7 +50,7 @@ slides:
 | `subtitle` / `subtitles` | string \| `{text, level}` \| list of either | One or more sub-headings rendered stacked under the title (level 2..6, default 2) |
 | `content`    | string                            | Body text                           |
 | `bullets`    | list of strings                   | Bullet point list                   |
-| `code`       | `{language, source, trim?}`       | Syntax-highlighted code block       |
+| `code`       | `{language, source, trim?}` \| list of them | One or more syntax-highlighted code blocks, stacked in order |
 | `align`      | `left` \| `center` \| `right`    | Horizontal text alignment (default `left`) |
 | `title_align` / `content_align` | `left` \| `center` \| `right` | Override `align` for the title / for everything else |
 | `valign`     | `top` \| `middle` \| `bottom`    | Vertical content alignment (default from config: `middle`, like marp) |
@@ -85,6 +85,19 @@ URLs and e-mail addresses are shown as links.
 | `language` | string  | —       | Language token for syntax highlighting (e.g. `rust`, `python`) |
 | `source`   | string  | —       | Source code. Use `|-` (YAML strip chomping) to avoid a trailing blank line |
 | `trim`     | bool    | `false` | Strip trailing newlines in code; prefer `|-` in YAML instead |
+
+Several blocks are written as a list:
+
+```yaml
+code:
+  - language: bash
+    source: dig example.com A
+  - language: bash
+    source: dig example.com AAAA
+```
+
+`rsslide import` keeps every fenced block of a marp slide, in order. When a
+slide's code does not fit, all its blocks shrink by the same factor.
 
 ## Usage
 
@@ -172,7 +185,7 @@ Some slide fields defined in the YAML schema are not yet rendered by the PDF exp
 | `subtitle` / `subtitles` | ✅ rendered (font size scales with `level` 2..6; multiple stack vertically) |
 | `content`    | ✅ rendered  |
 | `bullets`    | ✅ rendered  |
-| `code`       | ✅ rendered (syntax-highlighted, language icon, shrinks to fit) |
+| `code`       | ✅ rendered (one or more blocks; syntax-highlighted, language icon, shrinks to fit) |
 | `align`      | ✅ rendered (`left` / `center` / `right`) |
 | `valign`     | ✅ rendered (`top` / `middle` / `bottom`) |
 | `columns`    | ✅ rendered  |
