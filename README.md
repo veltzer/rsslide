@@ -186,6 +186,7 @@ YAML file
 | `krilla-svg` / `usvg` | SVG rendering into the PDF |
 | `rustybuzz`     | Text shaping for measurement   |
 | `syntect`       | Syntax highlighting in PDF     |
+| `two-face`      | bat's syntax definitions       |
 | `anyhow`        | Error handling                 |
 
 ## PDF rendering
@@ -203,10 +204,12 @@ slide. Every value is configurable; `rsslide dump-config` prints them all
 with comments, and an `rsslide.toml` next to the inputs overrides any of
 them.
 
-Code blocks are highlighted with `syntect` using a bundled theme with the
-colors marp uses (configurable as `code.theme`), drawn in a bordered,
-rounded box, and shrunk to fit the slide when they are too large, like
-marp's auto-scaling. When a `language` is recognised, its icon is placed in
+Code blocks are highlighted where marp highlights them (the languages
+highlight.js knows; any other language is plain text, as in marp), with
+`syntect`, bat's syntaxes and a bundled theme with the colors marp uses
+(configurable as `code.theme`); see `doc/code-highlighting.md`. They are
+drawn in a bordered, rounded box, and shrunk to fit the slide when they are
+too large, like marp's auto-scaling. When a `language` is recognised, its icon is placed in
 the top-right corner of the box. Supported icons: Rust, Python, JavaScript,
 TypeScript, Go (Gopher), Java, C++, Ruby, Bash, HTML, CSS.
 

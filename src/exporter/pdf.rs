@@ -12,6 +12,7 @@
 //! is a multiple of the base font size (see `config.rs`).
 
 use crate::config::{Color, Config, SvgSize};
+use crate::exporter::highlight::Highlighter;
 use crate::exporter::text::{
     FontBytes, FontKind, FontSet, Line, Span, TextMetrics, parse_inline, wrap,
 };
@@ -30,9 +31,7 @@ use krilla::text::TextDirection;
 use krilla_svg::{SurfaceExt, SvgSettings};
 use std::path::Path as StdPath;
 use std::sync::Arc;
-use syntect::easy::HighlightLines;
-use syntect::highlighting::{Style, Theme, ThemeSet};
-use syntect::parsing::SyntaxSet;
+use syntect::highlighting::{Theme, ThemeSet};
 use syntect::util::LinesWithEndings;
 use usvg::fontdb::Database;
 
@@ -47,7 +46,7 @@ struct Ctx<'a> {
     fonts: &'a FontSet<'a>,
     fontdb: Arc<Database>,
     svg_settings: SvgSettings,
-    syntax_set: SyntaxSet,
+    highlighter: Highlighter,
     theme: Theme,
     /// Page size in points.
     width: f32,
@@ -110,7 +109,7 @@ fn make_ctx<'a>(cfg: &'a Config, bytes: &FontBytes, fonts: &'a FontSet<'a>) -> R
             filter_scale: cfg.svg.filter_scale,
             ..SvgSettings::default()
         },
-        syntax_set: SyntaxSet::load_defaults_newlines(),
+        highlighter: Highlighter::new()?,
         theme,
         width,
         height,
@@ -1246,34 +1245,23 @@ fn code_block(
         });
     }
 
-    // Unknown languages render as plain text, as highlight.js does in marp.
-    let syntax = language
-        .and_then(|lang| ctx.syntax_set.find_syntax_by_token(lang))
-        .unwrap_or_else(|| ctx.syntax_set.find_syntax_plain_text());
-    let mut highlighter = HighlightLines::new(syntax, &ctx.theme);
     let base = baseline_offset(ctx, FontKind::Mono, size, cfg.code.line_height);
     let mono = &ctx.fonts.mono;
-    for (i, line) in LinesWithEndings::from(source).enumerate() {
-        let ranges: Vec<(Style, &str)> = highlighter
-            .highlight_line(line, &ctx.syntax_set)
-            .with_context(|| format!("highlighting code line {}: {line:?}", i + 1))?;
+    let lines = ctx.highlighter.highlight(source, language, &ctx.theme)?;
+    for (i, runs) in lines.into_iter().enumerate() {
         let mut x = x0 + border + pad;
         let y = border + pad + i as f32 * lh + base;
-        for (style, token) in ranges {
-            let text = token.trim_end_matches(['\n', '\r']);
-            if text.is_empty() {
-                continue;
-            }
-            let fg = style.foreground;
+        for (color, text) in runs {
+            let width = mono.width(&text, size);
             ops.push(Op::Text {
                 x,
                 y,
                 font: FontKind::Mono,
                 size,
-                color: Color(fg.r, fg.g, fg.b),
-                text: text.to_string(),
+                color,
+                text,
             });
-            x += mono.width(text, size);
+            x += width;
         }
     }
     Ok(Block {

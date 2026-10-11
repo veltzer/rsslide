@@ -1,0 +1,47 @@
+%YAML 1.2
+---
+# ARM assembly, transcribed from highlight.js 11.11.1's `armasm` grammar
+# (alias `arm`) so it colours what marp colours: mnemonics as keywords,
+# directives as meta (blue), registers as built-ins and labels as symbols
+# (orange). two-face's ARM syntax needs Oniguruma, which rsslide does not
+# build with.
+name: ARM Assembly
+scope: source.armasm
+file_extensions: []
+contexts:
+  main:
+    - match: '(?i)\b(adc|(qd?|sh?|u[qh]?)?add(8|16)?|usada?8|(q|sh?|u[qh]?)?(as|sa)x|and|adrl?|sbc|rs[bc]|asr|b[lx]?|blx|bxj|cbn?z|tb[bh]|bic|bfc|bfi|[su]bfx|bkpt|cdp2?|clz|clrex|cmp|cmn|cpsi[ed]|cps|setend|dbg|dmb|dsb|eor|isb|it[te]{0,3}|lsl|lsr|ror|rrx|ldm(([id][ab])|f[ds])?|ldr((s|ex)?[bhd])?|movt?|mvn|mra|mar|mul|[us]mull|smul[bwt][bt]|smu[as]d|smmul|smmla|mla|umlaal|smlal?([wbt][bt]|d)|mls|smlsl?[ds]|smc|svc|sev|mia([bt]{2}|ph)?|mrr?c2?|mcrr2?|mrs|msr|orr|orn|pkh(tb|bt)|rbit|rev(16|sh)?|sel|[su]sat(16)?|nop|pop|push|rfe([id][ab])?|stm([id][ab])?|str(ex)?[bhd]?|(qd?)?sub|(sh?|q|u[qh]?)?sub(8|16)|[su]xt(a?h|a?b(16)?)|srs([id][ab])?|swpb?|swi|smi|tst|teq|wfe|wfi|yield)(eq|ne|cs|cc|mi|pl|vs|vc|hi|ls|ge|lt|gt|le|al|hs|lo)?[sptrx]?(?=\s)'
+      scope: keyword.other.armasm
+    - match: '^[ \t]*(?=#)'
+      push: line-comment
+    - match: '[;@]'
+      push: line-comment
+    - match: '//'
+      push: line-comment
+    - match: '/\*'
+      push:
+        - meta_scope: comment.block.armasm
+        - match: '\*/'
+          pop: true
+    - match: '"'
+      push:
+        - meta_scope: string.quoted.double.armasm
+        - match: '\\.'
+        - match: '"'
+          pop: true
+    - match: '''.*?[^\\]'''
+      scope: string.quoted.single.armasm
+    - match: '\|[^|\n]*\|'
+      scope: entity.name.class.armasm
+    - match: '(?i)[#$=]?0x[0-9a-f]+|[#$=]?0b[01]+|[#$=]\d+|\b\d+'
+      scope: constant.numeric.armasm
+    - match: '(?i)^[ \t]*[a-z_.$][a-z0-9_.$]+:|^[a-z_.$][a-z0-9_.$]+|[=#]\w+'
+      scope: constant.other.symbol.armasm
+    - match: '(?i)(?<![\w.])\.(2byte|4byte|align|ascii|asciz|balign|byte|code|data|else|end|endif|endm|endr|equ|err|exitm|extern|global|hword|if|ifdef|ifndef|include|irp|long|macro|rept|req|section|set|skip|space|text|word|arm|thumb|code16|code32|force_thumb|thumb_func|ltorg)\b'
+      scope: constant.other.directive.armasm
+    - match: '(?i)\b(r([0-9]|1[0-5])|w([0-9]|[12][0-9]|30)|x([0-9]|[12][0-9]|30)|pc|lr|sp|ip|sl|sb|fp|a[1-4]|v[1-8]|f[0-7]|[pcq]([0-9]|1[0-5])|[cs]psr_(c|x|s|f|cx|cxs|xs|xsf|sf|cxsf)|s([0-9]|[12][0-9]|3[01])|d([0-9]|[12][0-9]|3[01]))\b'
+      scope: support.function.register.armasm
+  line-comment:
+    - meta_scope: comment.line.armasm
+    - match: '$'
+      pop: true

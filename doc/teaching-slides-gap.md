@@ -8,9 +8,13 @@ repo's own build produces (`out/chapters/courses/`, `_site/marp/lectures/`).
 
 | Result | Decks |
 |---|---|
-| Import and render | 1,436 (85%) |
-| Render fails | 244 |
-| Import fails | 11 |
+| Import and render | 1,444 (85%) |
+| Render fails | 247 |
+| Import fails | 0 |
+
+Every deck now imports. Of the 247 that fail to render, 235 fail only on
+content that does not fit (section 1). The other 12 hit 9 raster images,
+2 empty code blocks and 1 too-wide table; 2 of them overflow as well.
 
 Rendered decks keep their text: compared word by word with marp's PDFs,
 0.02% of words are missing, all of them words split across lines.
@@ -25,13 +29,21 @@ Done since the first measurement:
 - Every table and code block of a slide is kept.
 - Content above and below an image.
 - Line breaks after in-word hyphens (`AI-generated`), as Chrome does.
+- `<div class="columns">` holds any content (headings, bold labels, code,
+  bare `<div>` columns); the 11 decks that failed to import now do.
+- Blockquotes (`>`, nested `>>`, lists inside), drawn as marp does: grey
+  text behind a bar (checked against marp's render).
+- Syntax highlighting decided as marp decides it; see below.
 - SVG size: pictures are sized and placed as marp does (content width,
   flowing under the heading; checked within 1 pt against marp's PDF). A
   diagram's empty canvas may run off the page; its drawing may not.
 
 ## Blocks the build
 
-### 1. Content that does not fit: 724 slides
+### 1. Content that does not fit: 729 slides
+
+The split below was measured when the total was 724, before columns decks
+imported; the 5 more have not been classified.
 
 - **703 are cut off in marp too**, some by a whole paragraph, some by the
   descenders of the last line, 13 by a diagram drawn past the page (a
@@ -52,19 +64,12 @@ Done since the first measurement:
   `cyber-attacks-and-vectors/26_ransomware` slide 11 and `21_form_jacking`
   slide 4, `lectures/devops/devops-slides` slide 24.
 
-### 2. `<div class="columns">` with richer content: 11 decks
-
-The importer accepts only `### header` lines and bullets inside a columns
-div. These decks also put bold labels (`**Input Chain:**`), headings inside
-bare `<div>` columns, and other blocks there. Two more classes appear once
-each: `<div class="content">` and `<div class="footer">`.
-
-### 3. Raster images: 9 decks
+### 2. Raster images: 9 decks
 
 `jpg/...` portraits (e.g. `jpg/courses/git/git/linus_torvalds.jpg`). rsslide
 renders SVG only.
 
-### 4. Single cases
+### 3. Single cases
 
 - Empty fenced code block, 2 decks (`technical-writing/06`, `08`): marp shows
   an empty box; rsslide rejects it. Decide: render empty, or fix the decks.
@@ -76,23 +81,22 @@ renders SVG only.
 | Gap | Slides / decks | What rsslide does today |
 |---|---|---|
 | Code that does not fit | most of the 164 code-overflow slides | Shrinks the code until it fits, sometimes to a barely readable size; marp clips it. These are in the 690 above: split the slides |
-| Blockquotes (`>`) | 56 decks | Text with a literal `>` |
 | Math (`$…$`, `$$…$$`) | 53 decks | Raw LaTeX source |
 | Background images (`![bg left]`, `![bg right:40% 80%]`) | 13 decks | Drawn as an ordinary image |
 | Task lists (`- [ ]`) | 8 decks | Literal `[ ]` |
 | Footnotes, inline `<b>`/`<i>` | 1-2 decks each | Literal |
 
-### Syntax highlighting: 13% of code blocks are plain
+### Syntax highlighting
 
-1,890 of 14,129 fenced blocks use a language syntect's default syntaxes do
-not cover. Some are deliberate plain text that marp shows plain too
-(`misc` 391, `output` 158, `tree` 116, `config` 76, `template` 22,
-`diagram` 9). The real gaps, by blocks: `hcl` 255, `cmake` 160, `gas` 92,
-`dockerfile` 80, `ini` 62, `http` 53, `nasm` 38, `dts` 37, `typescript` 34,
-`toml` 32, `graphql` 27, `console` 27, `vim` 23, `csharp` 23, `asm` 17,
-`kotlin` 16, `jinja` 16, `nginx` 15, `promql` 14, `gitignore` 14, `conf` 13,
-`protobuf` 12, `apache` 9, `ld` 7. Check each against what marp's
-highlight.js actually highlights before adding syntaxes.
+Done. A block is coloured exactly when marp colours it: when highlight.js
+knows its language (`doc/code-highlighting.md`). Every corpus language
+highlight.js knows now has a syntax, from bat's collection (two-face) or
+bundled in `assets/syntaxes/` (`dts`, `arm`, `mips`); `console` is a shell
+session as in highlight.js. Languages highlight.js does not know stay plain
+as in marp: `misc` 390, `hcl` 255, `output` 158, `tree` 116, `gas` 92,
+`config` 75, `nasm` 38, `template` 22, `asm` 17, `promql` 14, `gitignore` 14,
+`conf` 12, and a few more. Token colours still differ in places where a
+bat grammar scopes a token differently from highlight.js.
 
 ## Not a gap
 
@@ -104,11 +108,10 @@ highlight.js actually highlights before adding syntaxes.
 
 ## Suggested order
 
-1. Richer columns content and blockquotes (11 + 56 decks).
-2. Syntax definitions for the languages above.
-3. Raster and background images (9 + 13 decks).
-4. Math (53 decks): needs a TeX-to-SVG step; the hardest item.
-5. In teaching-slides: split the 703 slides marp clips today, then replace
+1. Raster and background images (9 + 13 decks).
+2. Task lists (8 decks), and the empty-code-block decision (2 decks).
+3. Math (53 decks): needs a TeX-to-SVG step; the hardest item.
+4. In teaching-slides: split the 703 slides marp clips today, then replace
    the `marp.courses` / `marp.lectures` processors in its `rsconstruct.toml`
    with rsslide import + generate (the per-chapter PDFs still feed its
    `ipdfunite` merge).
