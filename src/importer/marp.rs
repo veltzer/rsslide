@@ -560,8 +560,8 @@ fn parse_columns(lines: &[&str]) -> Result<Vec<OutColumn>> {
         {
             header_level = Some(level);
             columns.push(vec![line]);
-        } else if trimmed.is_empty() && columns.is_empty() {
-            // Blank lines before the first column.
+        } else if trimmed.is_empty() && header_level.is_none() {
+            // Blank lines before, between or after bare `<div>` columns.
         } else if header_level.is_none() {
             return Err(anyhow!(
                 "unsupported line inside <div class=\"columns\"> outside any column: {trimmed:?}"
@@ -1304,6 +1304,16 @@ mod tests {
         assert_eq!(cols.len(), 2);
         assert_eq!(cols[0].body[1], heading("detail", 4));
         assert!(matches!(&cols[0].body[2], OutElement::Code(c) if c.source == "### not a column"));
+        round_trip(md);
+    }
+
+    #[test]
+    fn blank_lines_between_bare_div_columns() {
+        let md = "# T\n\n<div class=\"columns\">\n\n<div>\n\n- a\n\n</div>\n\n<div>\n\n- b\n\n</div>\n\n</div>\n";
+        let OutElement::Columns(cols) = &slide(md).body[0] else {
+            panic!("columns")
+        };
+        assert_eq!(cols.len(), 2);
         round_trip(md);
     }
 
