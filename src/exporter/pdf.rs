@@ -591,12 +591,36 @@ fn ink_bottom(ctx: &Ctx, ops: &[Op]) -> f32 {
             // The drawing, not its canvas: an SVG's empty canvas may run off
             // the page (marp sizes 1280x720 diagrams to the content width).
             // The stroke box, not the layer box: a filter's region (a drop
-            // shadow allocates 10% beyond its shape) is not drawn ink.
+            // shadow allocates 10% beyond its shape) is not drawn ink. And
+            // only what lies on the canvas: a browser clips an SVG image to
+            // it, and so does `draw_ops`.
             Op::Svg { tree, y, scale, .. } => {
-                y + tree.root().abs_stroke_bounding_box().bottom() * scale
+                y + canvas_ink_bottom(tree.root(), tree.size().height()) * scale
             }
             // A background is not content: it fills its side by design.
             Op::Background { .. } => f32::MIN,
+        })
+        .fold(f32::MIN, f32::max)
+}
+
+/// The lowest point of what `group` draws on a canvas `height` tall, in
+/// the SVG's units: an element wholly below the canvas is not drawn (a
+/// browser clips an SVG image to its canvas), one that crosses its edge is
+/// cut there.
+fn canvas_ink_bottom(group: &usvg::Group, height: f32) -> f32 {
+    group
+        .children()
+        .iter()
+        .map(|node| match node {
+            usvg::Node::Group(g) => canvas_ink_bottom(g, height),
+            leaf => {
+                let b = leaf.abs_stroke_bounding_box();
+                if b.top() >= height {
+                    f32::MIN
+                } else {
+                    b.bottom().min(height)
+                }
+            }
         })
         .fold(f32::MIN, f32::max)
 }
@@ -1596,12 +1620,21 @@ fn draw_ops(surface: &mut Surface<'_>, ctx: &Ctx, ops: Vec<Op>) -> Result<()> {
                 surface.draw_path(&path);
             }
             Op::Svg { tree, x, y, scale } => {
-                let size = Size::from_wh(tree.size().width(), tree.size().height())
-                    .context("invalid SVG size")?;
+                let (w, h) = (tree.size().width(), tree.size().height());
+                let size = Size::from_wh(w, h).context("invalid SVG size")?;
                 surface.push_transform(&Transform::from_row(scale, 0.0, 0.0, scale, x, y));
+                // Clip to the canvas, as a browser clips an SVG image: an
+                // element placed outside it is not shown.
+                let canvas =
+                    krilla::geom::Rect::from_xywh(0.0, 0.0, w, h).context("invalid SVG size")?;
+                let mut pb = PathBuilder::new();
+                pb.push_rect(canvas);
+                let clip = pb.finish().context("SVG clip path")?;
+                surface.push_clip_path(&clip, &FillRule::NonZero);
                 surface
                     .draw_svg(&tree, size, ctx.svg_settings)
                     .context("krilla-svg failed to draw the SVG")?;
+                surface.pop();
                 surface.pop();
             }
             Op::Background {
@@ -2919,5 +2952,22 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
             crate::parser::parse("slides:\n  - body:\n      - bullets: [a]\n        start: 2\n")
                 .is_err()
         );
+    }
+
+    #[test]
+    fn an_svg_element_outside_its_canvas_is_not_ink() {
+        let cfg = Config::default();
+        // A label rotated off the bottom of its canvas, as a browser hides it.
+        let svg = temp_file(
+            "offcanvas.svg",
+            b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1280 720'>\
+              <rect x='40' y='40' width='1200' height='560' fill='#88a'/>\
+              <text x='1240' y='342' font-size='20' transform='rotate(90,590,180)'>off canvas</text></svg>",
+        );
+        with_ctx(&cfg, |ctx| {
+            let s = one_slide(&format!("title: T\nbody:\n  - image: {svg:?}"));
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            assert!(ink_bottom(ctx, &ops) <= ctx.height);
+        });
     }
 }
