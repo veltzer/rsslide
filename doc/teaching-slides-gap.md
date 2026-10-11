@@ -8,11 +8,11 @@ repo's own build produces (`out/chapters/courses/`, `_site/marp/lectures/`).
 
 | Result | Decks |
 |---|---|
-| Import and render | 1,452 (86%) |
-| Render fails | 239 |
+| Import and render | 1,453 (86%) |
+| Render fails | 238 |
 | Import fails | 0 |
 
-Every deck now imports. Of the 239 that fail to render, 236 fail only on
+Every deck now imports. Of the 238 that fail to render, 235 fail only on
 content that does not fit (section 1). The other 3 hit 2 empty code
 blocks and 1 too-wide table; 1 of them overflows as well.
 
@@ -43,29 +43,39 @@ Done since the first measurement:
 
 ## Blocks the build
 
-### 1. Content that does not fit: 729 slides
+### 1. Content that does not fit: 727 slides
 
-The split below was measured when the total was 724, before columns decks
-imported; the 5 more have not been classified.
+Classified when the total was 724 (before the columns decks imported; the
+5 slides they added are not classified):
 
-- **703 are cut off in marp too**, some by a whole paragraph, some by the
-  descenders of the last line, 13 by a diagram drawn past the page (a
-  two-line title pushing a full-height diagram down, two diagrams on one
-  slide, a title SVG drawn to y=680, and
-  `networking-basics/04_dns_deep_dive` slide 25, whose diagram text is
-  broken in marp too). Chromium clips at the page edge and leaves
-  the clipped text out of the PDF, so the cut goes unnoticed today. rsslide
-  reports them as errors; each must be split in teaching-slides by hand
-  (its CLAUDE.md forbids scripted content edits). This is the largest
+- **708 are cut off in marp too**, some by a whole paragraph, some by the
+  descenders of the last line, some by the bottom edge of a table or code
+  box (the last row's padding and border; the text itself ends above the
+  edge), 13 by a diagram drawn past the page (a two-line title pushing a
+  full-height diagram down, two diagrams on one slide, a title SVG drawn
+  to y=680, and `networking-basics/04_dns_deep_dive` slide 25, whose
+  diagram text is broken in marp too). Chromium clips at the page edge and
+  leaves the clipped text out of the PDF, so the cut goes unnoticed today.
+  rsslide reports them as errors; each must be split in teaching-slides by
+  hand (its CLAUDE.md forbids scripted content edits). This is the largest
   single piece of migration work.
-- **21 fit in marp but not in rsslide.** 15 are math slides (raw LaTeX is
-  longer than typeset math; see Math below). 6 are other small differences
-  to investigate:
-  `architecture-patterns/13_data_processing_engines` slide 19,
-  `advanced-spark-with-python/07_performance_tuning` slide 17,
-  `elasticsearch-administration/08_performance_tuning` slide 12 (code),
-  `cyber-attacks-and-vectors/26_ransomware` slide 11 and `21_form_jacking`
-  slide 4, `lectures/devops/devops-slides` slide 24.
+- **15 fit in marp but not in rsslide**, all math slides (raw LaTeX is
+  longer than typeset math; see Math below).
+- 1 was an rsslide bug, now fixed: a slide whose text ran into the bottom
+  padding had its code shrunk away ("no room left for the code"), although
+  it fit the page as it does in marp
+  (`elasticsearch-administration/08_performance_tuning` slide 12). Code now
+  shrinks for height only when the content would run off the page.
+
+How the 6 non-math suspects were checked: each slide was rendered on a
+page twice as tall (same width, so the same text metrics) and its line
+positions compared with marp's page. Three lay out within 0.3 pt of marp
+and only a table or code box's bottom edge crosses 540 pt
+(`advanced-spark-with-python/07_performance_tuning` 17,
+`cyber-attacks-and-vectors/26_ransomware` 11 and `21_form_jacking` 4);
+in two, marp's PDF is missing the last lines
+(`architecture-patterns/13_data_processing_engines` 19,
+`lectures/devops/devops-slides` 24).
 
 ### 2. Single cases
 
@@ -77,10 +87,8 @@ imported; the 5 more have not been classified.
 
 | Gap | Slides / decks | What rsslide does today |
 |---|---|---|
-| Code that does not fit | most of the 164 code-overflow slides | Shrinks the code until it fits, sometimes to a barely readable size; marp clips it. These are in the 690 above: split the slides |
+| Code that does not fit | most of the 162 code-overflow slides | Shrinks the code until it fits, sometimes to a barely readable size; marp clips it. These are in the 727 above: split the slides |
 | Math (`$…$`, `$$…$$`) | 53 decks | Raw LaTeX source |
-| Task lists (`- [ ]`) | 8 decks | Literal `[ ]` |
-| Footnotes, inline `<b>`/`<i>` | 1-2 decks each | Literal |
 
 ### Syntax highlighting
 
@@ -96,6 +104,11 @@ bat grammar scopes a token differently from highlight.js.
 
 ## Not a gap
 
+- Task lists (`- [ ]`, 8 decks): marp has no task-list plugin and shows
+  `[ ] item` literally, as rsslide does (checked against marp's text).
+- Footnotes and inline `<b>`/`<i>`: every occurrence in the corpus is
+  inside code or a regex, where both show it literally; marp has no
+  footnote plugin either.
 - Front matter (`tags`, `level`, `category`, `audience`, `duration_hours`)
   is metadata for the site; marp ignores it too.
 - teaching-slides does not paginate, so page numbers are not needed.
@@ -104,7 +117,7 @@ bat grammar scopes a token differently from highlight.js.
 
 ## Suggested order
 
-1. Task lists (8 decks), and the empty-code-block decision (2 decks).
+1. The empty-code-block decision (2 decks).
 2. Math (53 decks): needs a TeX-to-SVG step; the hardest item.
 3. In teaching-slides: split the 703 slides marp clips today, then replace
    the `marp.courses` / `marp.lectures` processors in its `rsconstruct.toml`

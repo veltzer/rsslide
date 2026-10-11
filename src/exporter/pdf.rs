@@ -402,10 +402,17 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
     // size.
     let mut scale = code_width_scale(ctx, &sources);
     let mut blocks = build(scale)?;
-    if picture.is_none() && !sources.is_empty() && stack_height(&blocks) > available {
-        // Then, if the slide is too tall, it shrinks to fit the height. The
-        // stack height is linear in the scale (only the code's text and
-        // padding scale), so two layouts give the exact factor.
+    // Content taller than the padded area may run into the bottom padding,
+    // as below; only content that would run off the page shrinks its code.
+    let runs_off = |blocks: Vec<Block>| {
+        let mut placed = Vec::new();
+        place(blocks, top, &mut placed);
+        ink_bottom(ctx, &placed) > ctx.height
+    };
+    if picture.is_none() && !sources.is_empty() && runs_off(build(scale)?) {
+        // Then the code shrinks to fit the padded area. The stack height is
+        // linear in the scale (only the code's text and padding scale), so
+        // two layouts give the exact factor.
         let full = stack_height(&blocks);
         let half = stack_height(&build(scale / 2.0)?);
         let per_unit = 2.0 * (full - half) / scale;
@@ -2167,6 +2174,27 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
                 Op::Background { .. } => f32::MIN,
             })
             .fold(f32::MIN, f32::max)
+    }
+
+    #[test]
+    fn code_keeps_its_size_when_the_content_only_runs_into_the_bottom_padding() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let full = ctx.em * cfg.code.font_size_em;
+            let padded_bottom = ctx.height - ctx.pad_y();
+            // Add bullets until the content reaches into the bottom padding.
+            for n in 1..60 {
+                let s = one_slide(&format!("{}\ncode: {{source: x = 1}}", bullets_yaml(n)));
+                let Ok(ops) = layout_slide(ctx, &s, None) else {
+                    panic!("{n} bullets and a line of code fit the page, or else stop earlier");
+                };
+                if ink_bottom(ctx, &ops) > padded_bottom {
+                    assert!(mono_sizes(&ops).iter().all(|&size| (size - full).abs() < 1e-3));
+                    return;
+                }
+            }
+            panic!("the content never reached the bottom padding");
+        });
     }
 
     #[test]
