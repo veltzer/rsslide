@@ -74,7 +74,9 @@ text is broken in marp too). Chromium clips at the page edge and leaves the
 clipped text out of the PDF, so the cut goes unnoticed today. rsslide
 reports them as errors; each must be split in teaching-slides by hand (its
 CLAUDE.md forbids scripted content edits). This is the remaining migration
-work.
+work. Until they are split, `rsslide generate --warn-overflow` renders
+every deck but the wide-table one (1,690 of 1,691), each cut slide
+reported as a warning and drawn cut off as marp draws it.
 
 No slide overflows in rsslide alone any more. The suspects that did were
 rsslide bugs, now fixed: undecoded character references (the "math

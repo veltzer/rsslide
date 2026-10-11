@@ -46,6 +46,12 @@ enum Command {
         /// Path to a rsslide.toml config file (overrides auto-discovery)
         #[arg(long)]
         config: Option<PathBuf>,
+
+        /// Report content that runs off the page as a warning and draw
+        /// the slide anyway, cut at the page edge as marp cuts it. Without
+        /// it, such content is an error.
+        #[arg(long)]
+        warn_overflow: bool,
     },
     /// Import Marp Markdown files. Alternating input/output paths: IN1 OUT1 IN2 OUT2 ...
     Import {
@@ -61,6 +67,12 @@ enum Command {
         /// Path to a rsslide.toml config file (overrides auto-discovery)
         #[arg(long)]
         config: Option<PathBuf>,
+
+        /// Report content that runs off the page as a warning and draw
+        /// the slide anyway, cut at the page edge as marp cuts it. Without
+        /// it, such content is an error.
+        #[arg(long)]
+        warn_overflow: bool,
 
         /// Alternating input/output paths: IN1 OUT1 IN2 OUT2 ...
         #[arg(required = true, num_args = 2..)]
@@ -86,13 +98,15 @@ fn main() -> Result<()> {
             output,
             format,
             config,
-        }) => run_process(input, output, format, config),
+            warn_overflow,
+        }) => run_process(input, output, format, config, overflow(warn_overflow)),
         Some(Command::Import { paths }) => run_import(paths),
         Some(Command::Generate {
             format,
             config,
+            warn_overflow,
             paths,
-        }) => run_generate(format, config, paths),
+        }) => run_generate(format, config, overflow(warn_overflow), paths),
         Some(Command::Version) => {
             print_version();
             Ok(())
@@ -106,11 +120,20 @@ fn main() -> Result<()> {
     }
 }
 
+fn overflow(warn: bool) -> exporter::pdf::Overflow {
+    if warn {
+        exporter::pdf::Overflow::Warn
+    } else {
+        exporter::pdf::Overflow::Error
+    }
+}
+
 fn run_process(
     input: PathBuf,
     output: Option<PathBuf>,
     format: Format,
     config_path: Option<PathBuf>,
+    overflow: exporter::pdf::Overflow,
 ) -> Result<()> {
     let output_path = output.unwrap_or_else(|| {
         let stem = input.file_stem().unwrap_or_default();
@@ -122,10 +145,15 @@ fn run_process(
         PathBuf::from(stem).with_extension(ext)
     });
     let cfg = config::Config::load(config_path.as_deref())?;
-    convert_one(&input, &output_path, format, &cfg)
+    convert_one(&input, &output_path, format, &cfg, overflow)
 }
 
-fn run_generate(format: Format, config_path: Option<PathBuf>, paths: Vec<PathBuf>) -> Result<()> {
+fn run_generate(
+    format: Format,
+    config_path: Option<PathBuf>,
+    overflow: exporter::pdf::Overflow,
+    paths: Vec<PathBuf>,
+) -> Result<()> {
     if !paths.len().is_multiple_of(2) {
         anyhow::bail!(
             "generate requires an even number of arguments (input/output pairs), got {}",
@@ -135,7 +163,7 @@ fn run_generate(format: Format, config_path: Option<PathBuf>, paths: Vec<PathBuf
     let cfg = config::Config::load(config_path.as_deref())?;
     let (pairs, _) = paths.as_chunks::<2>();
     for pair in pairs {
-        convert_one(&pair[0], &pair[1], format.clone(), &cfg)?;
+        convert_one(&pair[0], &pair[1], format.clone(), &cfg, overflow)?;
     }
     Ok(())
 }
@@ -145,6 +173,7 @@ fn convert_one(
     output: &std::path::Path,
     format: Format,
     cfg: &config::Config,
+    overflow: exporter::pdf::Overflow,
 ) -> Result<()> {
     let input_str =
         fs::read_to_string(input).with_context(|| format!("Failed to read {}", input.display()))?;
@@ -153,7 +182,11 @@ fn convert_one(
     match format {
         Format::Html => anyhow::bail!("HTML export not yet implemented"),
         Format::Pdf => {
-            exporter::pdf::export(&presentation, output, cfg).context("PDF export failed")?;
+            let warnings = exporter::pdf::export(&presentation, output, cfg, overflow)
+                .context("PDF export failed")?;
+            for warning in warnings {
+                eprintln!("warning: {}: {warning}", input.display());
+            }
         }
         Format::Pptx => {
             exporter::pptx::export(&presentation, output).context("PPTX export failed")?;

@@ -5,7 +5,6 @@ Findings from a code scan on 2026-10-04.
 ## High
 
 - `src/main.rs:43` - `process --format` defaults to `html`, but `src/main.rs:154` bails with "HTML export not yet implemented", so `rsslide process deck.yaml` with no flags always fails; default to `pdf` (the only implemented format) until HTML exists.
-- `README.md:82` - the Usage block documents `--theme` and `--theme-set` options that do not exist in the CLI (`src/main.rs:34-49`), omits the real `--config`, `generate` and `dump-config` subcommands, and advertises `html | pdf | pptx` although only PDF works (`src/main.rs:154`, `src/exporter/pptx.rs:7`); rewrite the section from `rsslide --help`.
 
 ## Medium
 

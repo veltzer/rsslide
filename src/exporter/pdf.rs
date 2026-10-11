@@ -30,6 +30,7 @@ use krilla::paint::{Fill, FillRule};
 use krilla::surface::Surface;
 use krilla::text::TextDirection;
 use krilla_svg::{SurfaceExt, SvgSettings};
+use std::cell::RefCell;
 use std::path::Path as StdPath;
 use std::sync::Arc;
 use syntect::highlighting::{Theme, ThemeSet};
@@ -40,6 +41,16 @@ const PT_PER_MM: f32 = 72.0 / 25.4;
 
 /// Bezier handle length for a quarter circle of radius 1.
 const KAPPA: f32 = 0.552_284_8;
+
+/// What content running off the page is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Overflow {
+    /// An error naming the slide (the default).
+    Error,
+    /// A warning naming the slide; the slide is drawn anyway, cut at the
+    /// page edge as marp cuts it.
+    Warn,
+}
 
 /// Everything the layout code needs that is shared by all slides.
 struct Ctx<'a> {
@@ -54,6 +65,9 @@ struct Ctx<'a> {
     height: f32,
     /// Base font size (1 em) in points.
     em: f32,
+    overflow: Overflow,
+    /// Overflow warnings of the slide being laid out (see `Overflow::Warn`).
+    warnings: RefCell<Vec<String>>,
 }
 
 impl Ctx<'_> {
@@ -85,11 +99,18 @@ impl Ctx<'_> {
     }
 }
 
-pub fn export(presentation: &Presentation, output_path: &StdPath, cfg: &Config) -> Result<()> {
-    let pdf = render(presentation, cfg)?;
+/// Write `presentation` as a PDF to `output_path`. Returns the overflow
+/// warnings, each naming its slide (only with `Overflow::Warn`).
+pub fn export(
+    presentation: &Presentation,
+    output_path: &StdPath,
+    cfg: &Config,
+    overflow: Overflow,
+) -> Result<Vec<String>> {
+    let (pdf, warnings) = render(presentation, cfg, overflow)?;
     std::fs::write(output_path, pdf)
         .with_context(|| format!("failed to write {}", output_path.display()))?;
-    Ok(())
+    Ok(warnings)
 }
 
 /// Build the shared layout context over already-loaded fonts.
@@ -121,14 +142,21 @@ fn make_ctx<'a>(cfg: &'a Config, bytes: &FontBytes, fonts: &'a FontSet<'a>) -> R
         width,
         height,
         em: width * cfg.slide.font_size_ratio,
+        overflow: Overflow::Error,
+        warnings: RefCell::new(Vec::new()),
     })
 }
 
 /// Render `presentation` to the bytes of a PDF.
-fn render(presentation: &Presentation, cfg: &Config) -> Result<Vec<u8>> {
+fn render(
+    presentation: &Presentation,
+    cfg: &Config,
+    overflow: Overflow,
+) -> Result<(Vec<u8>, Vec<String>)> {
     let bytes = FontBytes::read(&cfg.fonts)?;
     let fonts = bytes.load()?;
-    let ctx = make_ctx(cfg, &bytes, &fonts)?;
+    let mut ctx = make_ctx(cfg, &bytes, &fonts)?;
+    ctx.overflow = overflow;
     let page_size = Size::from_wh(ctx.width, ctx.height).context("invalid page size")?;
 
     let mut doc = Document::new();
@@ -150,10 +178,14 @@ fn render(presentation: &Presentation, cfg: &Config) -> Result<Vec<u8>> {
     // slides with problems rather than only the first.
     let mut layouts = Vec::with_capacity(total);
     let mut errors = Vec::new();
+    let mut warnings = Vec::new();
     for (i, slide) in slides.iter().enumerate() {
         match layout_slide(&ctx, slide, paginate.then_some(i + 1)) {
             Ok(ops) => layouts.push(ops),
             Err(e) => errors.push(format!("slide {}/{}: {e:#}", i + 1, total)),
+        }
+        for w in ctx.warnings.borrow_mut().drain(..) {
+            warnings.push(format!("slide {}/{}: {w}", i + 1, total));
         }
     }
     if !errors.is_empty() {
@@ -172,8 +204,10 @@ fn render(presentation: &Presentation, cfg: &Config) -> Result<Vec<u8>> {
         page.finish();
     }
 
-    doc.finish()
-        .map_err(|e| anyhow::anyhow!("PDF finalisation failed: {e:?}"))
+    let pdf = doc
+        .finish()
+        .map_err(|e| anyhow::anyhow!("PDF finalisation failed: {e:?}"))?;
+    Ok((pdf, warnings))
 }
 
 /// The font database usvg resolves SVG text against: the configured fonts,
@@ -418,11 +452,14 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
         let per_unit = 2.0 * (full - half) / scale;
         let fixed = full - per_unit * scale;
         let fit = (available - fixed) / per_unit;
-        if fit <= 0.0 {
+        if fit > 0.0 {
+            scale = fit.min(scale);
+            blocks = build(scale)?;
+        } else if ctx.overflow == Overflow::Error {
             bail!("no room left for the code below the slide's other content");
         }
-        scale = fit.min(scale);
-        blocks = build(scale)?;
+        // With `Overflow::Warn`, the code keeps its size and the content
+        // runs off the page, which the check below reports.
     }
     let stack = stack_height(&blocks);
     let mut ops = Vec::new();
@@ -463,11 +500,15 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
         };
         place(blocks, y, &mut ops);
         if ink_bottom(ctx, &ops) > ctx.height {
-            bail!(
+            let message = format!(
                 "content does not fit on the slide: it is {:.0}% of the page height \
                  below the top padding; split the slide or shorten it",
                 stack / (ctx.height - top) * 100.0
             );
+            match ctx.overflow {
+                Overflow::Error => bail!(message),
+                Overflow::Warn => ctx.warnings.borrow_mut().push(message),
+            }
         }
     }
 
@@ -2622,8 +2663,9 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
             FULL_SLIDE.replace('\n', "\n    "),
             SVG_SLIDE.replace('\n', "\n    ")
         );
-        let pdf = render(&deck(&yaml), &Config::default()).unwrap();
+        let (pdf, warnings) = render(&deck(&yaml), &Config::default(), Overflow::Error).unwrap();
         assert!(pdf.starts_with(b"%PDF-"), "not a PDF");
+        assert!(warnings.is_empty());
     }
 
     #[test]
@@ -2632,7 +2674,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
         let yaml = format!("slides:\n  - title: ok\n  - {bad}\n  - title: also ok\n  - {bad}\n");
         let err = format!(
             "{:#}",
-            render(&deck(&yaml), &Config::default()).unwrap_err()
+            render(&deck(&yaml), &Config::default(), Overflow::Error).unwrap_err()
         );
         assert!(err.contains("2 slide(s)"), "{err}");
         assert!(
@@ -2643,6 +2685,29 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
             !err.contains("slide 1/4") && !err.contains("slide 3/4"),
             "{err}"
         );
+    }
+
+    #[test]
+    fn with_overflow_warnings_every_slide_is_drawn_and_reported() {
+        let bad = bullets_yaml(40).replace('\n', "\n    ");
+        // A slide whose code has no room left below its text.
+        let crowded =
+            format!("{}\ncode: {{source: x = 1}}", bullets_yaml(40)).replace('\n', "\n    ");
+        let yaml = format!("slides:\n  - title: ok\n  - {bad}\n  - {crowded}\n");
+        let (pdf, warnings) = render(&deck(&yaml), &Config::default(), Overflow::Warn).unwrap();
+        assert!(pdf.starts_with(b"%PDF-"), "not a PDF");
+        assert_eq!(warnings.len(), 2, "{warnings:?}");
+        assert!(
+            warnings[0].starts_with("slide 2/3: content does not fit"),
+            "{warnings:?}"
+        );
+        assert!(
+            warnings[1].starts_with("slide 3/3: content does not fit"),
+            "{warnings:?}"
+        );
+        // Other errors stay errors.
+        let missing = "slides:\n  - {title: T, image: /nonexistent.svg}\n";
+        assert!(render(&deck(missing), &Config::default(), Overflow::Warn).is_err());
     }
 
     #[test]

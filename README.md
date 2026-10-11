@@ -158,17 +158,22 @@ slide's code does not fit, all its blocks shrink by the same factor.
 ## Usage
 
 ```text
-rsslide process [OPTIONS] <INPUT>
-rsslide import  [OPTIONS] <INPUT>
+rsslide generate -f pdf [--config <TOML>] [--warn-overflow] IN1 OUT1 [IN2 OUT2 ...]
+rsslide process  <INPUT> [-o <OUTPUT>] [-f <FORMAT>] [--config <TOML>] [--warn-overflow]
+rsslide import   IN1.md OUT1.yaml [IN2.md OUT2.yaml ...]
+rsslide dump-config [-o <FILE>]
 rsslide version
-
-process options:
-  -o, --output <FILE>        Output file [default: <input stem>.<format>]
-  -f, --format <FORMAT>      html | pdf | pptx  [default: html]
-      --theme <THEME>        Built-in theme: default | gaia | uncover  [default: default]
-      --theme-set <CSS>      Path to a custom CSS theme file
-  -h, --help
 ```
+
+`generate` converts many decks with one config; `process` converts one
+(its format defaults to `html`, which is not implemented yet: pass
+`-f pdf`). `import` turns marp Markdown into rsslide YAML. Only PDF output
+is implemented.
+
+`--warn-overflow` turns content that runs off the page from an error into
+a warning naming the file and slide (on stderr); the slide is drawn
+anyway, cut at the page edge as marp cuts it, and its code keeps its size
+instead of shrinking away. Without the flag such content is an error.
 
 ## Output formats
 
@@ -239,7 +244,8 @@ and Noto Color Emoji. A character none of them has is a hard error, never a
 blank box.
 
 Content that does not fit on the page is a hard error naming the slide;
-marp would silently cut it off at the page edge.
+marp would silently cut it off at the page edge. `--warn-overflow` makes it
+a warning and draws the slide cut off, as marp does.
 
 ### Model fields and PDF support
 
