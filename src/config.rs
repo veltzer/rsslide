@@ -119,6 +119,15 @@ font_size_em = 0.827586
 right_ratio = 0.0234375
 bottom_ratio = 0.029167
 
+[credit]
+# A small "created by rsslide" line at the bottom-left of the first slide,
+# mirroring the page number's position on the other side. Set enabled =
+# false to leave it out.
+enabled = true
+font_size_em = 0.5
+left_ratio = 0.0234375
+bottom_ratio = 0.029167
+
 [svg]
 # Filter-effect rasterization detail. 2.0 is a good quality/speed tradeoff.
 # 4.0 is krilla-svg's default (crispest, slowest). 1.0 is fastest (softer).
@@ -211,6 +220,7 @@ inline_code_background = "#f0f1f3"
 table_border           = "#d1d9e0"
 table_stripe           = "#f6f8fa"
 pagination             = "#777777"
+credit                 = "#999999"
 quote_text             = "#59636e"
 quote_border           = "#d1d9e0"
 "##;
@@ -228,6 +238,7 @@ pub struct Config {
     pub inline_code: InlineCode,
     pub table: Table,
     pub pagination: Pagination,
+    pub credit: Credit,
     pub svg: Svg,
     pub fonts: Fonts,
     pub colors: Colors,
@@ -327,6 +338,15 @@ pub struct Pagination {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+pub struct Credit {
+    pub enabled: bool,
+    pub font_size_em: f32,
+    pub left_ratio: f32,
+    pub bottom_ratio: f32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct Svg {
     pub filter_scale: f32,
     pub flatten_css_vars: bool,
@@ -380,6 +400,7 @@ pub struct Colors {
     pub table_border: Color,
     pub table_stripe: Color,
     pub pagination: Color,
+    pub credit: Color,
     pub quote_text: Color,
     pub quote_border: Color,
 }
@@ -524,6 +545,17 @@ impl Default for Pagination {
     }
 }
 
+impl Default for Credit {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            font_size_em: 0.5,
+            left_ratio: 0.0234375,
+            bottom_ratio: 0.029167,
+        }
+    }
+}
+
 impl Default for Svg {
     fn default() -> Self {
         Self {
@@ -618,6 +650,7 @@ impl Default for Colors {
             table_border: Color(0xd1, 0xd9, 0xe0),
             table_stripe: Color(0xf6, 0xf8, 0xfa),
             pagination: Color(0x77, 0x77, 0x77),
+            credit: Color(0x99, 0x99, 0x99),
             quote_text: Color(0x59, 0x63, 0x6e),
             quote_border: Color(0xd1, 0xd9, 0xe0),
         }
@@ -710,6 +743,13 @@ mod tests {
         // Every field, compared through Debug: any drift between the template
         // and the Default impls fails here.
         assert_eq!(format!("{parsed:?}"), format!("{:?}", Config::default()));
+    }
+
+    #[test]
+    fn credit_can_be_turned_off() {
+        assert!(Config::default().credit.enabled);
+        let cfg: Config = toml::from_str("[credit]\nenabled = false\n").unwrap();
+        assert!(!cfg.credit.enabled);
     }
 
     #[test]

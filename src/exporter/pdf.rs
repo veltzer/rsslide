@@ -212,7 +212,13 @@ fn render_with(ctx: &Ctx, presentation: &Presentation) -> Result<(Vec<u8>, Vec<S
     let mut errors = Vec::new();
     let mut warnings = Vec::new();
     for (i, slide) in slides.iter().enumerate() {
-        match layout_slide(ctx, slide, paginate.then_some(i + 1)) {
+        let laid_out = layout_slide(ctx, slide, paginate.then_some(i + 1)).and_then(|mut ops| {
+            if i == 0 && ctx.cfg.credit.enabled {
+                ops.push(credit_op(ctx)?);
+            }
+            Ok(ops)
+        });
+        match laid_out {
             Ok(ops) => layouts.push(ops),
             Err(e) => errors.push(format!("slide {}/{}: {e:#}", i + 1, total)),
         }
@@ -1590,6 +1596,29 @@ fn page_number_op(ctx: &Ctx, n: usize, region_right: f32) -> Op {
     }
 }
 
+/// The line crediting rsslide, at the bottom-left of the page, mirroring
+/// the page number's position at the bottom-right.
+fn credit_op(ctx: &Ctx) -> Result<Op> {
+    let cfg = ctx.cfg;
+    let size = ctx.em * cfg.credit.font_size_em;
+    let text = format!(
+        "Created by rsslide {} by Mark Veltzer <mark.veltzer@gmail.com>",
+        env!("CARGO_PKG_VERSION")
+    );
+    ctx.fonts.get(FontKind::Regular).runs(&text)?;
+    let box_bottom = ctx.height * (1.0 - cfg.credit.bottom_ratio);
+    let lh = cfg.slide.line_height;
+    let baseline = box_bottom - lh * size + baseline_offset(ctx, FontKind::Regular, size, lh);
+    Ok(Op::Text {
+        x: ctx.width * cfg.credit.left_ratio,
+        y: baseline,
+        font: FontKind::Regular,
+        size,
+        color: cfg.colors.credit,
+        text,
+    })
+}
+
 // ── drawing ───────────────────────────────────────────────────────────────
 
 fn draw_ops(surface: &mut Surface<'_>, ctx: &Ctx, ops: Vec<Op>) -> Result<()> {
@@ -2737,6 +2766,19 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
             let right = x + ctx.fonts.regular.width("12", size);
             let expected = ctx.width * (1.0 - cfg.pagination.right_ratio);
             assert!((right - expected).abs() < 1e-3, "{right} vs {expected}");
+        });
+    }
+
+    #[test]
+    fn credit_names_the_version_at_the_bottom_left() {
+        let cfg = Config::default();
+        with_ctx(&cfg, |ctx| {
+            let Op::Text { x, y, text, .. } = credit_op(ctx).unwrap() else {
+                panic!("the credit is text")
+            };
+            assert!(text.contains(env!("CARGO_PKG_VERSION")), "{text}");
+            assert!((x - ctx.width * cfg.credit.left_ratio).abs() < 1e-3);
+            assert!(y > ctx.height * (1.0 - cfg.slide.padding_y_ratio) && y < ctx.height);
         });
     }
 
