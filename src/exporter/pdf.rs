@@ -17,7 +17,8 @@ use crate::exporter::text::{
     FontBytes, FontKind, FontSet, Line, Span, TextMetrics, parse_inline, wrap,
 };
 use crate::model::{
-    Align, Column, Element, ListItem, Presentation, Slide, Table, TableAlign, VAlign,
+    Align, Background, BackgroundSize, Column, Element, ListItem, Presentation, Side, Slide, Table,
+    TableAlign, VAlign,
 };
 use anyhow::{Context, Result, bail};
 use krilla::Document;
@@ -62,8 +63,14 @@ impl Ctx<'_> {
     fn pad_y(&self) -> f32 {
         self.height * self.cfg.slide.padding_y_ratio
     }
+    /// The content width of a slide without a background.
+    #[cfg(test)]
     fn content_width(&self) -> f32 {
-        self.width - 2.0 * self.pad_x()
+        self.content_width_in(self.width)
+    }
+    /// The width inside the paddings of a region `region_w` wide.
+    fn content_width_in(&self, region_w: f32) -> f32 {
+        region_w - 2.0 * self.pad_x()
     }
     fn body_metrics(&self) -> TextMetrics {
         self.metrics(self.em)
@@ -228,6 +235,35 @@ enum Op {
         y: f32,
         scale: f32,
     },
+    /// A background picture drawn at `x`, `y` at `w` x `h`, cut to the
+    /// rectangle `clip` (x, y, w, h).
+    Background {
+        picture: Picture,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        clip: [f32; 4],
+    },
+}
+
+/// A picture file's contents, ready to draw.
+enum Picture {
+    Raster(krilla::image::Image),
+    Svg(Box<usvg::Tree>),
+}
+
+impl Picture {
+    /// Natural size: pixels for a raster, the SVG's size for an SVG.
+    fn size(&self) -> (f32, f32) {
+        match self {
+            Picture::Raster(image) => {
+                let (w, h) = image.size();
+                (w as f32, h as f32)
+            }
+            Picture::Svg(tree) => (tree.size().width(), tree.size().height()),
+        }
+    }
 }
 
 impl Op {
@@ -239,6 +275,12 @@ impl Op {
             | Op::Svg { x, y, .. } => {
                 *x += dx;
                 *y += dy;
+            }
+            Op::Background { x, y, clip, .. } => {
+                *x += dx;
+                *y += dy;
+                clip[0] += dx;
+                clip[1] += dy;
             }
         }
     }
@@ -293,8 +335,22 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
     let align = slide.align.unwrap_or(Align::Left);
     let title_align = slide.title_align.unwrap_or(align);
     let content_align = slide.content_align.unwrap_or(align);
-    let x0 = ctx.pad_x();
-    let width = ctx.content_width();
+    // The slide's content runs across the page, or beside its background.
+    let (region_x, region_w) = match &slide.background {
+        None => (0.0, ctx.width),
+        Some(bg) => {
+            let content_w = ctx.width * (1.0 - bg.split);
+            match bg.side {
+                Side::Left => (ctx.width - content_w, content_w),
+                Side::Right => (0.0, content_w),
+            }
+        }
+    };
+    let x0 = region_x + ctx.pad_x();
+    let width = ctx.content_width_in(region_w);
+    if width <= 0.0 {
+        bail!("no room for the content beside the background");
+    }
     // In "fill" mode the picture is laid out separately, in the space the
     // rest leaves; in "width" mode it is an ordinary block of the body.
     let Split {
@@ -382,7 +438,7 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
         } else {
             stack_height(&below) + gap
         };
-        let (op, height) = svg_op(ctx, &svg, picture_top, reserved)?;
+        let (op, height) = svg_op(ctx, &svg, picture_top, reserved, region_x, region_w)?;
         ops.push(op);
         if !below.is_empty() {
             place(below, picture_top + height + gap, &mut ops);
@@ -409,9 +465,63 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
     }
 
     if let Some(n) = page_number {
-        ops.push(page_number_op(ctx, n));
+        ops.push(page_number_op(ctx, n, region_x + region_w));
+    }
+    if let Some(bg) = &slide.background {
+        ops.insert(0, background_op(ctx, bg)?);
     }
     Ok(ops)
+}
+
+/// A split background: the picture placed in its side of the slide as
+/// CSS `background-size` places it (centred), and cut to that side.
+fn background_op(ctx: &Ctx, bg: &Background) -> Result<Op> {
+    let picture = load_picture(ctx, &bg.image)?;
+    let area_w = ctx.width * bg.split;
+    let area_x = match bg.side {
+        Side::Left => 0.0,
+        Side::Right => ctx.width - area_w,
+    };
+    let (nw, nh) = picture.size();
+    if nw <= 0.0 || nh <= 0.0 {
+        bail!("background {:?} has no size: {nw}x{nh}", bg.image);
+    }
+    let scale = match bg.size {
+        BackgroundSize::Cover => (area_w / nw).max(ctx.height / nh),
+        BackgroundSize::Contain => (area_w / nw).min(ctx.height / nh),
+        BackgroundSize::Width(share) => area_w * share / nw,
+    };
+    let (w, h) = (nw * scale, nh * scale);
+    Ok(Op::Background {
+        picture,
+        x: area_x + (area_w - w) / 2.0,
+        y: (ctx.height - h) / 2.0,
+        w,
+        h,
+        clip: [area_x, 0.0, area_w, ctx.height],
+    })
+}
+
+/// The picture file at `path`: SVG, PNG or JPEG, by its extension.
+fn load_picture(ctx: &Ctx, path: &str) -> Result<Picture> {
+    let lower = path.to_lowercase();
+    if lower.ends_with(".svg") {
+        let svg = std::fs::read_to_string(path)
+            .with_context(|| format!("failed to read SVG file {path:?}"))?;
+        return Ok(Picture::Svg(Box::new(parse_svg(ctx, &svg)?)));
+    }
+    let bytes = std::fs::read(path).with_context(|| format!("failed to read image {path:?}"))?;
+    let data = krilla::Data::from(bytes);
+    let image = if lower.ends_with(".png") {
+        krilla::image::Image::from_png(data, true)
+    } else if lower.ends_with(".jpg") || lower.ends_with(".jpeg") {
+        krilla::image::Image::from_jpeg(data, true)
+    } else {
+        bail!("image {path:?} is not an SVG, PNG or JPEG file");
+    };
+    image
+        .map(Picture::Raster)
+        .map_err(|e| anyhow::anyhow!("failed to decode image {path:?}: {e}"))
 }
 
 /// The lowest point anything in `ops` draws: text descenders, box bottoms,
@@ -431,6 +541,8 @@ fn ink_bottom(ctx: &Ctx, ops: &[Op]) -> f32 {
             Op::Svg { tree, y, scale, .. } => {
                 y + tree.root().abs_stroke_bounding_box().bottom() * scale
             }
+            // A background is not content: it fills its side by design.
+            Op::Background { .. } => f32::MIN,
         })
         .fold(f32::MIN, f32::max)
 }
@@ -1320,11 +1432,18 @@ fn fit(tree: &usvg::Tree, w: f32, h: f32) -> Result<(f32, f32, f32)> {
 /// The slide's SVG, filling the area from `top` down to the SVG bottom
 /// margin less `reserved` (room kept for elements below it), centred
 /// horizontally. Returns the op and the SVG's drawn height.
-fn svg_op(ctx: &Ctx, svg: &str, top: f32, reserved: f32) -> Result<(Op, f32)> {
+fn svg_op(
+    ctx: &Ctx,
+    svg: &str,
+    top: f32,
+    reserved: f32,
+    region_x: f32,
+    region_w: f32,
+) -> Result<(Op, f32)> {
     let cfg = ctx.cfg;
     let margin_x = ctx.width * cfg.svg.margin_x_ratio;
     let bottom = ctx.height * (1.0 - cfg.svg.margin_bottom_ratio) - reserved;
-    let avail_w = ctx.width - 2.0 * margin_x;
+    let avail_w = region_w - 2.0 * margin_x;
     let avail_h = bottom - top;
     if avail_h <= 0.0 {
         bail!("no room left for the SVG between the slide's other content");
@@ -1333,19 +1452,20 @@ fn svg_op(ctx: &Ctx, svg: &str, top: f32, reserved: f32) -> Result<(Op, f32)> {
     let (scale, w, h) = fit(&tree, avail_w, avail_h)?;
     let op = Op::Svg {
         tree: Box::new(tree),
-        x: margin_x + (avail_w - w) / 2.0,
+        x: region_x + margin_x + (avail_w - w) / 2.0,
         y: top,
         scale,
     };
     Ok((op, h))
 }
 
-/// The page number, right-aligned at marp's pagination position.
-fn page_number_op(ctx: &Ctx, n: usize) -> Op {
+/// The page number, right-aligned at marp's pagination position in the
+/// content region that ends at `region_right`.
+fn page_number_op(ctx: &Ctx, n: usize, region_right: f32) -> Op {
     let cfg = ctx.cfg;
     let size = ctx.em * cfg.pagination.font_size_em;
     let text = n.to_string();
-    let right = ctx.width * (1.0 - cfg.pagination.right_ratio);
+    let right = region_right - ctx.width * cfg.pagination.right_ratio;
     let box_bottom = ctx.height * (1.0 - cfg.pagination.bottom_ratio);
     let lh = cfg.slide.line_height;
     let baseline = box_bottom - lh * size + baseline_offset(ctx, FontKind::Regular, size, lh);
@@ -1425,6 +1545,44 @@ fn draw_ops(surface: &mut Surface<'_>, ctx: &Ctx, ops: Vec<Op>) -> Result<()> {
                 surface
                     .draw_svg(&tree, size, ctx.svg_settings)
                     .context("krilla-svg failed to draw the SVG")?;
+                surface.pop();
+            }
+            Op::Background {
+                picture,
+                x,
+                y,
+                w,
+                h,
+                clip,
+            } => {
+                let [cx, cy, cw, ch] = clip;
+                let rect = krilla::geom::Rect::from_xywh(cx, cy, cw, ch)
+                    .context("invalid background area")?;
+                let mut pb = PathBuilder::new();
+                pb.push_rect(rect);
+                let path = pb.finish().context("background clip path")?;
+                surface.push_clip_path(&path, &FillRule::NonZero);
+                match picture {
+                    Picture::Raster(image) => {
+                        surface.push_transform(&Transform::from_translate(x, y));
+                        surface
+                            .draw_image(image, Size::from_wh(w, h).context("invalid image size")?);
+                        surface.pop();
+                    }
+                    Picture::Svg(tree) => {
+                        let (nw, nh) = (tree.size().width(), tree.size().height());
+                        let scale = w / nw;
+                        surface.push_transform(&Transform::from_row(scale, 0.0, 0.0, scale, x, y));
+                        surface
+                            .draw_svg(
+                                &tree,
+                                Size::from_wh(nw, nh).context("invalid SVG size")?,
+                                ctx.svg_settings,
+                            )
+                            .context("krilla-svg failed to draw the background SVG")?;
+                        surface.pop();
+                    }
+                }
                 surface.pop();
             }
         }
@@ -2006,6 +2164,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
                 Op::Rect { y, h, .. } => y + h,
                 Op::Ring { y, radius, .. } => y + radius,
                 Op::Svg { y, .. } => *y,
+                Op::Background { .. } => f32::MIN,
             })
             .fold(f32::MIN, f32::max)
     }
@@ -2403,7 +2562,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
     fn page_number_is_right_aligned_at_the_configured_position() {
         let cfg = Config::default();
         with_ctx(&cfg, |ctx| {
-            let Op::Text { x, text, size, .. } = page_number_op(ctx, 12) else {
+            let Op::Text { x, text, size, .. } = page_number_op(ctx, 12, ctx.width) else {
                 panic!("the page number is text")
             };
             assert_eq!(text, "12");
@@ -2451,5 +2610,100 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
         let fonts = bytes.load().unwrap();
         let err = make_ctx(&cfg, &bytes, &fonts).err().expect("must fail");
         assert!(err.to_string().contains("NoSuchTheme"), "{err}");
+    }
+
+    /// A 2x3 red PNG.
+    const PNG_2X3: &[u8] = &[
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
+        0x52, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0x01, 0x03, 0x00, 0x00, 0x00, 0x83,
+        0x24, 0x4c, 0xc2, 0x00, 0x00, 0x00, 0x03, 0x50, 0x4c, 0x54, 0x45, 0xff, 0x00, 0x00, 0x19,
+        0xe2, 0x09, 0x37, 0x00, 0x00, 0x00, 0x0b, 0x49, 0x44, 0x41, 0x54, 0x08, 0xd7, 0x63, 0x60,
+        0x00, 0x01, 0x00, 0x00, 0x06, 0x00, 0x01, 0x66, 0xf4, 0xc9, 0x6c, 0x00, 0x00, 0x00, 0x00,
+        0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+    ];
+
+    /// `bytes` written to a fresh file named `name` in the temp directory.
+    fn temp_file(name: &str, bytes: &[u8]) -> String {
+        let dir = std::env::temp_dir().join(format!("rsslide-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(name);
+        std::fs::write(&path, bytes).unwrap();
+        path.to_str().unwrap().to_string()
+    }
+
+    fn background(ops: &[Op]) -> (&Picture, f32, f32, f32, f32, [f32; 4]) {
+        match &ops[0] {
+            Op::Background {
+                picture,
+                x,
+                y,
+                w,
+                h,
+                clip,
+            } => (picture, *x, *y, *w, *h, *clip),
+            _ => panic!("the first op is the background"),
+        }
+    }
+
+    #[test]
+    fn a_left_background_covers_its_half_and_the_content_takes_the_other() {
+        let cfg = Config::default();
+        let png = temp_file("left.png", PNG_2X3);
+        with_ctx(&cfg, |ctx| {
+            let s = one_slide(&format!(
+                "title: T\nbackground: {{image: {png:?}, split: left}}\nbullets: [one, two]"
+            ));
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let (picture, x, y, w, h, clip) = background(&ops);
+            assert!(matches!(picture, Picture::Raster(_)));
+            let half = ctx.width / 2.0;
+            assert_eq!(clip, [0.0, 0.0, half, ctx.height]);
+            // Cover: the 2x3 picture is as wide as the half at least, as
+            // tall as the page at least, and centred on the half.
+            let scale = (half / 2.0).max(ctx.height / 3.0);
+            assert!((w - 2.0 * scale).abs() < 1e-3 && (h - 3.0 * scale).abs() < 1e-3);
+            assert!((x + w / 2.0 - half / 2.0).abs() < 1e-3);
+            assert!((y + h / 2.0 - ctx.height / 2.0).abs() < 1e-3);
+            for (text, tx, _) in texts(&ops) {
+                assert!(tx >= half + ctx.pad_x() - 1e-3, "{text} at {tx}");
+            }
+        });
+    }
+
+    #[test]
+    fn a_sized_right_background_is_a_share_of_its_side_width() {
+        let cfg = Config::default();
+        let svg = temp_file(
+            "right.svg",
+            b"<svg xmlns='http://www.w3.org/2000/svg' width='100' height='50'><rect width='100' height='50'/></svg>",
+        );
+        with_ctx(&cfg, |ctx| {
+            let s = one_slide(&format!(
+                "title: T\nbackground: {{image: {svg:?}, split: right, split_size: 40%, size: 80%}}"
+            ));
+            let ops = layout_slide(ctx, &s, None).unwrap();
+            let (picture, x, _, w, h, clip) = background(&ops);
+            assert!(matches!(picture, Picture::Svg(_)));
+            let side = ctx.width * 0.4;
+            assert!((clip[0] - (ctx.width - side)).abs() < 1e-3);
+            assert!((w - side * 0.8).abs() < 1e-3 && (h - w / 2.0).abs() < 1e-3);
+            assert!((x - (ctx.width - side + side * 0.1)).abs() < 1e-3);
+            let (_, tx, _) = texts(&ops)[0];
+            assert!((tx - ctx.pad_x()).abs() < 1e-3);
+        });
+    }
+
+    #[test]
+    fn a_background_that_is_not_a_picture_is_an_error() {
+        let cfg = Config::default();
+        let gif = temp_file("x.gif", b"GIF89a");
+        with_ctx(&cfg, |ctx| {
+            for image in [gif.as_str(), "/nonexistent/x.png"] {
+                let s = one_slide(&format!(
+                    "title: T\nbackground: {{image: {image:?}, split: left}}"
+                ));
+                assert!(layout_slide(ctx, &s, None).is_err(), "{image}");
+            }
+        });
     }
 }

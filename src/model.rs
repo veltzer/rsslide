@@ -20,8 +20,9 @@ pub struct Slide {
     pub body: Vec<Element>,
     #[allow(dead_code)]
     pub class: Option<String>,
-    #[allow(dead_code)]
-    pub background: Option<String>,
+    /// A picture filling one side of the slide, the content laid out in
+    /// the other side (marp's `![bg left]`).
+    pub background: Option<Background>,
     /// Horizontal alignment of every element. Defaults to left.
     pub align: Option<Align>,
     /// Overrides `align` for the title only.
@@ -97,7 +98,7 @@ struct RawSlide {
     bullets_first: bool,
     table: Option<Table>,
     class: Option<String>,
-    background: Option<String>,
+    background: Option<Background>,
     align: Option<Align>,
     title_align: Option<Align>,
     content_align: Option<Align>,
@@ -312,6 +313,90 @@ fn deserialize_level<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
         )));
     }
     Ok(level)
+}
+
+/// A split background: a picture filling one side of the slide.
+#[derive(Debug)]
+pub struct Background {
+    /// Path to the picture: SVG, PNG or JPEG.
+    pub image: String,
+    pub side: Side,
+    /// The picture's share of the slide width, 0 < `split` < 1.
+    pub split: f32,
+    pub size: BackgroundSize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Side {
+    Left,
+    Right,
+}
+
+/// How the picture fills its side, as CSS `background-size`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum BackgroundSize {
+    /// Fill the side, cropping what overflows (the default).
+    Cover,
+    /// Fit inside the side whole.
+    Contain,
+    /// This share of the side's width, keeping the aspect ratio.
+    Width(f32),
+}
+
+impl<'de> Deserialize<'de> for Background {
+    /// `{image, split: left|right, split_size?: "N%", size?: cover|contain|"N%"}`,
+    /// marp's `![bg left:N% size]` keywords.
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Raw {
+            image: String,
+            split: Side,
+            split_size: Option<String>,
+            size: Option<String>,
+        }
+        let raw = Raw::deserialize(d)?;
+        let split = match &raw.split_size {
+            None => 0.5,
+            Some(s) => match parse_percent(s) {
+                Some(p) if p > 0.0 && p < 1.0 => p,
+                _ => {
+                    return Err(D::Error::custom(format!(
+                        "background split_size {s:?} must be a percentage between 0% and 100%"
+                    )));
+                }
+            },
+        };
+        let size = match raw.size.as_deref() {
+            None | Some("cover") => BackgroundSize::Cover,
+            Some("contain") => BackgroundSize::Contain,
+            Some(s) => match parse_percent(s) {
+                Some(p) if p > 0.0 => BackgroundSize::Width(p),
+                _ => {
+                    return Err(D::Error::custom(format!(
+                        "background size {s:?} must be cover, contain or a percentage"
+                    )));
+                }
+            },
+        };
+        Ok(Background {
+            image: raw.image,
+            side: raw.split,
+            split,
+            size,
+        })
+    }
+}
+
+/// `"40%"` as 0.4.
+pub fn parse_percent(s: &str) -> Option<f32> {
+    let number = s.strip_suffix('%')?;
+    if number.is_empty() || !number.chars().all(|c| c.is_ascii_digit() || c == '.') {
+        return None;
+    }
+    number.parse::<f32>().ok().map(|p| p / 100.0)
 }
 
 /// One of a slide's side-by-side columns.

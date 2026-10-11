@@ -14,8 +14,14 @@ paginate: true
 slides:
   - title: Welcome
     class: lead
-    background: "#1a1a2e"
     content: Hello world
+
+  - title: Linus Torvalds
+    background:
+      image: jpg/linus.jpg
+      split: left
+    bullets:
+      - Created Linux and Git
 
   - title: Code Example
     code:
@@ -97,7 +103,19 @@ instead fills the height its other elements leave.
 | `svg`        | string                            | Inline SVG markup                   |
 | `table`      | `{headers, rows, aligns?}`        | Grid table with header + body rows  |
 | `class`      | string                            | CSS class (e.g. `lead`)             |
-| `background` | string                            | CSS background value or color       |
+| `background` | `{image, split, split_size?, size?}` | A picture filling one side (see below) |
+
+#### Background fields
+
+A split background, marp's `![bg left:40% 80%](path)`: the picture fills
+one side of the slide and the content is laid out in the other.
+
+| Field        | Type                         | Default | Description |
+|--------------|------------------------------|---------|-------------|
+| `image`      | string                       | —       | Path to an SVG, PNG or JPEG file |
+| `split`      | `left` \| `right`             | —       | The side the picture takes |
+| `split_size` | percentage                   | `50%`   | The picture's share of the slide width |
+| `size`       | `cover` \| `contain` \| percentage | `cover` | As CSS `background-size`: fill the side and crop, fit inside it, or a share of its width |
 
 #### Table fields
 
@@ -234,7 +252,7 @@ Some slide fields defined in the YAML schema are not yet rendered by the PDF exp
 | `table`      | ✅ rendered (per-column alignment; cells wrap; fails hard if even wrapped it is too wide) |
 | `image` / `svg` | ✅ rendered (SVG only; content width like marp, or `size = "fill"`) |
 | `class`      | 🔜 planned   |
-| `background` | 🔜 planned   |
+| `background` | ✅ rendered (split backgrounds: SVG, PNG, JPEG) |
 | `theme`      | 🔜 planned   |
 
 ## Roadmap

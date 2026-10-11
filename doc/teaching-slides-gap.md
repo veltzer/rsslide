@@ -8,13 +8,13 @@ repo's own build produces (`out/chapters/courses/`, `_site/marp/lectures/`).
 
 | Result | Decks |
 |---|---|
-| Import and render | 1,444 (85%) |
-| Render fails | 247 |
+| Import and render | 1,452 (86%) |
+| Render fails | 239 |
 | Import fails | 0 |
 
-Every deck now imports. Of the 247 that fail to render, 235 fail only on
-content that does not fit (section 1). The other 12 hit 9 raster images,
-2 empty code blocks and 1 too-wide table; 2 of them overflow as well.
+Every deck now imports. Of the 239 that fail to render, 236 fail only on
+content that does not fit (section 1). The other 3 hit 2 empty code
+blocks and 1 too-wide table; 1 of them overflows as well.
 
 Rendered decks keep their text: compared word by word with marp's PDFs,
 0.02% of words are missing, all of them words split across lines.
@@ -34,6 +34,9 @@ Done since the first measurement:
 - Blockquotes (`>`, nested `>>`, lists inside), drawn as marp does: grey
   text behind a bar (checked against marp's render).
 - Syntax highlighting decided as marp decides it; see below.
+- Split backgrounds (`![bg left]`, `![bg right:40% 80%]`), with JPEG and
+  PNG pictures: the 9 portrait decks and the 2 logo slides; text placed
+  within 0.1 pt of marp's.
 - SVG size: pictures are sized and placed as marp does (content width,
   flowing under the heading; checked within 1 pt against marp's PDF). A
   diagram's empty canvas may run off the page; its drawing may not.
@@ -64,17 +67,11 @@ imported; the 5 more have not been classified.
   `cyber-attacks-and-vectors/26_ransomware` slide 11 and `21_form_jacking`
   slide 4, `lectures/devops/devops-slides` slide 24.
 
-### 2. Raster images: 9 decks
-
-`jpg/...` portraits (e.g. `jpg/courses/git/git/linus_torvalds.jpg`). rsslide
-renders SVG only.
-
-### 3. Single cases
+### 2. Single cases
 
 - Empty fenced code block, 2 decks (`technical-writing/06`, `08`): marp shows
   an empty box; rsslide rejects it. Decide: render empty, or fix the decks.
-- Table too wide even with wrapped cells: 3 slides.
-- Two images on one slide: 1 slide.
+- Table too wide even with wrapped cells: 1 slide.
 
 ## Renders, but not like marp
 
@@ -82,7 +79,6 @@ renders SVG only.
 |---|---|---|
 | Code that does not fit | most of the 164 code-overflow slides | Shrinks the code until it fits, sometimes to a barely readable size; marp clips it. These are in the 690 above: split the slides |
 | Math (`$…$`, `$$…$$`) | 53 decks | Raw LaTeX source |
-| Background images (`![bg left]`, `![bg right:40% 80%]`) | 13 decks | Drawn as an ordinary image |
 | Task lists (`- [ ]`) | 8 decks | Literal `[ ]` |
 | Footnotes, inline `<b>`/`<i>` | 1-2 decks each | Literal |
 
@@ -108,10 +104,9 @@ bat grammar scopes a token differently from highlight.js.
 
 ## Suggested order
 
-1. Raster and background images (9 + 13 decks).
-2. Task lists (8 decks), and the empty-code-block decision (2 decks).
-3. Math (53 decks): needs a TeX-to-SVG step; the hardest item.
-4. In teaching-slides: split the 703 slides marp clips today, then replace
+1. Task lists (8 decks), and the empty-code-block decision (2 decks).
+2. Math (53 decks): needs a TeX-to-SVG step; the hardest item.
+3. In teaching-slides: split the 703 slides marp clips today, then replace
    the `marp.courses` / `marp.lectures` processors in its `rsconstruct.toml`
    with rsslide import + generate (the per-chapter PDFs still feed its
    `ipdfunite` merge).

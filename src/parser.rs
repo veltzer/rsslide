@@ -285,6 +285,24 @@ slides:
     }
 
     #[test]
+    fn background_values_are_checked() {
+        let bg = |fields: &str| {
+            parse(&format!(
+                "slides:\n  - background: {{image: x.jpg, {fields}}}\n"
+            ))
+        };
+        assert!(bg("split: left").is_ok());
+        assert!(bg("split: right, split_size: 40%, size: 80%").is_ok());
+        assert!(bg("split: right, size: contain").is_ok());
+        assert!(bg("split: up").is_err());
+        assert!(bg("split: left, split_size: 100%").is_err());
+        assert!(bg("split: left, split_size: 40").is_err());
+        assert!(bg("split: left, size: big").is_err());
+        assert!(bg("size: cover").is_err());
+        assert!(bg("split: left, blur: 2").is_err());
+    }
+
+    #[test]
     fn quote_holds_elements() {
         let b = body(
             "slides:\n  - body:\n      - quote:\n          - text: a\n          - quote: [{text: nested}]\n",

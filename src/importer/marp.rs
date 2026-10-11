@@ -15,6 +15,27 @@ pub struct OutSlide {
     pub title_level: u8,
     /// Everything after the title, in source order.
     pub body: Vec<OutElement>,
+    pub background: Option<OutBackground>,
+}
+
+/// A split background image (`![bg left:40% 80%](path)`), its keywords as
+/// written.
+#[derive(Debug, PartialEq)]
+pub struct OutBackground {
+    pub image: String,
+    /// `left` or `right`.
+    pub split: String,
+    /// The image's share of the slide width, e.g. `40%`.
+    pub split_size: Option<String>,
+    /// `cover`, `contain` or a percentage.
+    pub size: Option<String>,
+}
+
+/// What only the top level of a slide has.
+#[derive(Default)]
+struct Top {
+    title: Option<(String, u8)>,
+    background: Option<OutBackground>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -185,23 +206,23 @@ fn is_slide_separator(line: &str) -> bool {
 
 fn parse_slide(block: String) -> Result<OutSlide> {
     let lines: Vec<&str> = block.lines().collect();
-    let mut title = None;
-    let body = parse_body(&lines, Some(&mut title))?;
-    let (title, title_level) = title.unzip();
+    let mut top = Top::default();
+    let body = parse_body(&lines, Some(&mut top))?;
+    let (title, title_level) = top.title.unzip();
     Ok(OutSlide {
         title,
         title_level: title_level.unwrap_or(0),
         body,
+        background: top.background,
     })
 }
 
-/// The elements of `lines`, in order. With `title`, the first heading
-/// becomes the slide's title (and a second `#` heading is an error);
-/// without it (inside a column or a quote), every heading is an element.
-fn parse_body(
-    lines: &[&str],
-    mut title: Option<&mut Option<(String, u8)>>,
-) -> Result<Vec<OutElement>> {
+/// The elements of `lines`, in order. With `top` (a slide's top level),
+/// the first heading becomes the slide's title (and a second `#` heading
+/// is an error) and a `bg` image its background; without it (inside a
+/// column or a quote), every heading is an element and a background is an
+/// error.
+fn parse_body(lines: &[&str], mut top: Option<&mut Top>) -> Result<Vec<OutElement>> {
     let mut body: Vec<OutElement> = Vec::new();
     let mut paragraph: Vec<String> = Vec::new();
     let mut i = 0;
@@ -270,10 +291,10 @@ fn parse_body(
 
         if let Some((level, heading)) = parse_heading(trimmed) {
             flush_paragraph(&mut paragraph, &mut body);
-            if let Some(title) = title.as_deref_mut()
-                && title.is_none()
+            if let Some(top) = top.as_deref_mut()
+                && top.title.is_none()
             {
-                *title = Some((heading.to_string(), level));
+                top.title = Some((heading.to_string(), level));
             } else if level >= 2 {
                 body.push(OutElement::Heading(heading.to_string(), level));
             } else {
@@ -362,9 +383,24 @@ fn parse_body(
             continue;
         }
 
-        if let Some(path) = parse_image(trimmed) {
+        if let Some((alt, path)) = parse_image(trimmed) {
             flush_paragraph(&mut paragraph, &mut body);
-            body.push(OutElement::Image(path));
+            match parse_background(alt, &path)? {
+                None => body.push(OutElement::Image(path)),
+                Some(background) => {
+                    let Some(top) = top.as_deref_mut() else {
+                        return Err(anyhow!(
+                            "background image {path:?} inside a column or quote"
+                        ));
+                    };
+                    if top.background.is_some() {
+                        return Err(anyhow!(
+                            "a second background image {path:?}: only one is supported"
+                        ));
+                    }
+                    top.background = Some(background);
+                }
+            }
             i += 1;
             continue;
         }
@@ -665,13 +701,58 @@ fn parse_heading(line: &str) -> Option<(u8, &str)> {
     Some((hashes as u8, rest.trim()))
 }
 
-fn parse_image(line: &str) -> Option<String> {
+/// A line that is one image: its alt text and path.
+fn parse_image(line: &str) -> Option<(&str, String)> {
     let rest = line.strip_prefix("![")?;
     let close_alt = rest.find(']')?;
     let after_alt = &rest[close_alt + 1..];
     let after_paren = after_alt.strip_prefix('(')?;
     let close = after_paren.find(')')?;
-    Some(after_paren[..close].to_string())
+    Some((&rest[..close_alt], after_paren[..close].to_string()))
+}
+
+/// The background an image's alt text makes it, if it has the `bg`
+/// keyword: marp's split backgrounds, `bg left`/`bg right`, with an
+/// optional `:N%` share of the slide and a `cover`/`contain`/`fit`/`N%`
+/// size. Any other word, and a background without a side, is an error.
+fn parse_background(alt: &str, path: &str) -> Result<Option<OutBackground>> {
+    let words: Vec<&str> = alt.split_whitespace().collect();
+    if !words.contains(&"bg") {
+        return Ok(None);
+    }
+    let mut split = None;
+    let mut split_size = None;
+    let mut size = None;
+    for word in words {
+        let (side, share) = word.split_once(':').unwrap_or((word, ""));
+        if word == "bg" {
+        } else if side == "left" || side == "right" {
+            split = Some(side.to_string());
+            if !share.is_empty() {
+                if crate::model::parse_percent(share).is_none() {
+                    return Err(anyhow!("background {path:?}: bad split size {share:?}"));
+                }
+                split_size = Some(share.to_string());
+            }
+        } else if word == "cover" || word == "contain" {
+            size = Some(word.to_string());
+        } else if word == "fit" {
+            size = Some("contain".to_string());
+        } else if crate::model::parse_percent(word).is_some() {
+            size = Some(word.to_string());
+        } else {
+            return Err(anyhow!("background {path:?}: unsupported keyword {word:?}"));
+        }
+    }
+    let split = split.ok_or_else(|| {
+        anyhow!("background {path:?}: only split backgrounds (`bg left`, `bg right`) are supported")
+    })?;
+    Ok(Some(OutBackground {
+        image: path.to_string(),
+        split,
+        split_size,
+        size,
+    }))
 }
 
 // --- YAML emitter ---------------------------------------------------------
@@ -700,7 +781,7 @@ fn emit_yaml(pres: &OutPresentation) -> String {
 }
 
 fn emit_slide(out: &mut String, slide: &OutSlide) {
-    if slide.title.is_none() && slide.body.is_empty() {
+    if slide.title.is_none() && slide.body.is_empty() && slide.background.is_none() {
         out.push_str("  - {}\n");
         return;
     }
@@ -709,6 +790,18 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
         out.push_str(&format!("{lead}title: {}\n", scalar(title)));
         if slide.title_level != 1 {
             out.push_str(&format!("    title_level: {}\n", slide.title_level));
+        }
+        lead = "    ";
+    }
+    if let Some(bg) = &slide.background {
+        out.push_str(&format!("{lead}background:\n"));
+        out.push_str(&format!("      image: {}\n", scalar(&bg.image)));
+        out.push_str(&format!("      split: {}\n", bg.split));
+        if let Some(share) = &bg.split_size {
+            out.push_str(&format!("      split_size: {}\n", scalar(share)));
+        }
+        if let Some(size) = &bg.size {
+            out.push_str(&format!("      size: {}\n", scalar(size)));
         }
         lead = "    ";
     }
@@ -1357,6 +1450,66 @@ mod tests {
         let body = slide("# T\n\n- a\n> quoted\n").body;
         assert!(matches!(body[0], OutElement::List(_)));
         assert!(matches!(body[1], OutElement::Quote(_)));
+    }
+
+    #[test]
+    fn bg_image_becomes_the_slide_background() {
+        let md = "## Mitchell\n\n![bg left](jpg/m.jpg)\n\n- one\n";
+        let s = slide(md);
+        assert_eq!(
+            s.background,
+            Some(OutBackground {
+                image: "jpg/m.jpg".into(),
+                split: "left".into(),
+                split_size: None,
+                size: None,
+            })
+        );
+        assert_eq!(
+            s.body,
+            vec![OutElement::List(list(false, vec![item("one")]))]
+        );
+        let pres = round_trip(md);
+        let bg = pres.slides[0].background.as_ref().expect("a background");
+        assert_eq!(bg.side, crate::model::Side::Left);
+        assert_eq!(bg.split, 0.5);
+        assert_eq!(bg.size, crate::model::BackgroundSize::Cover);
+    }
+
+    #[test]
+    fn bg_keywords_carry_the_split_size_and_the_image_size() {
+        let md = "## Rust\n\n![bg right:40% 80%](svg/logo.svg)\n";
+        let pres = round_trip(md);
+        let bg = pres.slides[0].background.as_ref().expect("a background");
+        assert_eq!(bg.side, crate::model::Side::Right);
+        assert!((bg.split - 0.4).abs() < 1e-6);
+        assert_eq!(bg.size, crate::model::BackgroundSize::Width(0.8));
+        assert!(pres.slides[0].body.is_empty());
+        let fit = slide("![bg fit left](x.png)\n")
+            .background
+            .expect("a background");
+        assert_eq!(fit.size.as_deref(), Some("contain"));
+    }
+
+    #[test]
+    fn unsupported_backgrounds_are_errors() {
+        for md in [
+            "# T\n\n![bg](x.jpg)\n",
+            "# T\n\n![bg left blur](x.jpg)\n",
+            "# T\n\n![bg left:wide](x.jpg)\n",
+            "# T\n\n> ![bg left](x.jpg)\n",
+            "# T\n\n![bg left](x.jpg)\n![bg right](y.jpg)\n",
+        ] {
+            assert!(parse_marp(md).is_err(), "{md:?}");
+        }
+    }
+
+    #[test]
+    fn an_image_without_bg_stays_in_the_body() {
+        assert_eq!(
+            slide("# T\n\n![bgp_path](svg/x.svg)\n").body,
+            vec![OutElement::Image("svg/x.svg".into())]
+        );
     }
 
     #[test]
