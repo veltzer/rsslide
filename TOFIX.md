@@ -9,8 +9,7 @@ Findings from a code scan on 2026-10-04.
 
 ## Medium
 
-- `README.md` (Output formats, Key dependencies) - says PDF is produced "via `printpdf`" and lists `printpdf` and `tera` under Key dependencies; the code uses `krilla`/`krilla-svg`/`usvg` (`Cargo.toml:15-17`) and no `printpdf`; update the Output formats, Architecture and dependency tables.
-- `Cargo.toml:19` - `tera` and `zip` (`Cargo.toml:20`) are declared but never used anywhere in `src/` (HTML and PPTX export are stubs); drop them until the exporters that need them land.
+- `README.md` (Output formats, Architecture) - says PDF is produced "via `printpdf`" and describes HTML and PPTX renderers that are stubs; the code uses `krilla`/`krilla-svg`/`usvg` (`Cargo.toml`); update the Output formats and Architecture sections.
 - `Cargo.toml:18` - `serde_yaml` 0.9 is deprecated/unmaintained upstream; migrate to a maintained YAML crate (e.g. `serde_yml` / `serde_norway`).
 - `src/exporter/pdf.rs` (`code_block`) - an unrecognised code `language` silently falls back to plain text (as highlight.js does in marp); the marp decks use `console`, `http`, `misc`, `nginx` and `protobuf`, which syntect's default syntaxes lack, so failing hard needs those syntaxes bundled first.
 

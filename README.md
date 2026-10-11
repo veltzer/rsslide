@@ -144,9 +144,10 @@ YAML file
 |-----------------|--------------------------------|
 | `clap`          | CLI argument parsing           |
 | `serde_yaml`    | YAML input parsing             |
-| `tera`          | HTML slide templating          |
-| `printpdf`      | Pure-Rust PDF generation (svg feature for icons) |
-| `zip`           | PPTX (Open XML) packaging      |
+| `toml`          | `rsslide.toml` configuration   |
+| `krilla`        | Pure-Rust PDF generation       |
+| `krilla-svg` / `usvg` | SVG rendering into the PDF |
+| `rustybuzz`     | Text shaping for measurement   |
 | `syntect`       | Syntax highlighting in PDF     |
 | `anyhow`        | Error handling                 |
 
