@@ -8,13 +8,13 @@ repo's own build produces (`out/chapters/courses/`, `_site/marp/lectures/`).
 
 | Result | Decks |
 |---|---|
-| Import and render | 1,453 (86%) |
-| Render fails | 238 |
+| Import and render | 1,455 (86%) |
+| Render fails | 236 |
 | Import fails | 0 |
 
-Every deck now imports. Of the 238 that fail to render, 235 fail only on
-content that does not fit (section 1). The other 3 hit 2 empty code
-blocks and 1 too-wide table; 1 of them overflows as well.
+Every deck now imports. Of the 236 that fail to render, 235 fail only on
+content that does not fit (section 1). The other one has a table too wide
+for the slide.
 
 Rendered decks keep their text: compared word by word with marp's PDFs,
 0.02% of words are missing, all of them words split across lines.
@@ -34,6 +34,12 @@ Done since the first measurement:
 - Blockquotes (`>`, nested `>>`, lists inside), drawn as marp does: grey
   text behind a bar (checked against marp's render).
 - Syntax highlighting decided as marp decides it; see below.
+- Code fences as CommonMark defines them: a fence closes only on a run of
+  the same character at least as long, so ````` ```` ````` blocks can show
+  ```` ``` ```` examples (3 decks; one was silently cut short before), and
+  an unclosed fence is an error. The two technical-writing decks that
+  failed as "empty code blocks" had their inner example's closing fence
+  mistyped as ```` ```misc ````; fixed in teaching-slides.
 - Split backgrounds (`![bg left]`, `![bg right:40% 80%]`), with JPEG and
   PNG pictures: the 9 portrait decks and the 2 logo slides; text placed
   within 0.1 pt of marp's.
@@ -77,11 +83,9 @@ in two, marp's PDF is missing the last lines
 (`architecture-patterns/13_data_processing_engines` 19,
 `lectures/devops/devops-slides` 24).
 
-### 2. Single cases
+### 2. A table too wide for the slide: 1 slide
 
-- Empty fenced code block, 2 decks (`technical-writing/06`, `08`): marp shows
-  an empty box; rsslide rejects it. Decide: render empty, or fix the decks.
-- Table too wide even with wrapped cells: 1 slide.
+Even with every cell wrapped.
 
 ## Renders, but not like marp
 
@@ -117,9 +121,8 @@ bat grammar scopes a token differently from highlight.js.
 
 ## Suggested order
 
-1. The empty-code-block decision (2 decks).
-2. Math (53 decks): needs a TeX-to-SVG step; the hardest item.
-3. In teaching-slides: split the 703 slides marp clips today, then replace
+1. Math (53 decks): needs a TeX-to-SVG step; the hardest item.
+2. In teaching-slides: split the 708 slides marp clips today, then replace
    the `marp.courses` / `marp.lectures` processors in its `rsconstruct.toml`
    with rsslide import + generate (the per-chapter PDFs still feed its
    `ipdfunite` merge).

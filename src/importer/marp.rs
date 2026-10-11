@@ -160,32 +160,15 @@ fn parse_front_matter(fm: &str) -> (Option<String>, Option<String>, Option<bool>
 fn split_slides(body: &str) -> Vec<String> {
     let mut slides: Vec<String> = Vec::new();
     let mut current = String::new();
-    let mut in_fence = false;
-    let mut fence_marker: Option<&'static str> = None;
+    let mut open: Option<Fence> = None;
 
     for line in body.lines() {
-        let trimmed = line.trim_start();
-        let fence = if trimmed.starts_with("```") {
-            Some("```")
-        } else if trimmed.starts_with("~~~") {
-            Some("~~~")
-        } else {
-            None
-        };
-        if let Some(f) = fence {
-            if !in_fence {
-                in_fence = true;
-                fence_marker = Some(f);
-            } else if fence_marker == Some(f) {
-                in_fence = false;
-                fence_marker = None;
-            }
-            current.push_str(line);
-            current.push('\n');
-            continue;
+        match open {
+            Some(fence) if fence.closed_by(line) => open = None,
+            Some(_) => {}
+            None => open = Fence::open(line.trim()).map(|(fence, _)| fence),
         }
-
-        if !in_fence && is_slide_separator(line) {
+        if open.is_none() && is_slide_separator(line) {
             slides.push(std::mem::take(&mut current));
             continue;
         }
@@ -307,21 +290,21 @@ fn parse_body(lines: &[&str], mut top: Option<&mut Top>) -> Result<Vec<OutElemen
             continue;
         }
 
-        if is_fence(trimmed) {
+        if let Some((fence, info)) = Fence::open(trimmed) {
             flush_paragraph(&mut paragraph, &mut body);
-            let fence = &trimmed[..3];
-            let language = trimmed[3..].trim().to_string();
-            let language = if language.is_empty() {
-                None
-            } else {
-                Some(language)
-            };
+            let language = (!info.is_empty()).then(|| info.to_string());
             let mut source = String::new();
+            let start = i;
             i += 1;
-            while i < lines.len() {
-                let inner = lines[i];
+            loop {
+                let Some(inner) = lines.get(i) else {
+                    return Err(anyhow!(
+                        "code fence {:?} is never closed",
+                        lines[start].trim()
+                    ));
+                };
                 i += 1;
-                if inner.trim_start().starts_with(fence) {
+                if fence.closed_by(inner) {
                     break;
                 }
                 source.push_str(inner);
@@ -412,8 +395,33 @@ fn parse_body(lines: &[&str], mut top: Option<&mut Top>) -> Result<Vec<OutElemen
     Ok(body)
 }
 
-fn is_fence(trimmed: &str) -> bool {
-    trimmed.starts_with("```") || trimmed.starts_with("~~~")
+/// An open code fence, as CommonMark defines one: a run of three or more
+/// backticks or tildes.
+#[derive(Clone, Copy)]
+struct Fence {
+    marker: char,
+    len: usize,
+}
+
+impl Fence {
+    /// The fence `trimmed` opens, and its info string (the language). A
+    /// backtick fence's info string cannot hold a backtick.
+    fn open(trimmed: &str) -> Option<(Fence, &str)> {
+        let marker = trimmed.chars().next().filter(|c| *c == '`' || *c == '~')?;
+        let len = trimmed.chars().take_while(|c| *c == marker).count();
+        let info = trimmed[len..].trim();
+        if len < 3 || (marker == '`' && info.contains('`')) {
+            return None;
+        }
+        Some((Fence { marker, len }, info))
+    }
+
+    /// Whether `line` closes this fence: a run of the same character at
+    /// least as long, and nothing else.
+    fn closed_by(&self, line: &str) -> bool {
+        let t = line.trim();
+        t.chars().count() >= self.len && t.chars().all(|c| c == self.marker)
+    }
 }
 
 /// `(indent, ordered, text)` of a list item line: `- x`, `* x`, `+ x`,
@@ -465,7 +473,7 @@ fn parse_list(lines: &[&str], start: usize) -> Result<(OutList, usize)> {
             }
         }
         let Some((indent, ordered, text)) = list_item(line) else {
-            let interrupts = is_fence(trimmed)
+            let interrupts = Fence::open(trimmed).is_some()
                 || parse_heading(trimmed).is_some()
                 || is_table_row(trimmed)
                 || trimmed.starts_with('<')
@@ -574,19 +582,19 @@ fn parse_columns(lines: &[&str]) -> Result<Vec<OutColumn>> {
     let mut columns: Vec<Vec<&str>> = Vec::new();
     // The heading level that starts header columns, once one is seen.
     let mut header_level: Option<u8> = None;
-    let mut in_fence = false;
+    let mut open: Option<Fence> = None;
     let mut i = 0;
     while i < lines.len() {
         let line = lines[i];
         let trimmed = line.trim();
-        if !in_fence && trimmed == "<div>" {
+        if open.is_none() && trimmed == "<div>" {
             let end = skip_past_div(lines, i)?;
             columns.push(lines[i + 1..end - 1].to_vec());
             header_level = None;
             i = end;
             continue;
         }
-        let heading = if in_fence {
+        let heading = if open.is_some() {
             None
         } else {
             parse_heading(trimmed)
@@ -605,9 +613,11 @@ fn parse_columns(lines: &[&str]) -> Result<Vec<OutColumn>> {
         } else {
             columns.last_mut().expect("a header column").push(line);
         }
-        if is_fence(trimmed) {
-            in_fence = !in_fence;
-        }
+        open = match open {
+            Some(fence) if fence.closed_by(line) => None,
+            Some(fence) => Some(fence),
+            None => Fence::open(trimmed).map(|(fence, _)| fence),
+        };
         i += 1;
     }
     if columns.is_empty() {
@@ -1510,6 +1520,37 @@ mod tests {
             slide("# T\n\n![bgp_path](svg/x.svg)\n").body,
             vec![OutElement::Image("svg/x.svg".into())]
         );
+    }
+
+    #[test]
+    fn a_longer_fence_holds_shorter_ones() {
+        let md = "# T\n\n````markdown\n```python\nx = 1\n```\n````\n\nafter\n";
+        let body = slide(md).body;
+        assert!(matches!(&body[0], OutElement::Code(c)
+                if c.language.as_deref() == Some("markdown")
+                    && c.source == "```python\nx = 1\n```"));
+        assert_eq!(body[1], text(&["after"]));
+        round_trip(md);
+    }
+
+    #[test]
+    fn a_fence_closes_only_on_its_own_marker_alone() {
+        // `~~~` and ```` ```x ```` do not close a backtick fence; ```` ```` ```` does.
+        let md = "# T\n\n```\n~~~\n```x\n````\n";
+        let body = slide(md).body;
+        assert!(matches!(&body[0], OutElement::Code(c) if c.source == "~~~\n```x"));
+    }
+
+    #[test]
+    fn a_slide_separator_inside_a_long_fence_is_code() {
+        let pres = parse_marp("# T\n\n````\n```\n---\n```\n````\n").unwrap();
+        assert_eq!(pres.slides.len(), 1);
+    }
+
+    #[test]
+    fn an_unclosed_fence_is_an_error() {
+        assert!(parse_marp("# T\n\n```python\nx = 1\n").is_err());
+        assert!(parse_marp("# T\n\n````\n```\n").is_err());
     }
 
     #[test]
