@@ -670,8 +670,9 @@ fn measure(span: Span, fonts: &FontSet, m: TextMetrics, pad_left: f32, pad_right
 }
 
 /// Split spans into atoms. Lines may break at any whitespace, including
-/// whitespace inside `code` (marp's `white-space: break-spaces`); the code
-/// padding goes on the outer edges of the span only.
+/// whitespace inside `code` (marp's `white-space: break-spaces`), and after
+/// a hyphen inside a word (see `hyphen_parts`); the code padding goes on
+/// the outer edges of the span only.
 fn atoms(spans: &[Span], fonts: &FontSet, m: TextMetrics) -> Vec<Atom> {
     let mut out: Vec<Atom> = Vec::new();
     let mut current: Vec<Frag> = Vec::new();
@@ -709,15 +710,10 @@ fn atoms(spans: &[Span], fonts: &FontSet, m: TextMetrics) -> Vec<Atom> {
                     ..span.clone()
                 };
                 flush(&mut current, Some(measure(space, fonts, m, left, right)));
-            } else if span.code {
-                let word = Span {
-                    text: rest[..end].to_string(),
-                    ..span.clone()
-                };
-                current.push(measure(word, fonts, m, left, right));
             } else {
-                // A word may break after a hyphen inside it; each part but
-                // the last ends an atom with a zero-width break.
+                // A word may break after a hyphen inside it, in code too;
+                // each part but the last ends an atom with a zero-width
+                // break. Code padding stays on the span's outer edges.
                 let parts = hyphen_parts(&rest[..end]);
                 let n = parts.len();
                 for (k, part) in parts.into_iter().enumerate() {
@@ -725,7 +721,9 @@ fn atoms(spans: &[Span], fonts: &FontSet, m: TextMetrics) -> Vec<Atom> {
                         text: part.to_string(),
                         ..span.clone()
                     };
-                    current.push(measure(word, fonts, m, 0.0, 0.0));
+                    let l = if k == 0 { left } else { 0.0 };
+                    let r = if k + 1 == n { right } else { 0.0 };
+                    current.push(measure(word, fonts, m, l, r));
                     if k + 1 < n {
                         let soft = Span {
                             text: String::new(),
@@ -743,10 +741,10 @@ fn atoms(spans: &[Span], fonts: &FontSet, m: TextMetrics) -> Vec<Atom> {
     out
 }
 
-/// Split a word after each hyphen a line may break at: one between a letter
-/// or digit and a letter (`AI-generated`, `x86-based`), as browsers break
-/// per Unicode line breaking. A hyphen at the start (`-5`, `--flag`) or
-/// before a digit is not a break.
+/// Split a word after each hyphen a line may break at: one inside the word
+/// and before a letter (`AI-generated`, `x86-based`, `sort=-created`), as
+/// browsers break per Unicode line breaking. A hyphen at the start (`-5`,
+/// `--flag`), after another hyphen, or before a digit is not a break.
 fn hyphen_parts(word: &str) -> Vec<&str> {
     let chars: Vec<(usize, char)> = word.char_indices().collect();
     let mut parts = Vec::new();
@@ -755,7 +753,7 @@ fn hyphen_parts(word: &str) -> Vec<&str> {
         let [(_, before), (i, '-'), (_, after)] = w else {
             continue;
         };
-        if before.is_alphanumeric() && after.is_alphabetic() {
+        if *before != '-' && after.is_alphabetic() {
             parts.push(&word[start..=*i]);
             start = i + 1;
         }
@@ -765,9 +763,22 @@ fn hyphen_parts(word: &str) -> Vec<&str> {
 }
 
 /// Greedily break `spans` into lines no wider than `max_width`. A single
-/// atom wider than the line is placed on its own line and overflows, as
-/// in a browser.
+/// atom wider than the line is placed on its own line and overflows; this
+/// is how a word's own width is measured (a table sizes its columns so).
 pub fn wrap(spans: &[Span], max_width: f32, fonts: &FontSet, m: TextMetrics) -> Vec<Line> {
+    wrap_with(spans, max_width, fonts, m, false)
+}
+
+/// `wrap`; with `break_words`, an atom too wide for a line of its own is
+/// broken between characters, at the last one that fits, as CSS
+/// `overflow-wrap: break-word` (marp's `word-wrap: break-word`) does.
+fn wrap_with(
+    spans: &[Span],
+    max_width: f32,
+    fonts: &FontSet,
+    m: TextMetrics,
+    break_words: bool,
+) -> Vec<Line> {
     // Widths are sums of floats added in varying orders, so text measured
     // as exactly `max_width` elsewhere (a table column sized to its
     // content) may come out a rounding error wider here. It still fits.
@@ -795,8 +806,14 @@ pub fn wrap(spans: &[Span], max_width: f32, fonts: &FontSet, m: TextMetrics) -> 
         {
             push(&mut line, space);
         }
-        for frag in atom.parts {
-            push(&mut line, frag);
+        if break_words && line.pieces.is_empty() && atom.width > limit {
+            for frag in atom.parts {
+                break_frag(frag, limit, &mut line, &mut lines, fonts, m);
+            }
+        } else {
+            for frag in atom.parts {
+                push(&mut line, frag);
+            }
         }
         pending_space = atom.space;
     }
@@ -804,6 +821,107 @@ pub fn wrap(spans: &[Span], max_width: f32, fonts: &FontSet, m: TextMetrics) -> 
         lines.push(line);
     }
     lines
+}
+
+/// Lay `frag` out from the end of `line`, breaking it between characters
+/// to fill lines no wider than `limit`; finished lines go to `lines`. Code
+/// padding stays on the fragment's outer edges.
+fn break_frag(
+    frag: Frag,
+    limit: f32,
+    line: &mut Line,
+    lines: &mut Vec<Line>,
+    fonts: &FontSet,
+    m: TextMetrics,
+) {
+    let text = frag.span.text.clone();
+    let bare = measure(frag.span.clone(), fonts, m, 0.0, 0.0).width;
+    let pad_right = frag.width - frag.pad_left - bare;
+    let piece = |a: usize, b: usize, left: f32, right: f32| {
+        let span = Span {
+            text: text[a..b].to_string(),
+            ..frag.span.clone()
+        };
+        measure(span, fonts, m, left, right)
+    };
+    let place = |line: &mut Line, f: Frag| {
+        line.pieces.push(Piece {
+            span: f.span,
+            x: line.width,
+            width: f.width,
+            pad_left: f.pad_left,
+        });
+        line.width += f.width;
+    };
+    let mut start = 0;
+    let mut left = frag.pad_left;
+    while start < text.len() {
+        let rest = piece(start, text.len(), left, pad_right);
+        if line.width + rest.width <= limit {
+            place(line, rest);
+            return;
+        }
+        // The longest prefix of the rest that fits after what the line has.
+        let mut fit = None;
+        for (i, c) in text[start..].char_indices() {
+            let end = start + i + c.len_utf8();
+            if end == text.len() {
+                break;
+            }
+            let f = piece(start, end, left, 0.0);
+            if line.width + f.width > limit {
+                break;
+            }
+            fit = Some((end, f));
+        }
+        match fit {
+            Some((end, f)) => {
+                place(line, f);
+                lines.push(std::mem::take(line));
+                start = end;
+                left = 0.0;
+            }
+            None if !line.pieces.is_empty() => lines.push(std::mem::take(line)),
+            None => {
+                // Not even one character fits: it overflows, which
+                // `wrap_within` reports.
+                let c = text[start..].chars().next().expect("text left");
+                let end = start + c.len_utf8();
+                let right = if end == text.len() { pad_right } else { 0.0 };
+                place(line, piece(start, end, left, right));
+                if end < text.len() {
+                    lines.push(std::mem::take(line));
+                }
+                start = end;
+                left = 0.0;
+            }
+        }
+    }
+}
+
+/// Lay text out in lines of `max_width`, breaking a word too wide for a
+/// line of its own as marp does (see `wrap_with`). Fails only if something
+/// still runs past the end of its line (a line narrower than one
+/// character), which would run off the page or into the next column.
+pub fn wrap_within(
+    spans: &[Span],
+    max_width: f32,
+    fonts: &FontSet,
+    m: TextMetrics,
+) -> Result<Vec<Line>> {
+    let lines = wrap_with(spans, max_width, fonts, m, true);
+    let limit = max_width * (1.0 + 1e-5);
+    if let Some(line) = lines.iter().find(|l| l.width > limit) {
+        let text: String = line.pieces.iter().map(|p| p.span.text.as_str()).collect();
+        let shown: String = text.chars().take(40).collect();
+        let more = if text.chars().count() > 40 { "…" } else { "" };
+        bail!(
+            "{shown:?}{more} is too wide for its line even on a line of its own: it needs \
+             {:.0}% of the width; break it or shorten it",
+            line.width / max_width * 100.0
+        );
+    }
+    Ok(lines)
 }
 
 #[cfg(test)]
@@ -1070,6 +1188,33 @@ mod tests {
     }
 
     #[test]
+    fn a_hyphen_after_punctuation_inside_a_word_breaks_before_a_letter() {
+        assert_eq!(hyphen_parts("sort=-created_at"), ["sort=-", "created_at"]);
+        assert_eq!(hyphen_parts("a--b"), ["a--b"]);
+        assert_eq!(hyphen_parts("--flag"), ["--flag"]);
+        assert_eq!(hyphen_parts("x-5"), ["x-5"]);
+    }
+
+    #[test]
+    fn inline_code_breaks_after_a_hyphen_too_and_keeps_its_padding_outside() {
+        let bytes = font_bytes();
+        let fonts = bytes.load().unwrap();
+        let spans = parse_inline("`sort=-created`");
+        let whole = wrap(&spans, f32::INFINITY, &fonts, M);
+        let natural = fonts.mono.width("sort=-created", M.code_size) + 2.0 * M.code_pad;
+        assert!(
+            (whole[0].width - natural).abs() < 1e-3,
+            "{} vs {natural}",
+            whole[0].width
+        );
+        let broken = wrap(&spans, 0.0, &fonts, M);
+        let texts: Vec<String> = broken.iter().map(line_text).collect();
+        assert_eq!(texts, ["sort=-", "created"]);
+        assert_eq!(broken[0].pieces[0].pad_left, M.code_pad);
+        assert_eq!(broken[1].pieces[0].pad_left, 0.0);
+    }
+
+    #[test]
     fn hyphens_that_are_not_inside_a_word_do_not_break() {
         let bytes = font_bytes();
         let fonts = bytes.load().unwrap();
@@ -1165,5 +1310,33 @@ mod tests {
         let fonts = bytes.load().unwrap();
         let err = fonts.regular.runs("a \u{10FFFD} b").unwrap_err();
         assert!(err.to_string().contains("U+10FFFD"), "{err}");
+    }
+
+    #[test]
+    fn break_words_splits_only_a_word_that_cannot_fit_a_line() {
+        let bytes = font_bytes();
+        let fonts = bytes.load().unwrap();
+        let word = "y".repeat(80);
+        let spans = vec![Span::plain(&format!("short {word} tail"))];
+        let max = M.size * 10.0;
+        // Measuring keeps the word whole (and too wide).
+        assert!(wrap(&spans, max, &fonts, M).iter().any(|l| l.width > max));
+        let lines = wrap_within(&spans, max, &fonts, M).unwrap();
+        assert!(lines.iter().all(|l| l.width <= max * (1.0 + 1e-5)));
+        let text: String = lines
+            .iter()
+            .flat_map(|l| l.pieces.iter().map(|p| p.span.text.as_str()))
+            .collect();
+        assert_eq!(text.replace(' ', ""), format!("short{word}tail"));
+        // The word starts on a line of its own, as in CSS.
+        let first: String = lines[0]
+            .pieces
+            .iter()
+            .map(|p| p.span.text.as_str())
+            .collect();
+        assert_eq!(first.trim(), "short");
+        // A word that fits is never broken.
+        let ok = wrap_within(&[Span::plain("fits fine")], max, &fonts, M).unwrap();
+        assert_eq!(ok.len(), 1);
     }
 }

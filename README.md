@@ -173,7 +173,9 @@ is implemented.
 `--warn-overflow` turns content that runs off the page from an error into
 a warning naming the file and slide (on stderr); the slide is drawn
 anyway, cut at the page edge as marp cuts it, and its code keeps its size
-instead of shrinking away. Without the flag such content is an error.
+instead of shrinking away. Without the flag such content is an error. The
+flag covers content running off the bottom only: a table too wide for the
+slide is an error either way.
 
 ## Output formats
 
@@ -242,6 +244,11 @@ Characters the configured fonts lack are taken from fallback fonts
 marp: Liberation Sans, Noto Sans Math, DejaVu Sans, FreeSans, Noto Sans CJK
 and Noto Color Emoji. A character none of them has is a hard error, never a
 blank box.
+
+A word too long for a line of its own is broken between characters, as
+marp's `word-wrap: break-word` breaks it, so text never runs off the side;
+a line may also break after a hyphen inside a word, in inline code too. A
+table too wide for the slide even with every cell wrapped is a hard error.
 
 Content that does not fit on the page is a hard error naming the slide;
 marp would silently cut it off at the page edge. `--warn-overflow` makes it

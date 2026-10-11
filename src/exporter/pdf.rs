@@ -14,7 +14,7 @@
 use crate::config::{Color, Config, SvgSize};
 use crate::exporter::highlight::Highlighter;
 use crate::exporter::text::{
-    FontBytes, FontKind, FontSet, Line, Span, TextMetrics, parse_inline, wrap,
+    FontBytes, FontKind, FontSet, Line, Span, TextMetrics, parse_inline, wrap, wrap_within,
 };
 use crate::model::{
     Align, Background, BackgroundSize, Column, Element, ListItem, Presentation, Side, Slide, Table,
@@ -418,7 +418,7 @@ fn layout_slide(ctx: &Ctx, slide: &Slide, page_number: Option<usize>) -> Result<
                 x0,
                 width,
                 title_align,
-            ));
+            )?);
         }
         for element in body {
             blocks.extend(element_blocks(ctx, element, area, scale, false)?);
@@ -616,9 +616,16 @@ fn element_blocks(
         Element::Text(text) => paragraphs(text)
             .iter()
             .map(|p| paragraph_block(ctx, p, x0, width, align))
-            .collect(),
-        Element::Heading(h) => vec![heading_block(ctx, &h.text, h.level, x0, width, align)],
-        Element::List(list) => vec![list_block(ctx, list.ordered, &list.items, x0, width, align)],
+            .collect::<Result<_>>()?,
+        Element::Heading(h) => vec![heading_block(ctx, &h.text, h.level, x0, width, align)?],
+        Element::List(list) => vec![list_block(
+            ctx,
+            list.ordered,
+            &list.items,
+            x0,
+            width,
+            align,
+        )?],
         Element::Code(code) => vec![code_block(
             ctx,
             code_source(code),
@@ -861,19 +868,26 @@ fn text_lines(
     width: f32,
     align: Align,
     style: &TextStyle,
-) -> (Vec<Op>, f32) {
+) -> Result<(Vec<Op>, f32)> {
     let lh = style.line_height * style.metrics.size;
     let base = baseline_offset(ctx, style.font, style.metrics.size, style.line_height);
     let mut ops = Vec::new();
-    let lines = wrap(spans, width, ctx.fonts, style.metrics);
+    let lines = wrap_within(spans, width, ctx.fonts, style.metrics)?;
     for (i, line) in lines.iter().enumerate() {
         let x = line_x(x0, width, line.width, align);
         line_ops(ctx, line, x, i as f32 * lh + base, style, &mut ops);
     }
-    (ops, lines.len() as f32 * lh)
+    Ok((ops, lines.len() as f32 * lh))
 }
 
-fn heading_block(ctx: &Ctx, text: &str, level: u8, x0: f32, width: f32, align: Align) -> Block {
+fn heading_block(
+    ctx: &Ctx,
+    text: &str,
+    level: u8,
+    x0: f32,
+    width: f32,
+    align: Align,
+) -> Result<Block> {
     let cfg = ctx.cfg;
     let size = ctx.em * cfg.heading.font_sizes_em[usize::from(level - 1)];
     let color = match level {
@@ -892,13 +906,13 @@ fn heading_block(ctx: &Ctx, text: &str, level: u8, x0: f32, width: f32, align: A
         color,
         font: FontKind::Bold,
     };
-    let (ops, height) = text_lines(ctx, &spans, x0, width, align, &style);
-    Block {
+    let (ops, height) = text_lines(ctx, &spans, x0, width, align, &style)?;
+    Ok(Block {
         ops,
         height: height + size * cfg.heading.padding_bottom_em[usize::from(level - 1)],
         margin_top: cfg.heading.margin_top_em * ctx.em,
         margin_bottom: cfg.heading.margin_bottom_em * ctx.em,
-    }
+    })
 }
 
 fn body_style(ctx: &Ctx) -> TextStyle {
@@ -910,22 +924,28 @@ fn body_style(ctx: &Ctx) -> TextStyle {
     }
 }
 
-fn paragraph_block(ctx: &Ctx, lines: &[String], x0: f32, width: f32, align: Align) -> Block {
+fn paragraph_block(
+    ctx: &Ctx,
+    lines: &[String],
+    x0: f32,
+    width: f32,
+    align: Align,
+) -> Result<Block> {
     let style = body_style(ctx);
     let mut ops = Vec::new();
     let mut height = 0.0;
     for line in lines {
-        let (mut line_ops, h) = text_lines(ctx, &parse_inline(line), x0, width, align, &style);
+        let (mut line_ops, h) = text_lines(ctx, &parse_inline(line), x0, width, align, &style)?;
         line_ops.iter_mut().for_each(|op| op.shift(0.0, height));
         ops.extend(line_ops);
         height += h;
     }
-    Block {
+    Ok(Block {
         ops,
         height,
         margin_top: 0.0,
         margin_bottom: ctx.cfg.block.margin_bottom_em * ctx.em,
-    }
+    })
 }
 
 /// A bulleted or numbered list, with nested lists under their items.
@@ -936,16 +956,16 @@ fn list_block(
     x0: f32,
     width: f32,
     align: Align,
-) -> Block {
+) -> Result<Block> {
     let mut ops = Vec::new();
     let area = Area { x0, width, align };
-    let height = list_ops(ctx, ordered, items, 1, area, 0.0, &mut ops);
-    Block {
+    let height = list_ops(ctx, ordered, items, 1, area, 0.0, &mut ops)?;
+    Ok(Block {
         ops,
         height,
         margin_top: 0.0,
         margin_bottom: ctx.cfg.block.margin_bottom_em * ctx.em,
-    }
+    })
 }
 
 /// A horizontal band of the slide to lay text out in.
@@ -969,7 +989,7 @@ fn list_ops(
     area: Area,
     mut y: f32,
     ops: &mut Vec<Op>,
-) -> f32 {
+) -> Result<f32> {
     let Area { x0, width, align } = area;
     let cfg = ctx.cfg;
     let style = body_style(ctx);
@@ -982,7 +1002,7 @@ fn list_ops(
         if i > 0 {
             y += cfg.list.item_gap_em * ctx.em;
         }
-        let lines = wrap(&parse_inline(&item.text), text_w, ctx.fonts, style.metrics);
+        let lines = wrap_within(&parse_inline(&item.text), text_w, ctx.fonts, style.metrics)?;
         let first_x = lines
             .first()
             .map_or(text_x0, |l| line_x(text_x0, text_w, l.width, align));
@@ -1010,10 +1030,10 @@ fn list_ops(
                 inner,
                 y,
                 ops,
-            );
+            )?;
         }
     }
-    y
+    Ok(y)
 }
 
 /// The marker of item `index` of a list at `depth`, for a first line that
@@ -2564,8 +2584,8 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
                 align: Align::Left,
             };
             let block = columns_block(ctx, cols, area, 1.0).unwrap();
-            let heading = heading_block(ctx, "H", 3, 0.0, 100.0, Align::Left);
-            let list = list_block(ctx, false, &[], 0.0, 100.0, Align::Left);
+            let heading = heading_block(ctx, "H", 3, 0.0, 100.0, Align::Left).unwrap();
+            let list = list_block(ctx, false, &[], 0.0, 100.0, Align::Left).unwrap();
             let gap = heading.margin_bottom.max(list.margin_top);
             let lines = cfg.slide.line_height * ctx.em;
             let expected = heading.margin_top + heading.height + gap + lines + list.margin_bottom;
@@ -2708,6 +2728,76 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
         // Other errors stay errors.
         let missing = "slides:\n  - {title: T, image: /nonexistent.svg}\n";
         assert!(render(&deck(missing), &Config::default(), Overflow::Warn).is_err());
+    }
+
+    #[test]
+    fn a_word_too_wide_for_a_line_breaks_as_in_marp() {
+        let cfg = Config::default();
+        let word = "x".repeat(200);
+        with_ctx(&cfg, |ctx| {
+            for (slide, right_edge) in [
+                (
+                    format!("title: T\nbody:\n  - text: see {word} end"),
+                    ctx.width - ctx.pad_x(),
+                ),
+                (
+                    format!("title: T\nbullets: [{word}]"),
+                    ctx.width - ctx.pad_x(),
+                ),
+                (format!("title: {word}"), ctx.width - ctx.pad_x()),
+                // In a column: up to the column's edge, not into the next.
+                (
+                    format!(
+                        "title: T\nbody:\n  - columns:\n      - body: [{{text: {word}}}]\n      - body: [{{text: b}}]"
+                    ),
+                    ctx.pad_x() + column_width(ctx, 2, ctx.content_width()),
+                ),
+            ] {
+                let ops = layout_slide(ctx, &one_slide(&slide), None)
+                    .unwrap_or_else(|e| panic!("{slide:?}: {e:#}"));
+                let xs: Vec<f32> = ops
+                    .iter()
+                    .filter_map(|op| match op {
+                        Op::Text {
+                            x,
+                            font,
+                            size,
+                            text,
+                            ..
+                        } if text.starts_with("xx") => {
+                            Some(x + ctx.fonts.get(*font).width(text, *size))
+                        }
+                        _ => None,
+                    })
+                    .collect();
+                assert!(xs.len() > 1, "{slide:?}: the word spans several lines");
+                assert!(
+                    xs.iter().all(|&r| r <= right_edge + 1e-2),
+                    "{slide:?}: {xs:?} past {right_edge}"
+                );
+                let chars: usize = ops
+                    .iter()
+                    .filter_map(|op| match op {
+                        Op::Text { text, .. } => Some(text.matches('x').count()),
+                        _ => None,
+                    })
+                    .sum();
+                assert!(chars >= 200, "{slide:?}: every character is drawn");
+            }
+        });
+    }
+
+    #[test]
+    fn a_table_too_wide_is_an_error_even_with_overflow_warnings() {
+        let word = "x".repeat(200);
+        let yaml =
+            format!("slides:\n  - title: T\n    table: {{headers: [A, B], rows: [[{word}, b]]}}\n");
+        for overflow in [Overflow::Error, Overflow::Warn] {
+            let Err(err) = render(&deck(&yaml), &Config::default(), overflow) else {
+                panic!("a too-wide table must fail with {overflow:?}");
+            };
+            assert!(format!("{err:#}").contains("table is too wide"), "{err:#}");
+        }
     }
 
     #[test]

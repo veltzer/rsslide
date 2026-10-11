@@ -53,6 +53,13 @@ Done since the first measurement:
   327 decks had been drawn as blank boxes. A character no configured font
   has is now an error; default-ignorable characters (U+200B and the like)
   need no glyph.
+- A word too long for a line of its own breaks between characters, as
+  marp's `word-wrap: break-word` breaks it (2 slides: a URL and a Spark
+  config key used to run off the side of the page without an error), and
+  a line may break after a hyphen inside a word in inline code too; both
+  checked against marp's line breaks. Anything still wider than its line
+  is an error, and a table too wide for the slide stays an error with
+  `--warn-overflow`.
 - Split backgrounds (`![bg left]`, `![bg right:40% 80%]`), with JPEG and
   PNG pictures: the 9 portrait decks and the 2 logo slides; text placed
   within 0.1 pt of marp's.
