@@ -2189,7 +2189,11 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
                     panic!("{n} bullets and a line of code fit the page, or else stop earlier");
                 };
                 if ink_bottom(ctx, &ops) > padded_bottom {
-                    assert!(mono_sizes(&ops).iter().all(|&size| (size - full).abs() < 1e-3));
+                    assert!(
+                        mono_sizes(&ops)
+                            .iter()
+                            .all(|&size| (size - full).abs() < 1e-3)
+                    );
                     return;
                 }
             }
