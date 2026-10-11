@@ -223,8 +223,11 @@ fn build_fontdb(regular: &[u8], mono: &[u8], others: &[&[u8]]) -> Result<Arc<Dat
     };
     let sans = family(regular, "regular")?;
     let mono_family = family(mono, "mono")?;
+    // For a character an SVG's font lacks, usvg takes the first face that
+    // has it, so the monospace face goes last: a sans fallback (as a
+    // browser would pick) comes first.
     let mut db = Database::new();
-    for bytes in [regular, mono].iter().chain(others) {
+    for bytes in std::iter::once(&regular).chain(others).chain([&mono]) {
         db.load_font_data(bytes.to_vec());
     }
     db.set_sans_serif_family(&sans);
