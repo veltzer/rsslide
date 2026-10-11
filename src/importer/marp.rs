@@ -614,7 +614,7 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
     }
     if let Some(svg) = &slide.svg {
         out.push_str(prefix(&mut first));
-        out.push_str("svg: |-\n");
+        out.push_str(&format!("svg: {}\n", block_header(svg)));
         push_block_lines(out, &svg.lines().map(str::to_string).collect::<Vec<_>>());
     }
     if !slide.columns.is_empty() {
@@ -680,7 +680,7 @@ fn emit_code(out: &mut String, code: &OutCode, first: &str, indent: &str) {
         lead = indent;
     }
     out.push_str(lead);
-    out.push_str("source: |-\n");
+    out.push_str(&format!("source: {}\n", block_header(&code.source)));
     for line in code.source.lines() {
         let trimmed = line.trim_end();
         if trimmed.is_empty() {
@@ -691,6 +691,21 @@ fn emit_code(out: &mut String, code: &OutCode, first: &str, indent: &str) {
             out.push_str(trimmed);
             out.push('\n');
         }
+    }
+}
+
+/// The header of a stripped literal block scalar holding `text`. YAML
+/// takes a block's indentation from its first non-empty line, so when that
+/// line starts with whitespace (a code snippet cut from inside a function)
+/// a less-indented later line would end the block early. An explicit
+/// indentation indicator avoids that; every block this emitter writes is
+/// indented two columns past its key.
+fn block_header(text: &str) -> &'static str {
+    let first = text.lines().find(|l| !l.trim().is_empty());
+    if first.is_some_and(|l| l.starts_with([' ', '\t'])) {
+        "|2-"
+    } else {
+        "|-"
     }
 }
 
@@ -999,6 +1014,44 @@ mod tests {
                 "    code:\n      language: rust\n      source: |-\n        fn main() {}\n"
             ),
             "{yaml}"
+        );
+    }
+
+    #[test]
+    fn code_whose_first_line_is_indented_round_trips() {
+        // A snippet cut from the middle of a function: the first line is
+        // indented deeper than a later one.
+        let md = "# T\n\n```python\n        x = 1\n    return x\n```\n";
+        let yaml = import(md).unwrap();
+        let parsed = crate::parser::parse(&yaml).unwrap_or_else(|e| panic!("{e}\n{yaml}"));
+        assert_eq!(
+            parsed.slides[0].code[0].source,
+            "        x = 1\n    return x"
+        );
+        // The same inside a list of blocks.
+        let md = "# T\n\n```\n  a\nb\n```\n\n```\n    c\nd\n```\n";
+        let yaml = import(md).unwrap();
+        let parsed = crate::parser::parse(&yaml).unwrap_or_else(|e| panic!("{e}\n{yaml}"));
+        let sources: Vec<&str> = parsed.slides[0]
+            .code
+            .iter()
+            .map(|c| c.source.as_str())
+            .collect();
+        assert_eq!(sources, ["  a\nb", "    c\nd"]);
+    }
+
+    #[test]
+    fn indented_svg_round_trips() {
+        let md = "# T\n\n<svg viewBox=\"0 0 1 1\">\n    <rect/>\n</svg>\n";
+        let md = md.replace("<svg", "  <svg");
+        let yaml = import(&md).unwrap();
+        let parsed = crate::parser::parse(&yaml).unwrap_or_else(|e| panic!("{e}\n{yaml}"));
+        assert!(
+            parsed.slides[0]
+                .svg
+                .as_deref()
+                .unwrap()
+                .starts_with("  <svg")
         );
     }
 
