@@ -8,6 +8,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use krilla::text::Font;
 use rustybuzz::{Face, UnicodeBuffer};
 use std::path::PathBuf;
+use std::sync::Arc;
 
 /// Which face of the configured font family a run is set in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,7 +151,8 @@ fn modifies_previous(c: char) -> bool {
 /// The bytes of every configured font file, each read once, and which of
 /// them each role uses; `FontSet` borrows from them.
 pub struct FontBytes {
-    files: Vec<(PathBuf, Vec<u8>)>,
+    /// Shared, so each deck's font handles use them without a copy.
+    files: Vec<(PathBuf, Arc<Vec<u8>>)>,
     /// Per role, in `ROLES` order: indices into `files`, the role's own
     /// font first and then its fallbacks.
     roles: [Vec<usize>; 5],
@@ -174,7 +176,7 @@ impl FontBytes {
             ("bold_italic", &fonts.bold_italic, &fb.bold_italic),
             ("mono", &fonts.mono, &fb.mono),
         ];
-        let mut files: Vec<(PathBuf, Vec<u8>)> = Vec::new();
+        let mut files: Vec<(PathBuf, Arc<Vec<u8>>)> = Vec::new();
         let mut roles: [Vec<usize>; 5] = Default::default();
         for (role, (what, own, fallback)) in roles.iter_mut().zip(chains) {
             for path in std::iter::once(own).chain(fallback) {
@@ -183,7 +185,7 @@ impl FontBytes {
                     None => {
                         let bytes = std::fs::read(path)
                             .with_context(|| format!("reading {what} font {}", path.display()))?;
-                        files.push((path.clone(), bytes));
+                        files.push((path.clone(), Arc::new(bytes)));
                         files.len() - 1
                     }
                 };
@@ -201,9 +203,9 @@ impl FontBytes {
             .files
             .iter()
             .map(|(path, bytes)| {
-                let face = Face::from_slice(bytes, 0)
+                let face = Face::from_slice(bytes.as_slice(), 0)
                     .with_context(|| format!("parsing font {}", path.display()))?;
-                let krilla = Font::new(bytes.clone().into(), 0)
+                let krilla = Font::new(Arc::clone(bytes).into(), 0)
                     .with_context(|| format!("loading font {} into krilla", path.display()))?;
                 Ok((krilla, face))
             })

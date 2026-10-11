@@ -58,8 +58,8 @@ struct Ctx<'a> {
     fonts: &'a FontSet<'a>,
     fontdb: Arc<Database>,
     svg_settings: SvgSettings,
-    highlighter: Highlighter,
-    theme: Theme,
+    highlighter: &'a Highlighter,
+    theme: &'a Theme,
     /// Page size in points.
     width: f32,
     height: f32,
@@ -101,62 +101,94 @@ impl Ctx<'_> {
 
 /// Write `presentation` as a PDF to `output_path`. Returns the overflow
 /// warnings, each naming its slide (only with `Overflow::Warn`).
-pub fn export(
-    presentation: &Presentation,
-    output_path: &StdPath,
-    cfg: &Config,
-    overflow: Overflow,
-) -> Result<Vec<String>> {
-    let (pdf, warnings) = render(presentation, cfg, overflow)?;
-    std::fs::write(output_path, pdf)
-        .with_context(|| format!("failed to write {}", output_path.display()))?;
-    Ok(warnings)
+/// What every deck of a run shares, built once: the configured font files,
+/// the font database SVG text is set with, the syntax highlighter and the
+/// code theme. Decks may be rendered from it on several threads at once.
+pub struct Engine<'c> {
+    cfg: &'c Config,
+    bytes: FontBytes,
+    fontdb: Arc<Database>,
+    highlighter: Highlighter,
+    theme: Theme,
 }
 
-/// Build the shared layout context over already-loaded fonts.
-fn make_ctx<'a>(cfg: &'a Config, bytes: &FontBytes, fonts: &'a FontSet<'a>) -> Result<Ctx<'a>> {
-    let mut theme_set = ThemeSet::load_defaults();
-    let github = ThemeSet::load_from_reader(&mut std::io::Cursor::new(include_str!(
-        "../../assets/themes/github.tmTheme"
-    )))
-    .context("parsing the bundled GitHub code theme")?;
-    theme_set.themes.insert("GitHub".into(), github);
-    let theme = theme_set.themes.remove(&cfg.code.theme).with_context(|| {
-        let mut known: Vec<&String> = theme_set.themes.keys().collect();
-        known.sort();
-        format!("unknown code theme {:?} (known: {known:?})", cfg.code.theme)
-    })?;
+impl<'c> Engine<'c> {
+    pub fn new(cfg: &'c Config) -> Result<Self> {
+        let mut theme_set = ThemeSet::load_defaults();
+        let github = ThemeSet::load_from_reader(&mut std::io::Cursor::new(include_str!(
+            "../../assets/themes/github.tmTheme"
+        )))
+        .context("parsing the bundled GitHub code theme")?;
+        theme_set.themes.insert("GitHub".into(), github);
+        let theme = theme_set.themes.remove(&cfg.code.theme).with_context(|| {
+            let mut known: Vec<&String> = theme_set.themes.keys().collect();
+            known.sort();
+            format!("unknown code theme {:?} (known: {known:?})", cfg.code.theme)
+        })?;
+        let bytes = FontBytes::read(&cfg.fonts)?;
+        let fontdb = build_fontdb(bytes.regular(), bytes.mono(), &bytes.others())?;
+        Ok(Self {
+            cfg,
+            bytes,
+            fontdb,
+            highlighter: Highlighter::new()?,
+            theme,
+        })
+    }
 
-    let width = cfg.slide.width_mm * PT_PER_MM;
-    let height = cfg.slide.height_mm * PT_PER_MM;
-    Ok(Ctx {
-        cfg,
-        fonts,
-        fontdb: build_fontdb(bytes.regular(), bytes.mono(), &bytes.others())?,
-        svg_settings: SvgSettings {
-            filter_scale: cfg.svg.filter_scale,
-            ..SvgSettings::default()
-        },
-        highlighter: Highlighter::new()?,
-        theme,
-        width,
-        height,
-        em: width * cfg.slide.font_size_ratio,
-        overflow: Overflow::Error,
-        warnings: RefCell::new(Vec::new()),
-    })
+    /// Write `presentation` as a PDF to `output_path`. Returns the overflow
+    /// warnings, each naming its slide (only with `Overflow::Warn`).
+    pub fn export(
+        &self,
+        presentation: &Presentation,
+        output_path: &StdPath,
+        overflow: Overflow,
+    ) -> Result<Vec<String>> {
+        let (pdf, warnings) = self.render(presentation, overflow)?;
+        std::fs::write(output_path, pdf)
+            .with_context(|| format!("failed to write {}", output_path.display()))?;
+        Ok(warnings)
+    }
+
+    /// The layout context over this deck's font handles.
+    fn ctx<'a>(&'a self, fonts: &'a FontSet<'a>) -> Ctx<'a> {
+        let cfg = self.cfg;
+        let width = cfg.slide.width_mm * PT_PER_MM;
+        let height = cfg.slide.height_mm * PT_PER_MM;
+        Ctx {
+            cfg,
+            fonts,
+            fontdb: Arc::clone(&self.fontdb),
+            svg_settings: SvgSettings {
+                filter_scale: cfg.svg.filter_scale,
+                ..SvgSettings::default()
+            },
+            highlighter: &self.highlighter,
+            theme: &self.theme,
+            width,
+            height,
+            em: width * cfg.slide.font_size_ratio,
+            overflow: Overflow::Error,
+            warnings: RefCell::new(Vec::new()),
+        }
+    }
+
+    /// Render `presentation` to the bytes of a PDF.
+    fn render(
+        &self,
+        presentation: &Presentation,
+        overflow: Overflow,
+    ) -> Result<(Vec<u8>, Vec<String>)> {
+        let fonts = self.bytes.load()?;
+        let mut ctx = self.ctx(&fonts);
+        ctx.overflow = overflow;
+        render_with(&ctx, presentation)
+    }
 }
 
-/// Render `presentation` to the bytes of a PDF.
-fn render(
-    presentation: &Presentation,
-    cfg: &Config,
-    overflow: Overflow,
-) -> Result<(Vec<u8>, Vec<String>)> {
-    let bytes = FontBytes::read(&cfg.fonts)?;
-    let fonts = bytes.load()?;
-    let mut ctx = make_ctx(cfg, &bytes, &fonts)?;
-    ctx.overflow = overflow;
+/// Render `presentation` to the bytes of a PDF, with the overflow
+/// warnings, in `ctx`.
+fn render_with(ctx: &Ctx, presentation: &Presentation) -> Result<(Vec<u8>, Vec<String>)> {
     let page_size = Size::from_wh(ctx.width, ctx.height).context("invalid page size")?;
 
     let mut doc = Document::new();
@@ -180,7 +212,7 @@ fn render(
     let mut errors = Vec::new();
     let mut warnings = Vec::new();
     for (i, slide) in slides.iter().enumerate() {
-        match layout_slide(&ctx, slide, paginate.then_some(i + 1)) {
+        match layout_slide(ctx, slide, paginate.then_some(i + 1)) {
             Ok(ops) => layouts.push(ops),
             Err(e) => errors.push(format!("slide {}/{}: {e:#}", i + 1, total)),
         }
@@ -199,7 +231,7 @@ fn render(
     for (i, ops) in layouts.into_iter().enumerate() {
         let mut page = doc.start_page_with(PageSettings::new(page_size));
         let mut surface = page.surface();
-        draw_ops(&mut surface, &ctx, ops).with_context(|| format!("slide {}/{}", i + 1, total))?;
+        draw_ops(&mut surface, ctx, ops).with_context(|| format!("slide {}/{}", i + 1, total))?;
         surface.finish();
         page.finish();
     }
@@ -1438,7 +1470,7 @@ fn code_block(
 
     let base = baseline_offset(ctx, FontKind::Mono, size, cfg.code.line_height);
     let mono = &ctx.fonts.mono;
-    let lines = ctx.highlighter.highlight(source, language, &ctx.theme)?;
+    let lines = ctx.highlighter.highlight(source, language, ctx.theme)?;
     for (i, runs) in lines.into_iter().enumerate() {
         let mut x = x0 + border + pad;
         let y = border + pad + i as f32 * lh + base;
@@ -1782,12 +1814,25 @@ mod tests {
 
     // ── layout, with the configured fonts ─────────────────────────────────
 
+    fn engine(cfg: &Config) -> Engine<'_> {
+        Engine::new(cfg)
+            .expect("the default fonts must be installed (see scripts/ci-install-tools.repo.sh)")
+    }
+
     fn with_ctx<R>(cfg: &Config, f: impl FnOnce(&Ctx) -> R) -> R {
-        let bytes = FontBytes::read(&cfg.fonts)
-            .expect("the default fonts must be installed (see scripts/ci-install-tools.repo.sh)");
-        let fonts = bytes.load().unwrap();
-        let ctx = make_ctx(cfg, &bytes, &fonts).unwrap();
+        let engine = engine(cfg);
+        let fonts = engine.bytes.load().unwrap();
+        let ctx = engine.ctx(&fonts);
         f(&ctx)
+    }
+
+    /// Render `presentation` with a fresh engine over `cfg`.
+    fn render(
+        presentation: &Presentation,
+        cfg: &Config,
+        overflow: Overflow,
+    ) -> Result<(Vec<u8>, Vec<String>)> {
+        engine(cfg).render(presentation, overflow)
     }
 
     fn deck(yaml: &str) -> Presentation {
@@ -2823,9 +2868,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
     fn unknown_code_theme_is_an_error() {
         let mut cfg = Config::default();
         cfg.code.theme = "NoSuchTheme".into();
-        let bytes = FontBytes::read(&cfg.fonts).unwrap();
-        let fonts = bytes.load().unwrap();
-        let err = make_ctx(&cfg, &bytes, &fonts).err().expect("must fail");
+        let err = Engine::new(&cfg).err().expect("must fail");
         assert!(err.to_string().contains("NoSuchTheme"), "{err}");
     }
 

@@ -75,6 +75,10 @@ enum Command {
         #[arg(long)]
         warn_overflow: bool,
 
+        /// Decks to render at once [default: one per CPU]
+        #[arg(short, long)]
+        jobs: Option<usize>,
+
         /// Alternating input/output paths: IN1 OUT1 IN2 OUT2 ...
         #[arg(required = true, num_args = 2..)]
         paths: Vec<PathBuf>,
@@ -106,8 +110,9 @@ fn main() -> Result<()> {
             format,
             config,
             warn_overflow,
+            jobs,
             paths,
-        }) => run_generate(format, config, overflow(warn_overflow), paths),
+        }) => run_generate(format, config, overflow(warn_overflow), jobs, paths),
         Some(Command::Version) => {
             print_version();
             Ok(())
@@ -146,13 +151,14 @@ fn run_process(
         PathBuf::from(stem).with_extension(ext)
     });
     let cfg = config::Config::load(config_path.as_deref())?;
-    convert_one(&input, &output_path, format, &cfg, overflow)
+    convert_all(&[(&input, &output_path)], format, &cfg, overflow, 1)
 }
 
 fn run_generate(
     format: Format,
     config_path: Option<PathBuf>,
     overflow: exporter::pdf::Overflow,
+    jobs: Option<usize>,
     paths: Vec<PathBuf>,
 ) -> Result<()> {
     if !paths.len().is_multiple_of(2) {
@@ -161,36 +167,90 @@ fn run_generate(
             paths.len()
         );
     }
+    let jobs = match jobs {
+        Some(0) => anyhow::bail!("--jobs must be at least 1"),
+        Some(n) => n,
+        None => std::thread::available_parallelism().map_or(1, |n| n.get()),
+    };
     let cfg = config::Config::load(config_path.as_deref())?;
-    let (pairs, _) = paths.as_chunks::<2>();
-    for pair in pairs {
-        convert_one(&pair[0], &pair[1], format.clone(), &cfg, overflow)?;
-    }
-    Ok(())
+    let (chunks, _) = paths.as_chunks::<2>();
+    let pairs: Vec<(&std::path::Path, &std::path::Path)> = chunks
+        .iter()
+        .map(|[input, output]| (input.as_path(), output.as_path()))
+        .collect();
+    convert_all(&pairs, format, &cfg, overflow, jobs)
 }
 
-fn convert_one(
-    input: &std::path::Path,
-    output: &std::path::Path,
+/// Convert every (input, output) pair, rendering up to `jobs` decks at once
+/// with one shared engine (fonts and syntaxes are loaded once). Each deck's
+/// warnings and its `Written:` line are printed in input order. A deck that
+/// fails does not stop the others; the run then fails naming every one.
+fn convert_all(
+    pairs: &[(&std::path::Path, &std::path::Path)],
     format: Format,
     cfg: &config::Config,
     overflow: exporter::pdf::Overflow,
+    jobs: usize,
 ) -> Result<()> {
-    let presentation = load_presentation(input)?;
+    use std::sync::OnceLock;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     match format {
         Format::Html => anyhow::bail!("HTML export not yet implemented"),
-        Format::Pdf => {
-            let warnings = exporter::pdf::export(&presentation, output, cfg, overflow)
-                .context("PDF export failed")?;
-            for warning in warnings {
-                eprintln!("warning: {}: {warning}", input.display());
-            }
-        }
         Format::Pptx => {
-            exporter::pptx::export(&presentation, output).context("PPTX export failed")?;
+            for (input, output) in pairs {
+                let presentation = load_presentation(input)?;
+                exporter::pptx::export(&presentation, output).context("PPTX export failed")?;
+                println!("Written: {}", output.display());
+            }
+            return Ok(());
+        }
+        Format::Pdf => {}
+    }
+    let engine = exporter::pdf::Engine::new(cfg)?;
+    let results: Vec<OnceLock<Result<Vec<String>>>> =
+        pairs.iter().map(|_| OnceLock::new()).collect();
+    let next = AtomicUsize::new(0);
+    std::thread::scope(|scope| {
+        for _ in 0..jobs.min(pairs.len()) {
+            scope.spawn(|| {
+                loop {
+                    let i = next.fetch_add(1, Ordering::Relaxed);
+                    let Some(&(input, output)) = pairs.get(i) else {
+                        break;
+                    };
+                    let result = load_presentation(input).and_then(|presentation| {
+                        engine
+                            .export(&presentation, output, overflow)
+                            .context("PDF export failed")
+                    });
+                    if results[i].set(result).is_err() {
+                        unreachable!("each pair is converted once");
+                    }
+                }
+            });
+        }
+    });
+    let mut failed = Vec::new();
+    for (&(input, output), result) in pairs.iter().zip(results) {
+        match result.into_inner().expect("every pair was converted") {
+            Ok(warnings) => {
+                for warning in warnings {
+                    eprintln!("warning: {}: {warning}", input.display());
+                }
+                println!("Written: {}", output.display());
+            }
+            Err(e) if pairs.len() == 1 => return Err(e),
+            Err(e) => failed.push(format!("{}: {e:#}", input.display())),
         }
     }
-    println!("Written: {}", output.display());
+    if !failed.is_empty() {
+        anyhow::bail!(
+            "{} of {} decks failed:\n{}",
+            failed.len(),
+            pairs.len(),
+            failed.join("\n")
+        );
+    }
     Ok(())
 }
 

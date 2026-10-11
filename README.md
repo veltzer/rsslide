@@ -160,7 +160,7 @@ slide's code does not fit, all its blocks shrink by the same factor.
 ## Usage
 
 ```text
-rsslide generate -f pdf [--config <TOML>] [--warn-overflow] IN1 OUT1 [IN2 OUT2 ...]
+rsslide generate -f pdf [--config <TOML>] [--warn-overflow] [-j N] IN1 OUT1 [IN2 OUT2 ...]
 rsslide process  <INPUT> [-o <OUTPUT>] [-f <FORMAT>] [--config <TOML>] [--warn-overflow]
 rsslide import   IN1.md OUT1.yaml [IN2.md OUT2.yaml ...]
 rsslide dump-config [-o <FILE>]
@@ -169,7 +169,10 @@ rsslide version
 
 `generate` converts many decks with one config; an input is rsslide YAML
 (`.yaml`, `.yml`) or a marp deck (`.md`), which it imports in memory first,
-so a marp deck renders in one step. `process` converts one
+so a marp deck renders in one step. It renders `-j N` decks at once (one
+per CPU by default), with the fonts and syntaxes loaded once for the whole
+run; every deck is attempted, and the run fails naming each one that
+failed. `process` converts one
 (its format defaults to `html`, which is not implemented yet: pass
 `-f pdf`). `import` turns marp Markdown into rsslide YAML. Only PDF output
 is implemented.
