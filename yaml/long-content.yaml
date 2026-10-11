@@ -24,7 +24,7 @@ slides:
       - This is a very long bullet point that contains a lot of words and will almost certainly overflow the right margin of the slide without wrapping support
       - "Another extremely long bullet: The quick brown fox jumps over the lazy dog and then keeps running all the way to the end of the slide and beyond"
 
-  # ── Many bullets (overflow below the slide bottom) ───────────────────────
+  # ── Many bullets: more than one slide holds, continued on a second ─────
 
   - title: Too Many Bullets
     bullets:
@@ -36,6 +36,9 @@ slides:
       - Bullet six
       - Bullet seven
       - Bullet eight
+
+  - title: Too Many Bullets (cont.)
+    bullets:
       - Bullet nine
       - Bullet ten
       - Bullet eleven

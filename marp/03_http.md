@@ -90,6 +90,13 @@ $ curl -v http://example.com/
 | Authorization | Authentication | `Bearer eyJhbG...` |
 | Cache-Control | Caching rules | `max-age=3600, public` |
 | Cookie / Set-Cookie | Session state | `session_id=abc123` |
+
+---
+
+## Important HTTP Headers (cont.)
+
+| Header | Purpose | Example |
+|--------|---------|---------|
 | Accept | Client's preferred formats | `text/html, application/json` |
 | ETag / If-None-Match | Conditional requests | `"v1.2.3"` |
 | Content-Encoding | Compression | `gzip` |

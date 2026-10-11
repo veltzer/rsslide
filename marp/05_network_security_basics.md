@@ -102,6 +102,11 @@ TLS combines symmetric and asymmetric encryption for the best of both worlds:
 - **TLS** (Transport Layer Security): successor to SSL, current version is TLS 1.3
 - Provides: **confidentiality** (encryption), **integrity** (MAC), **authentication** (certificates)
 
+
+---
+
+## TLS/SSL Versions
+
 | Version | Year | Status |
 |---------|------|--------|
 | SSL 2.0 | 1995 | Deprecated, insecure |
@@ -110,6 +115,11 @@ TLS combines symmetric and asymmetric encryption for the best of both worlds:
 | TLS 1.1 | 2006 | Deprecated |
 | TLS 1.2 | 2008 | Widely used, still secure |
 | TLS 1.3 | 2018 | Recommended, fastest |
+
+
+---
+
+## TLS/SSL: Checking a Server
 
 ```bash
 # Check which TLS versions a server supports
@@ -499,6 +509,11 @@ WireGuard is a modern, high-performance VPN protocol with a minimal codebase.
 | Configuration | Simple | Complex |
 | Key exchange | Static public keys | IKE negotiation |
 | Roaming | Built-in | Complex |
+
+
+---
+
+## WireGuard VPN: Setup
 
 ```bash
 # Install WireGuard

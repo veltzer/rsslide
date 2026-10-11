@@ -35,7 +35,7 @@ Short body.
 
 ---
 
-<!-- Many bullets (overflow below the slide bottom) -->
+<!-- Many bullets: more than one slide holds, so they continue on a second -->
 
 ## Too Many Bullets
 
@@ -47,6 +47,11 @@ Short body.
 - Bullet six
 - Bullet seven
 - Bullet eight
+
+---
+
+## Too Many Bullets (cont.)
+
 - Bullet nine
 - Bullet ten
 - Bullet eleven

@@ -9,17 +9,12 @@ Findings from a code scan on 2026-10-04.
 
 ## Medium
 
-- `README.md:100` - says PDF is produced "via `printpdf`" and lists `printpdf` and `tera` under Key dependencies (`README.md:125-126`); the code uses `krilla`/`krilla-svg`/`usvg` (`Cargo.toml:15-17`) and no `printpdf`; update the Output formats, Architecture and dependency tables.
+- `README.md` (Output formats, Key dependencies) - says PDF is produced "via `printpdf`" and lists `printpdf` and `tera` under Key dependencies; the code uses `krilla`/`krilla-svg`/`usvg` (`Cargo.toml:15-17`) and no `printpdf`; update the Output formats, Architecture and dependency tables.
 - `Cargo.toml:19` - `tera` and `zip` (`Cargo.toml:20`) are declared but never used anywhere in `src/` (HTML and PPTX export are stubs); drop them until the exporters that need them land.
 - `Cargo.toml:18` - `serde_yaml` 0.9 is deprecated/unmaintained upstream; migrate to a maintained YAML crate (e.g. `serde_yml` / `serde_norway`).
-- `src/exporter/pdf.rs:467` - `let _ = surface.draw_svg(...)` discards the render result, and the `if let Some(size)` at line 466 silently skips drawing on a zero-sized SVG; both contradict the "never silently skip" rule in `CLAUDE.md:7`; propagate an error instead.
-- `src/exporter/pdf.rs:392` - an unrecognised code `language` silently falls back to plain text, and `highlight_line` errors are swallowed with `unwrap_or_default()` at line 398; fail hard with the offending language/line per `CLAUDE.md:9`.
-- `src/exporter/pdf.rs:160` - unknown `valign` values fall through `_ =>` to top, and unknown `align` values fall through to left in `text_x` (`src/exporter/pdf.rs:823`, even asserted by the test at line 896); validate these enums at parse time (or make them serde enums) and reject bad values.
+- `src/exporter/pdf.rs` (`code_block`) - an unrecognised code `language` silently falls back to plain text (as highlight.js does in marp); the marp decks use `console`, `http`, `misc`, `nginx` and `protobuf`, which syntect's default syntaxes lack, so failing hard needs those syntaxes bundled first.
 
 ## Low
 
-- `README.md:137` - links to `docs/code-highlighting.md`, but the file lives at `doc/code-highlighting.md`; fix the link.
-- `doc/code-highlighting.md:73` - still documents the old `printpdf` implementation (`printpdf = { version = "0.7", features = ["svg"] }`, lines 68, 190, 199); update to the current krilla/usvg pipeline or delete.
-- `README.md:153` - the PDF support table marks `image` as "planned", but SVG images are rendered (`src/exporter/pdf.rs:265`); mark it as supported (SVG only).
-- `src/config.rs:327` - doc comment says the explicit path comes from `--theme`; the flag is `--config` (`src/main.rs:47`).
+- `doc/code-highlighting.md` - documents the old `printpdf` implementation with fixed mm/pt constants and Courier advance estimates; the current pipeline (krilla, rustybuzz-measured text, em-based config, bundled GitHub theme) is summarised in README's "PDF rendering"; rewrite or delete.
 - `scripts/yaml2pdf.sh:6` - unreferenced leftover wrapper (rsconstruct calls `rsslide generate` directly, `rsconstruct.toml:1-8`) that shells out via `cargo run`; delete it.

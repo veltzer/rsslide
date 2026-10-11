@@ -64,6 +64,13 @@ There are 13 logical root server addresses (A through M), but hundreds of physic
 | D | University of Maryland | College Park |
 | E | NASA Ames | Mountain View |
 | F | ISC | Distributed (100+) |
+
+---
+
+## DNS Root Servers (cont.)
+
+| Letter | Operator | Locations |
+|--------|----------|-----------|
 | J | Verisign | Distributed (100+) |
 | K | RIPE NCC | Distributed |
 | L | ICANN | Distributed |
@@ -90,6 +97,13 @@ DNS stores various types of records, each serving a different purpose.
 | CNAME | Canonical name (alias) | www.example.com → example.com |
 | MX | Mail exchange | example.com → mail.example.com |
 | TXT | Text data | SPF, DKIM, domain verification |
+
+---
+
+## DNS Record Types Overview (cont.)
+
+| Record Type | Purpose | Example |
+|-------------|---------|---------|
 | NS | Name server | example.com → ns1.example.com |
 | SOA | Start of authority | Zone metadata |
 | PTR | Reverse DNS | IP → domain name |
@@ -192,26 +206,28 @@ TXT records hold arbitrary text data. Widely used for domain verification and em
 
 **Common uses:**
 
-1. **SPF** (Sender Policy Framework) -- specifies which servers can send email for your domain:
+1. **SPF** (Sender Policy Framework) -- specifies which servers can send email for your domain
+1. **DKIM** (DomainKeys Identified Mail) -- email authentication via cryptographic signatures
+
 ```bash
 $ dig example.com TXT +short
 "v=spf1 include:_spf.google.com ~all"
-```
 
-1. **DKIM** (DomainKeys Identified Mail) -- email authentication via cryptographic signatures:
-```bash
 $ dig google._domainkey.example.com TXT +short
 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA..."
 ```
 
-1. **DMARC** -- policy for handling email that fails SPF/DKIM:
+---
+
+## TXT Records (cont.)
+
+1. **DMARC** -- policy for handling email that fails SPF/DKIM
+1. **Domain verification** (Google, Microsoft, Let's Encrypt)
+
 ```bash
 $ dig _dmarc.example.com TXT +short
 "v=DMARC1; p=reject; rua=mailto:dmarc@example.com"
-```
 
-1. **Domain verification** (Google, Microsoft, Let's Encrypt):
-```bash
 $ dig example.com TXT +short
 "google-site-verification=abc123..."
 ```
@@ -253,6 +269,11 @@ example.com.  3600  IN  SOA  ns1.example.com. admin.example.com. (
                             86400       ; Minimum TTL (1 day)
                             )
 ```
+
+
+---
+
+## SOA Record (cont.)
 
 | Field | Meaning |
 |-------|---------|
@@ -308,6 +329,11 @@ _sip._tcp.example.com. 3600 IN SRV 10 60 5060 sip1.example.com.
 _sip._tcp.example.com. 3600 IN SRV 10 40 5060 sip2.example.com.
 _sip._tcp.example.com. 3600 IN SRV 20 0  5060 sip3.example.com.
 ```
+
+
+---
+
+## SRV Records (cont.)
 
 | Field | Meaning |
 |-------|---------|
@@ -392,6 +418,11 @@ example.com.        3600    IN    A    93.184.216.34
                     TTL = 3600 seconds (1 hour)
 ```
 
+
+---
+
+## DNS Caching and TTL (cont.)
+
 **TTL trade-offs:**
 
 | Short TTL (60-300s) | Long TTL (3600-86400s) |
@@ -400,6 +431,11 @@ example.com.        3600    IN    A    93.184.216.34
 | Higher DNS query volume | Faster resolution (cached) |
 | Good for failover scenarios | Changes take longer to propagate |
 | Useful before migrations | Better for stable services |
+
+
+---
+
+## DNS Caching and TTL: Flushing Caches
 
 **Caching layers:**
 1. Browser cache (Chrome: `chrome://net-internals/#dns`)
@@ -459,6 +495,11 @@ search example.com corp.example.com  # Search domains
 options timeout:2 attempts:3 rotate  # Options
 ```
 
+
+---
+
+## Configuring DNS on Linux (cont.)
+
 | Directive | Purpose |
 |-----------|---------|
 | nameserver | IP of DNS resolver (max 3) |
@@ -467,6 +508,11 @@ options timeout:2 attempts:3 rotate  # Options
 | options timeout:N | Query timeout in seconds |
 | options attempts:N | Number of retries |
 | options rotate | Round-robin among nameservers |
+
+
+---
+
+## Configuring DNS on Linux: Resolution Order
 
 ### /etc/nsswitch.conf
 
@@ -651,13 +697,21 @@ Traditional DNS queries are sent in plaintext over UDP port 53, allowing eavesdr
 | Blockable | Easily | Moderate | Hard (same as HTTPS) |
 | Standard | RFC 1035 | RFC 7858 | RFC 8484 |
 
+
+---
+
+## DNS over HTTPS and DNS over TLS: Providers
+
 **Popular DoH/DoT providers:**
 
-| Provider | DoH URL | DoT Server |
-|----------|---------|------------|
-| Google | https://dns.google/dns-query | dns.google |
-| Cloudflare | https://cloudflare-dns.com/dns-query | 1dot1dot1dot1.cloudflare-dns.com |
-| Quad9 | https://dns.quad9.net/dns-query | dns.quad9.net |
+- **Google** -- DoH: `https://dns.google/dns-query` -- DoT: `dns.google`
+- **Cloudflare** -- DoH: `https://cloudflare-dns.com/dns-query` -- DoT: `1dot1dot1dot1.cloudflare-dns.com`
+- **Quad9** -- DoH: `https://dns.quad9.net/dns-query` -- DoT: `dns.quad9.net`
+
+
+---
+
+## DNS over HTTPS and DNS over TLS: Setup
 
 ```bash
 # Test DoH with curl
@@ -817,9 +871,21 @@ Used by CDNs (Cloudflare, AWS Route53, Akamai) for latency-based routing.
 | DNS Spoofing | Forged responses redirect users | DNSSEC |
 | DNS Cache Poisoning | Corrupt resolver cache | DNSSEC, source port randomization |
 | DNS Amplification DDoS | Abuse open resolvers for DDoS | Rate limiting, response rate limiting |
+
+---
+
+## DNS Security Threats: More Attacks
+
+| Attack | Description | Mitigation |
+|--------|-------------|------------|
 | DNS Tunneling | Exfiltrate data over DNS queries | Monitor unusual query patterns |
 | Domain Hijacking | Unauthorized domain transfer | Registrar lock, 2FA |
 | Typosquatting | Register similar domain names | Monitor similar domains |
+
+
+---
+
+## DNS Security Threats (cont.)
 
 ```bash
 # Check for open resolver (should NOT respond to external queries)
@@ -957,11 +1023,21 @@ $ cat /etc/hosts
 1. **Implement DNSSEC** for zones you control
 1. **Monitor DNS health**: check resolution times, error rates
 1. **Use DNS over HTTPS/TLS** for privacy on client devices
+
+---
+
+## DNS Best Practices (cont.)
+
 1. **Keep SOA serial numbers** updated when changing zone files
 1. **Avoid CNAME at zone apex** -- use A/AAAA records instead
 1. **Document your DNS records** -- maintain a record of what each entry is for
 1. **Use separate DNS providers** for redundancy (multi-provider DNS)
 1. **Test changes** with `dig` before and after applying them
+
+
+---
+
+## DNS Best Practices: Health Check Script
 
 ```bash
 # Quick DNS health check script

@@ -15,6 +15,11 @@ set -euo pipefail
 # rsconstruct binary lands, and the Build step's cargo creator reuses these
 # artifacts. Test job only: the release build job never runs the decks.
 if [[ -z "${TARGET:-}" ]]; then
+	# The fonts rsslide's default config renders with (marp's look): Noto
+	# Sans regular/italic (fonts-noto-core), its semibold faces
+	# (fonts-noto-extra) and Liberation Mono (fonts-liberation).
+	sudo apt-get -o Acquire::Retries=3 update
+	sudo apt-get -o Acquire::Retries=3 install -y fonts-noto-core fonts-noto-extra fonts-liberation
 	cargo build
 	cp target/debug/rsslide "${CARGO_HOME:-${HOME}/.cargo}/bin/rsslide"
 fi

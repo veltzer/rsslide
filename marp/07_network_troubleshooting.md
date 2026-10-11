@@ -347,6 +347,8 @@ $ sudo tcpdump -i eth0 -nn 'tcp[tcpflags] & (tcp-syn|tcp-fin) != 0'
 
 ## Reading tcpdump Output
 
+The capture below shows a TCP handshake (SYN, SYN-ACK, ACK), then data exchange (PSH-ACK).
+
 ```console
 $ sudo tcpdump -i eth0 -nn port 80
 
@@ -358,6 +360,11 @@ $ sudo tcpdump -i eth0 -nn port 80
 15:30:01.168000 IP 93.184.216.34.80 > 10.0.0.5.54321: Flags [P.], seq 2001:3501, ack 1201
 ```
 
+
+---
+
+## Reading tcpdump Output: TCP Flags
+
 **TCP Flag meanings:**
 | Flag | Symbol | Meaning |
 |------|--------|---------|
@@ -367,8 +374,6 @@ $ sudo tcpdump -i eth0 -nn port 80
 | PSH-ACK | [P.] | Data push with ack |
 | FIN | [F] | Connection termination |
 | RST | [R] | Connection reset |
-
-The sequence above shows: TCP handshake (SYN, SYN-ACK, ACK), then data exchange (PSH-ACK).
 
 ---
 
@@ -764,6 +769,13 @@ $ sudo ethtool --test eth0
 | Can I reach internet? | `ping -c 3 8.8.8.8` |
 | Does DNS work? | `dig example.com` |
 | What is listening? | `ss -tlnp` |
+
+---
+
+## Quick Reference: Troubleshooting Commands (cont.)
+
+| Problem | Command |
+|---------|---------|
 | Is port open remotely? | `nc -zv host port` |
 | Where do packets go? | `traceroute host` |
 | Sustained test | `mtr -r -c 100 host` |
@@ -782,6 +794,11 @@ $ sudo ethtool --test eth0
 - **ping** tests basic connectivity; interpret results carefully (timeouts vs resets)
 - **traceroute/mtr** reveal the network path and where problems occur
 - **tcpdump** captures raw packets for deep analysis
+
+---
+
+## Review: Network Troubleshooting Key Concepts (cont.)
+
 - **Wireshark** provides graphical packet analysis with powerful filters
 - **ss** shows socket state, replacing netstat
 - Common issues: DNS misconfiguration, firewall drops, MTU mismatches, routing problems

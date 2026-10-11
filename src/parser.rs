@@ -9,6 +9,7 @@ pub fn parse(input: &str) -> Result<Presentation> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::{Align, TableAlign, VAlign};
 
     #[test]
     fn parse_minimal_presentation() {
@@ -71,10 +72,27 @@ slides:
 "#;
         let p = parse(yaml).unwrap();
         let s = &p.slides[0];
-        assert_eq!(s.align.as_deref(), Some("center"));
-        assert_eq!(s.title_align.as_deref(), Some("right"));
-        assert_eq!(s.content_align.as_deref(), Some("left"));
-        assert_eq!(s.valign.as_deref(), Some("middle"));
+        assert_eq!(s.align, Some(Align::Center));
+        assert_eq!(s.title_align, Some(Align::Right));
+        assert_eq!(s.content_align, Some(Align::Left));
+        assert_eq!(s.valign, Some(VAlign::Middle));
+    }
+
+    #[test]
+    fn parse_rejects_unknown_align() {
+        let yaml = "slides:\n  - title: T\n    align: centre\n";
+        assert!(parse(yaml).is_err());
+        let yaml = "slides:\n  - title: T\n    valign: center\n";
+        assert!(parse(yaml).is_err());
+    }
+
+    #[test]
+    fn parse_title_level_defaults_to_one_and_is_validated() {
+        let p = parse("slides:\n  - title: T\n").unwrap();
+        assert_eq!(p.slides[0].title_level, 1);
+        let p = parse("slides:\n  - title: T\n    title_level: 2\n").unwrap();
+        assert_eq!(p.slides[0].title_level, 2);
+        assert!(parse("slides:\n  - title: T\n    title_level: 7\n").is_err());
     }
 
     #[test]
@@ -139,7 +157,7 @@ slides:
         let t = p.slides[0].table.as_ref().unwrap();
         assert_eq!(t.headers, vec!["A".to_string(), "B".to_string()]);
         assert_eq!(t.rows.len(), 2);
-        assert_eq!(t.aligns.len(), 2); // defaults to all-left
+        assert_eq!(t.aligns, vec![TableAlign::Auto, TableAlign::Auto]);
     }
 
     #[test]

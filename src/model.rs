@@ -12,6 +12,13 @@ pub struct Presentation {
 #[derive(Debug, Deserialize)]
 pub struct Slide {
     pub title: Option<String>,
+    /// Markdown heading depth of the title: 1 for `#` (the default), 2 for
+    /// `##`, and so on. Selects the heading style, as marp does.
+    #[serde(
+        default = "default_title_level",
+        deserialize_with = "deserialize_level"
+    )]
+    pub title_level: u8,
     /// Zero or more sub-headings rendered stacked below the title rule, in
     /// declaration order. The YAML key may be `subtitle:` (one item) or
     /// `subtitles:` (list); each item is either a bare string (level 2) or
@@ -33,15 +40,52 @@ pub struct Slide {
     pub class: Option<String>,
     #[allow(dead_code)]
     pub background: Option<String>,
-    pub align: Option<String>, // "left" (default) | "center" | "right" — applies to all elements
-    pub title_align: Option<String>, // overrides align for the title only
-    pub content_align: Option<String>, // overrides align for content text and bullets
-    pub valign: Option<String>, // "top" (default) | "middle" | "bottom"
+    /// Horizontal alignment of every element. Defaults to left.
+    pub align: Option<Align>,
+    /// Overrides `align` for the title only.
+    pub title_align: Option<Align>,
+    /// Overrides `align` for subtitles, content text and bullets.
+    pub content_align: Option<Align>,
+    /// Vertical placement of the content block. Defaults to the configured
+    /// `slide.valign` (middle, like marp).
+    pub valign: Option<VAlign>,
     pub columns: Option<Vec<Column>>,
     /// When true, render bullets before columns instead of after.
     #[serde(default)]
     pub bullets_first: bool,
     pub table: Option<Table>,
+}
+
+/// Horizontal alignment of a slide element.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Align {
+    Left,
+    Center,
+    Right,
+}
+
+/// Vertical placement of a slide's content block.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum VAlign {
+    Top,
+    Middle,
+    Bottom,
+}
+
+fn default_title_level() -> u8 {
+    1
+}
+
+fn deserialize_level<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
+    let level = u8::deserialize(d)?;
+    if !(1..=6).contains(&level) {
+        return Err(serde::de::Error::custom(format!(
+            "title_level must be in 1..=6, got {level}"
+        )));
+    }
+    Ok(level)
 }
 
 #[derive(Debug, Deserialize)]
@@ -100,9 +144,12 @@ impl<'de> Deserialize<'de> for Subtitle {
     }
 }
 
-/// Per-column horizontal alignment for a table cell.
+/// Per-column horizontal alignment for a table cell. `Auto` is a GFM
+/// column with no alignment colons: the header is centered (the browser
+/// default for `<th>`) and body cells are left-aligned.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TableAlign {
+    Auto,
     Left,
     Center,
     Right,
@@ -112,11 +159,12 @@ impl<'de> Deserialize<'de> for TableAlign {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let s = String::deserialize(d)?;
         match s.as_str() {
+            "auto" => Ok(TableAlign::Auto),
             "left" => Ok(TableAlign::Left),
             "center" => Ok(TableAlign::Center),
             "right" => Ok(TableAlign::Right),
             other => Err(serde::de::Error::custom(format!(
-                "table align must be one of left|center|right, got {other:?}"
+                "table align must be one of auto|left|center|right, got {other:?}"
             ))),
         }
     }
@@ -128,7 +176,7 @@ impl<'de> Deserialize<'de> for TableAlign {
 pub struct Table {
     pub headers: Vec<String>,
     pub rows: Vec<Vec<String>>,
-    /// Per-column alignment. Length must equal `headers.len()`. Defaults to all-left.
+    /// Per-column alignment. Length must equal `headers.len()`. Defaults to all-auto.
     pub aligns: Vec<TableAlign>,
 }
 
@@ -168,7 +216,7 @@ impl<'de> Deserialize<'de> for Table {
                 }
                 a
             }
-            None => vec![TableAlign::Left; n],
+            None => vec![TableAlign::Auto; n],
         };
         Ok(Table {
             headers: raw.headers,

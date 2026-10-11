@@ -11,13 +11,27 @@ pub struct OutPresentation {
 #[derive(Debug, Default)]
 pub struct OutSlide {
     pub title: Option<String>,
+    /// Heading depth of the title (`#` = 1, `##` = 2, ...).
+    pub title_level: u8,
     /// One per non-title `##..######` heading, in source order.
     pub subtitles: Vec<(String, u8)>,
     pub content_lines: Vec<String>,
     pub bullets: Vec<String>,
     pub code: Option<OutCode>,
     pub image: Option<String>,
+    /// Inline `<svg>...</svg>` markup.
+    pub svg: Option<String>,
+    /// From a `<div class="columns">` block: one per `### header`.
+    pub columns: Vec<OutColumn>,
+    /// True when the slide's bullets come before its columns.
+    pub bullets_first: bool,
     pub table: Option<OutTable>,
+}
+
+#[derive(Debug, Default)]
+pub struct OutColumn {
+    pub header: Option<String>,
+    pub bullets: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -30,7 +44,7 @@ pub struct OutCode {
 pub struct OutTable {
     pub headers: Vec<String>,
     pub rows: Vec<Vec<String>>,
-    /// One per column: "left" | "center" | "right".
+    /// One per column: "auto" | "left" | "center" | "right".
     pub aligns: Vec<&'static str>,
 }
 
@@ -182,9 +196,40 @@ fn parse_slide(block: String) -> Result<OutSlide> {
             continue;
         }
 
+        // Raw HTML. marp decks use three idioms, each mapped onto the
+        // model; anything else is rejected rather than leaked as text.
+        if trimmed.starts_with('<') {
+            flush_paragraph(&mut paragraph, &mut slide.content_lines);
+            if trimmed.starts_with("<style") {
+                // The stylesheet only defines the `.columns` grid, which
+                // the `columns` field below replaces; rsslide applies no
+                // custom CSS.
+                i = skip_past(&lines, i, "</style>")?;
+            } else if trimmed.starts_with("<svg") {
+                if slide.svg.is_some() || slide.image.is_some() {
+                    return Err(anyhow!("more than one image or <svg> on a slide"));
+                }
+                let end = skip_past(&lines, i, "</svg>")?;
+                slide.svg = Some(lines[i..end].join("\n"));
+                i = end;
+            } else if trimmed == "<div class=\"columns\">" {
+                if !slide.columns.is_empty() {
+                    return Err(anyhow!("more than one <div class=\"columns\"> on a slide"));
+                }
+                let end = skip_past_div(&lines, i)?;
+                slide.columns = parse_columns(&lines[i + 1..end - 1])?;
+                slide.bullets_first = !slide.bullets.is_empty();
+                i = end;
+            } else {
+                return Err(anyhow!("unsupported raw HTML: {trimmed:?}"));
+            }
+            continue;
+        }
+
         if let Some((level, heading)) = parse_heading(trimmed) {
             if slide.title.is_none() {
                 slide.title = Some(heading.to_string());
+                slide.title_level = level;
             } else if level >= 2 {
                 slide.subtitles.push((heading.to_string(), level));
             } else {
@@ -231,7 +276,14 @@ fn parse_slide(block: String) -> Result<OutSlide> {
         {
             flush_paragraph(&mut paragraph, &mut slide.content_lines);
             let headers = split_table_row(trimmed);
-            if headers.len() == aligns.len() && slide.table.is_none() {
+            if headers.len() != aligns.len() {
+                return Err(anyhow!(
+                    "table header {trimmed:?} has {} cells but its separator row has {}",
+                    headers.len(),
+                    aligns.len()
+                ));
+            }
+            if slide.table.is_none() {
                 let mut rows: Vec<Vec<String>> = Vec::new();
                 let mut j = i + 2;
                 while j < lines.len() {
@@ -241,7 +293,11 @@ fn parse_slide(block: String) -> Result<OutSlide> {
                     }
                     let cells = split_table_row(r);
                     if cells.len() != headers.len() {
-                        break;
+                        return Err(anyhow!(
+                            "table row {r:?} has {} cells but the header has {}",
+                            cells.len(),
+                            headers.len()
+                        ));
                     }
                     rows.push(cells);
                     j += 1;
@@ -280,6 +336,79 @@ fn parse_slide(block: String) -> Result<OutSlide> {
     Ok(slide)
 }
 
+/// Index of the line after the first line (from `start`) containing
+/// `closing`.
+fn skip_past(lines: &[&str], start: usize, closing: &str) -> Result<usize> {
+    (start..lines.len())
+        .find(|&j| lines[j].contains(closing))
+        .map(|j| j + 1)
+        .ok_or_else(|| anyhow!("{:?} is never closed by {closing}", lines[start].trim()))
+}
+
+/// Index of the line after the `</div>` that closes the `<div` on line
+/// `start`, counting nested divs.
+fn skip_past_div(lines: &[&str], start: usize) -> Result<usize> {
+    let mut depth = 0usize;
+    for (j, line) in lines.iter().enumerate().skip(start) {
+        depth += line.matches("<div").count();
+        let closes = line.matches("</div>").count();
+        if closes > depth {
+            return Err(anyhow!("unbalanced </div> on line {:?}", line.trim()));
+        }
+        depth -= closes;
+        if depth == 0 {
+            return Ok(j + 1);
+        }
+    }
+    Err(anyhow!(
+        "{:?} is never closed by </div>",
+        lines[start].trim()
+    ))
+}
+
+/// The inside of a `<div class="columns">`. Each column is either a
+/// `### header` line followed by bullets, or a bare `<div>` ... `</div>`
+/// holding bullets (a column without a header).
+fn parse_columns(lines: &[&str]) -> Result<Vec<OutColumn>> {
+    let mut columns: Vec<OutColumn> = Vec::new();
+    let mut in_bare_div = false;
+    for line in lines {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if trimmed == "<div>" && !in_bare_div {
+            in_bare_div = true;
+            columns.push(OutColumn::default());
+        } else if trimmed == "</div>" && in_bare_div {
+            in_bare_div = false;
+        } else if let Some((_, heading)) = parse_heading(trimmed)
+            && !in_bare_div
+        {
+            columns.push(OutColumn {
+                header: Some(heading.to_string()),
+                bullets: Vec::new(),
+            });
+        } else if let Some(bullet) = strip_bullet(trimmed) {
+            let column = columns
+                .last_mut()
+                .ok_or_else(|| anyhow!("bullet {bullet:?} before the first column heading"))?;
+            column.bullets.push(bullet.to_string());
+        } else {
+            return Err(anyhow!(
+                "unsupported line inside <div class=\"columns\">: {trimmed:?}"
+            ));
+        }
+    }
+    if in_bare_div {
+        return Err(anyhow!("unclosed <div> inside <div class=\"columns\">"));
+    }
+    if columns.is_empty() {
+        return Err(anyhow!("<div class=\"columns\"> has no columns"));
+    }
+    Ok(columns)
+}
+
 fn is_table_row(line: &str) -> bool {
     line.starts_with('|') && line.ends_with('|') && line.len() >= 2
 }
@@ -290,9 +419,8 @@ fn parse_table_separator(line: &str) -> Option<Vec<&'static str>> {
     if !is_table_row(line) {
         return None;
     }
-    let inner = &line[1..line.len() - 1];
     let mut aligns: Vec<&'static str> = Vec::new();
-    for cell in inner.split('|') {
+    for cell in split_table_row(line) {
         let c = cell.trim();
         if c.is_empty() {
             return None;
@@ -306,7 +434,8 @@ fn parse_table_separator(line: &str) -> Option<Vec<&'static str>> {
         let align = match (left, right) {
             (true, true) => "center",
             (false, true) => "right",
-            _ => "left",
+            (true, false) => "left",
+            (false, false) => "auto",
         };
         aligns.push(align);
     }
@@ -317,9 +446,25 @@ fn parse_table_separator(line: &str) -> Option<Vec<&'static str>> {
     }
 }
 
+/// The cells of a `| a | b |` row, trimmed. A `\|` is a literal pipe
+/// inside a cell (GFM), not a cell boundary.
 fn split_table_row(line: &str) -> Vec<String> {
     let inner = &line[1..line.len() - 1];
-    inner.split('|').map(|c| c.trim().to_string()).collect()
+    let mut cells = Vec::new();
+    let mut cell = String::new();
+    let mut chars = inner.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' if chars.peek() == Some(&'|') => {
+                cell.push('|');
+                chars.next();
+            }
+            '|' => cells.push(std::mem::take(&mut cell).trim().to_string()),
+            _ => cell.push(c),
+        }
+    }
+    cells.push(cell.trim().to_string());
+    cells
 }
 
 fn flush_paragraph(paragraph: &mut Vec<String>, out: &mut Vec<String>) {
@@ -404,6 +549,9 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
     if let Some(title) = &slide.title {
         out.push_str(prefix(&mut first));
         out.push_str(&format!("title: {}\n", scalar(title)));
+        if slide.title_level != 1 {
+            out.push_str(&format!("    title_level: {}\n", slide.title_level));
+        }
     }
     if !slide.subtitles.is_empty() {
         out.push_str(prefix(&mut first));
@@ -468,6 +616,30 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
         out.push_str(&scalar(image));
         out.push('\n');
     }
+    if let Some(svg) = &slide.svg {
+        out.push_str(prefix(&mut first));
+        out.push_str("svg: |-\n");
+        push_block_lines(out, &svg.lines().map(str::to_string).collect::<Vec<_>>());
+    }
+    if !slide.columns.is_empty() {
+        out.push_str(prefix(&mut first));
+        out.push_str("columns:\n");
+        for col in &slide.columns {
+            match &col.header {
+                Some(h) => out.push_str(&format!(
+                    "      - header: {}\n        bullets:\n",
+                    scalar(h)
+                )),
+                None => out.push_str("      - bullets:\n"),
+            }
+            for b in &col.bullets {
+                out.push_str(&format!("          - {}\n", scalar(b)));
+            }
+        }
+        if slide.bullets_first {
+            out.push_str("    bullets_first: true\n");
+        }
+    }
     if let Some(table) = &slide.table {
         out.push_str(prefix(&mut first));
         out.push_str("table:\n");
@@ -477,7 +649,7 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
             out.push_str(&scalar(h));
             out.push('\n');
         }
-        if table.aligns.iter().any(|a| *a != "left") {
+        if table.aligns.iter().any(|a| *a != "auto") {
             out.push_str("      aligns:\n");
             for a in &table.aligns {
                 out.push_str("        - ");
@@ -534,6 +706,15 @@ fn needs_block_scalar(s: &str) -> bool {
     s.len() > 70 || s.contains('\n')
 }
 
+/// Plain scalars that YAML (1.1, as yamllint reads it) takes for a bool or
+/// null rather than a string, in any case.
+fn is_yaml_keyword(s: &str) -> bool {
+    const WORDS: [&str; 12] = [
+        "true", "false", "yes", "no", "on", "off", "y", "n", "null", "~", "none", "nil",
+    ];
+    WORDS.iter().any(|w| s.eq_ignore_ascii_case(w))
+}
+
 fn scalar(s: &str) -> String {
     if s.is_empty() {
         return "''".into();
@@ -563,11 +744,7 @@ fn scalar(s: &str) -> String {
     }) || s.contains(": ")
         || s.contains(" #")
         || s.ends_with(':')
-        || s == "true"
-        || s == "false"
-        || s == "null"
-        || s == "yes"
-        || s == "no"
+        || is_yaml_keyword(s)
         || s.parse::<f64>().is_ok();
     if needs_quote {
         format!("'{}'", s.replace('\'', "''"))
@@ -704,7 +881,7 @@ mod tests {
         assert_eq!(t.headers, vec!["A".to_string(), "B".to_string()]);
         assert_eq!(t.rows.len(), 2);
         assert_eq!(t.rows[0], vec!["1".to_string(), "2".to_string()]);
-        assert_eq!(t.aligns, vec!["left", "left"]);
+        assert_eq!(t.aligns, vec!["auto", "auto"]);
     }
 
     #[test]
@@ -734,6 +911,93 @@ mod tests {
         assert!(out.contains("aligns:"));
         assert!(out.contains("- center"));
         assert!(out.contains("- right"));
+    }
+
+    #[test]
+    fn yaml_emits_title_level_only_when_not_one() {
+        let out = import("## Sub-level title\n").unwrap();
+        assert!(out.contains("title_level: 2"), "{out}");
+        let out = import("# Top-level title\n").unwrap();
+        assert!(!out.contains("title_level"), "{out}");
+    }
+
+    #[test]
+    fn escaped_pipe_stays_inside_its_cell() {
+        let md = "# T\n\n| Problem | Command |\n|---|---|\n| gateway? | `ip route \\| grep default` |\n| ip? | `ip addr` |\n";
+        let pres = parse_marp(md).unwrap();
+        let t = pres.slides[0].table.as_ref().unwrap();
+        assert_eq!(t.rows.len(), 2, "both rows stay in the table");
+        assert_eq!(t.rows[0][1], "`ip route | grep default`");
+        assert!(pres.slides[0].content_lines.is_empty());
+    }
+
+    #[test]
+    fn ragged_table_row_is_an_error() {
+        let md = "# T\n\n| A | B |\n|---|---|\n| 1 | 2 |\n| 3 | 4 | 5 |\n";
+        let err = parse_marp(md).unwrap_err().to_string();
+        assert!(err.contains("has 3 cells but the header has 2"), "{err}");
+    }
+
+    #[test]
+    fn style_block_is_skipped() {
+        let md = "<style>\n.columns { display: grid; }\n</style>\n\n# T\n";
+        let pres = parse_marp(md).unwrap();
+        assert!(pres.slides[0].content_lines.is_empty());
+        assert_eq!(pres.slides[0].title.as_deref(), Some("T"));
+    }
+
+    #[test]
+    fn inline_svg_becomes_svg_field() {
+        let md = "# T\n\n<svg viewBox=\"0 0 1 1\">\n<rect/>\n</svg>\n";
+        let out = import(md).unwrap();
+        assert!(out.contains("svg: |-\n      <svg viewBox"), "{out}");
+        assert!(!out.contains("content"), "{out}");
+    }
+
+    #[test]
+    fn columns_div_becomes_columns() {
+        let md = "# T\n\n- first\n\n<div class=\"columns\">\n\n### A\n\n- a1\n- a2\n\n### B\n\n- b1\n\n</div>\n";
+        let pres = parse_marp(md).unwrap();
+        let s = &pres.slides[0];
+        assert_eq!(s.columns.len(), 2);
+        assert_eq!(s.columns[0].header.as_deref(), Some("A"));
+        assert_eq!(s.columns[0].bullets, vec!["a1", "a2"]);
+        assert_eq!(s.columns[1].bullets, vec!["b1"]);
+        assert!(s.bullets_first);
+        let out = import(md).unwrap();
+        assert!(
+            out.contains("columns:\n      - header: A\n        bullets:\n          - a1\n"),
+            "{out}"
+        );
+        assert!(out.contains("bullets_first: true"), "{out}");
+        crate::parser::parse(&out).expect("emitted YAML parses");
+    }
+
+    #[test]
+    fn bare_div_columns_have_no_header() {
+        let md = "# T\n\n<div class=\"columns\">\n\n<div>\n\n- a\n\n</div>\n\n<div>\n\n- b\n\n</div>\n\n</div>\n\n- after\n";
+        let pres = parse_marp(md).unwrap();
+        let s = &pres.slides[0];
+        assert_eq!(s.columns.len(), 2);
+        assert!(s.columns[0].header.is_none());
+        assert_eq!(s.columns[1].bullets, vec!["b"]);
+        assert_eq!(s.bullets, vec!["after"]);
+        assert!(!s.bullets_first);
+        crate::parser::parse(&import(md).unwrap()).expect("emitted YAML parses");
+    }
+
+    #[test]
+    fn unsupported_html_is_an_error() {
+        assert!(parse_marp("# T\n\n<div class=\"other\">\n</div>\n").is_err());
+        assert!(parse_marp("# T\n\n<svg>\n").is_err());
+    }
+
+    #[test]
+    fn yaml_keywords_are_quoted() {
+        for word in ["Yes", "no", "ON", "Off", "True", "null", "~"] {
+            assert_eq!(scalar(word), format!("'{word}'"));
+        }
+        assert_eq!(scalar("Yesterday"), "Yesterday");
     }
 
     #[test]
