@@ -38,7 +38,8 @@ body  = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 code  = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 
 [theme]
-# A shared-themes checkout; lets a deck's `theme:` name a page palette.
+# A shared-themes checkout; lets a deck's `theme:` name a page palette. On a
+# dark palette, code uses `[code] dark_theme` (default base16-ocean.dark).
 # shared_themes = "shared/shared-themes"
 
 [colors]

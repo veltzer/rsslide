@@ -222,7 +222,9 @@ block was installed from a diagram theme gets that block swapped for the
 slide's, before rsslide resolves its `var()` references. A diagram without
 such a block keeps its own colours. With `shared_themes` set, a theme name
 that is neither a marp built-in nor a palette is an error; unset, theme
-names are ignored. The fonts are not part of a palette: point `[fonts]`
+names are ignored. On a dark palette code is highlighted with
+`[code] dark_theme` (base16-ocean.dark by default) and the language icons
+take the text colour. The fonts are not part of a palette: point `[fonts]`
 at the `.ttf` files under `shared-themes/fonts/` to match the sites'
 typefaces too.
 

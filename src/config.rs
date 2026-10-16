@@ -98,6 +98,9 @@ icon_inset_em = 0.3
 # Highlighting theme: "GitHub" (bundled; the colors marp uses) or any of
 # syntect's built-in themes, e.g. "InspiredGitHub" or "Solarized (light)".
 theme = "GitHub"
+# The theme used instead when the deck's page palette (see [theme]) has a
+# dark background, where a light theme's tokens would vanish.
+dark_theme = "base16-ocean.dark"
 
 [inline_code]
 # `code` spans inside text. Font size relative to the surrounding text;
@@ -331,6 +334,7 @@ pub struct Code {
     pub icon_size_em: f32,
     pub icon_inset_em: f32,
     pub theme: String,
+    pub dark_theme: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -533,6 +537,7 @@ impl Default for Code {
             icon_size_em: 1.2,
             icon_inset_em: 0.3,
             theme: "GitHub".into(),
+            dark_theme: "base16-ocean.dark".into(),
         }
     }
 }

@@ -114,6 +114,8 @@ pub struct Engine<'c> {
     fontdb: Arc<Database>,
     highlighter: Highlighter,
     theme: Theme,
+    /// The code theme for a dark page palette (`[code] dark_theme`).
+    dark_theme: Theme,
     /// The page palettes, when `[theme] shared_themes` is configured.
     shared: Option<SharedThemes>,
 }
@@ -126,11 +128,15 @@ impl<'c> Engine<'c> {
         )))
         .context("parsing the bundled GitHub code theme")?;
         theme_set.themes.insert("GitHub".into(), github);
-        let theme = theme_set.themes.remove(&cfg.code.theme).with_context(|| {
-            let mut known: Vec<&String> = theme_set.themes.keys().collect();
-            known.sort();
-            format!("unknown code theme {:?} (known: {known:?})", cfg.code.theme)
-        })?;
+        let take = |name: &str, what: &str| -> Result<Theme> {
+            theme_set.themes.get(name).cloned().with_context(|| {
+                let mut known: Vec<&String> = theme_set.themes.keys().collect();
+                known.sort();
+                format!("unknown {what} {name:?} (known: {known:?})")
+            })
+        };
+        let theme = take(&cfg.code.theme, "code theme")?;
+        let dark_theme = take(&cfg.code.dark_theme, "dark code theme")?;
         let bytes = FontBytes::read(&cfg.fonts)?;
         let fontdb = build_fontdb(bytes.regular(), bytes.mono(), &bytes.others())?;
         let shared = match &cfg.theme.shared_themes {
@@ -146,6 +152,7 @@ impl<'c> Engine<'c> {
             fontdb,
             highlighter: Highlighter::new()?,
             theme,
+            dark_theme,
             shared,
         })
     }
@@ -184,7 +191,10 @@ impl<'c> Engine<'c> {
                 ..SvgSettings::default()
             },
             highlighter: &self.highlighter,
-            theme: &self.theme,
+            theme: match palette {
+                Some(p) if p.is_dark() => &self.dark_theme,
+                _ => &self.theme,
+            },
             width,
             height,
             em: width * cfg.slide.font_size_ratio,
@@ -1434,7 +1444,7 @@ fn table_block(ctx: &Ctx, table: &Table, x0: f32, width: f32, align: Align) -> R
         let fill = if r >= 2 && r % 2 == 0 {
             cfg.colors.table_stripe
         } else {
-            Color(0xff, 0xff, 0xff)
+            cfg.colors.background
         };
         let mut cell_left = left;
         for (c, lines) in row.iter().enumerate() {
@@ -1520,6 +1530,16 @@ fn code_block(
     {
         let side = cfg.code.icon_size_em * em;
         let inset = cfg.code.icon_inset_em * em;
+        // The icons are monochrome and black; on a palette's page they take
+        // its text colour.
+        let tinted;
+        let icon = match ctx.palette {
+            Some(_) => {
+                tinted = crate::theme::tint_icon(icon, cfg.colors.text);
+                tinted.as_str()
+            }
+            None => icon,
+        };
         let tree = parse_svg(ctx, icon).with_context(|| format!("{lang} icon"))?;
         let (scale, w, h) = fit(&tree, side, side)?;
         ops.push(Op::Svg {

@@ -58,6 +58,14 @@ pub struct Palette {
 }
 
 impl Palette {
+    /// A dark page: relative luminance of the background below one half.
+    /// Decides the code theme and the tint of monochrome icons.
+    pub fn is_dark(&self) -> bool {
+        let Color(r, g, b) = self.colors.background;
+        let lum = 0.2126 * r as f32 + 0.7152 * g as f32 + 0.0722 * b as f32;
+        lum < 128.0
+    }
+
     /// The declarations the `palette-vars` block of a diagram installed from
     /// `diagram_theme` should carry under this palette, if a variant exists.
     pub fn diagram_vars(&self, diagram_theme: &str) -> Option<&[(String, String)]> {
@@ -283,6 +291,25 @@ pub fn retheme_svg(svg: &str, palette: &Palette) -> String {
     out
 }
 
+/// `#rrggbb` for a colour, as SVG attributes want it.
+pub fn hex(color: Color) -> String {
+    format!("#{:02x}{:02x}{:02x}", color.0, color.1, color.2)
+}
+
+/// A monochrome icon (no fill of its own, so black) given `color` as the
+/// fill of its root element, which its paths inherit.
+pub fn tint_icon(svg: &str, color: Color) -> String {
+    match svg.find("<svg") {
+        Some(at) => format!(
+            "{}<svg fill=\"{}\"{}",
+            &svg[..at],
+            hex(color),
+            &svg[at + 4..]
+        ),
+        None => svg.to_string(),
+    }
+}
+
 /// The value of `name="..."` in an opening tag.
 fn attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
     let key = format!(" {name}=\"");
@@ -309,6 +336,25 @@ mod tests {
             colors: Colors::default(),
             diagram_vars,
         }
+    }
+
+    #[test]
+    fn dark_palettes_are_told_by_their_background() {
+        let mut p = palette_with("flat", &[]);
+        p.colors.background = Color(0x0f, 0x11, 0x17);
+        assert!(p.is_dark());
+        p.colors.background = Color(0xfd, 0xf6, 0xe3);
+        assert!(!p.is_dark());
+    }
+
+    #[test]
+    fn icons_take_the_tint_on_their_root() {
+        let icon = "<svg role=\"img\" viewBox=\"0 0 24 24\"><path d=\"M0 0\"/></svg>";
+        assert_eq!(
+            tint_icon(icon, Color(0xe8, 0xea, 0xf0)),
+            "<svg fill=\"#e8eaf0\" role=\"img\" viewBox=\"0 0 24 24\"><path d=\"M0 0\"/></svg>"
+        );
+        assert_eq!(hex(Color(1, 2, 255)), "#0102ff");
     }
 
     #[test]
