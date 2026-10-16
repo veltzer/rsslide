@@ -208,8 +208,20 @@ mono = [
     "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
 ]
 
+[theme]
+# The fleet's shared-themes checkout (a git submodule, usually), holding
+# themes.json and diagram-themes.json. With it set, a deck whose front matter
+# names a page palette (`theme: midnight`) is rendered in that palette: the
+# colours below come from its tokens, the page background too, and every
+# diagram installed from a diagram theme follows with its palette variant.
+# marp's own theme names (default, gaia, uncover) keep the look below. A name
+# that is neither is an error. Unset, a theme name is ignored.
+# shared_themes = "shared/shared-themes"
+
 [colors]
 # Colors as CSS-style hex strings.
+# The page background; the slide is filled with it when it is not white.
+background             = "#ffffff"
 text                   = "#1f2328"
 h1                     = "#224466"
 h6                     = "#59636e"
@@ -242,6 +254,16 @@ pub struct Config {
     pub svg: Svg,
     pub fonts: Fonts,
     pub colors: Colors,
+    pub theme: ThemeCfg,
+}
+
+/// `[theme]`: where the fleet's page palettes live. See `theme.rs`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct ThemeCfg {
+    /// The shared-themes directory (themes.json, diagram-themes.json),
+    /// relative to the working directory. None: deck theme names are ignored.
+    pub shared_themes: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -390,6 +412,7 @@ pub struct FontFallback {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Colors {
+    pub background: Color,
     pub text: Color,
     pub h1: Color,
     pub h6: Color,
@@ -640,6 +663,7 @@ impl Default for FontFallback {
 impl Default for Colors {
     fn default() -> Self {
         Self {
+            background: Color(0xff, 0xff, 0xff),
             text: Color(0x1f, 0x23, 0x28),
             h1: Color(0x22, 0x44, 0x66),
             h6: Color(0x59, 0x63, 0x6e),

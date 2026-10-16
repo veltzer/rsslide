@@ -4,6 +4,7 @@ mod exporter;
 mod importer;
 mod model;
 mod parser;
+mod theme;
 mod utils;
 
 use anyhow::{Context, Result};

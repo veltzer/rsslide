@@ -194,8 +194,37 @@ slide is an error either way.
 
 ## Themes
 
-Built-in themes: `default`, `gaia`, `uncover`.
-Supply your own with `--theme-set my-theme.css`.
+marp's built-in theme names (`default`, `gaia`, `uncover`) mean the look
+rsslide reproduces, marp's `default`.
+
+A deck can instead name one of the fleet's page palettes, the ones the
+sites switch between (`azure`, `midnight`, `nord`, ...), and render in it:
+
+```yaml
+---
+theme: midnight
+---
+```
+
+That needs `[theme] shared_themes` in `rsslide.toml` pointing at a
+checkout of [shared-themes](https://github.com/veltzer/shared-themes):
+
+```toml
+[theme]
+shared_themes = "shared/shared-themes"
+```
+
+The palette's tokens become the slide colours (text, links, code boxes,
+table borders, pagination) and the page background, from `themes.json`.
+Diagrams follow: an SVG whose `<style id="palette-vars" data-theme="flat">`
+block was installed from a diagram theme gets that block swapped for the
+`flat-midnight` variant in `diagram-themes.json`, so its neutrals are the
+slide's, before rsslide resolves its `var()` references. A diagram without
+such a block keeps its own colours. With `shared_themes` set, a theme name
+that is neither a marp built-in nor a palette is an error; unset, theme
+names are ignored. The fonts are not part of a palette: point `[fonts]`
+at the `.ttf` files under `shared-themes/fonts/` to match the sites'
+typefaces too.
 
 ## Architecture
 
@@ -280,7 +309,7 @@ Some slide fields defined in the YAML schema are not yet rendered by the PDF exp
 | `image` / `svg` | ✅ rendered (SVG only; content width like marp, or `size = "fill"`) |
 | `class`      | 🔜 planned   |
 | `background` | ✅ rendered (split backgrounds: SVG, PNG, JPEG) |
-| `theme`      | 🔜 planned   |
+| `theme`      | ✅ rendered (marp built-ins keep the default look; a shared-themes palette recolours slides and diagrams, see Themes) |
 
 ## Roadmap
 

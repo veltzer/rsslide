@@ -20,6 +20,7 @@ use crate::model::{
     Align, Background, BackgroundSize, Column, Element, List, Presentation, Side, Slide, Table,
     TableAlign, VAlign,
 };
+use crate::theme::{Palette, SharedThemes};
 use anyhow::{Context, Result, bail};
 use krilla::Document;
 use krilla::color::rgb;
@@ -55,6 +56,9 @@ pub enum Overflow {
 /// Everything the layout code needs that is shared by all slides.
 struct Ctx<'a> {
     cfg: &'a Config,
+    /// The deck's page palette, when its theme names one: diagrams are
+    /// rethemed with it (the colours are already in `cfg.colors`).
+    palette: Option<&'a Palette>,
     fonts: &'a FontSet<'a>,
     fontdb: Arc<Database>,
     svg_settings: SvgSettings,
@@ -110,6 +114,8 @@ pub struct Engine<'c> {
     fontdb: Arc<Database>,
     highlighter: Highlighter,
     theme: Theme,
+    /// The page palettes, when `[theme] shared_themes` is configured.
+    shared: Option<SharedThemes>,
 }
 
 impl<'c> Engine<'c> {
@@ -127,12 +133,20 @@ impl<'c> Engine<'c> {
         })?;
         let bytes = FontBytes::read(&cfg.fonts)?;
         let fontdb = build_fontdb(bytes.regular(), bytes.mono(), &bytes.others())?;
+        let shared = match &cfg.theme.shared_themes {
+            Some(dir) => Some(
+                SharedThemes::load(dir)
+                    .with_context(|| format!("loading shared themes from {}", dir.display()))?,
+            ),
+            None => None,
+        };
         Ok(Self {
             cfg,
             bytes,
             fontdb,
             highlighter: Highlighter::new()?,
             theme,
+            shared,
         })
     }
 
@@ -150,13 +164,19 @@ impl<'c> Engine<'c> {
         Ok(warnings)
     }
 
-    /// The layout context over this deck's font handles.
-    fn ctx<'a>(&'a self, fonts: &'a FontSet<'a>) -> Ctx<'a> {
-        let cfg = self.cfg;
+    /// The layout context over this deck's font handles, for `cfg` (the
+    /// engine's configuration, or a copy coloured by the deck's palette).
+    fn ctx<'a>(
+        &'a self,
+        cfg: &'a Config,
+        palette: Option<&'a Palette>,
+        fonts: &'a FontSet<'a>,
+    ) -> Ctx<'a> {
         let width = cfg.slide.width_mm * PT_PER_MM;
         let height = cfg.slide.height_mm * PT_PER_MM;
         Ctx {
             cfg,
+            palette,
             fonts,
             fontdb: Arc::clone(&self.fontdb),
             svg_settings: SvgSettings {
@@ -180,7 +200,25 @@ impl<'c> Engine<'c> {
         overflow: Overflow,
     ) -> Result<(Vec<u8>, Vec<String>)> {
         let fonts = self.bytes.load()?;
-        let mut ctx = self.ctx(&fonts);
+        // A deck in a page palette renders with that palette's colours: a
+        // copy of the configuration carries them, the engine's stays as is.
+        let palette = crate::theme::resolve(
+            self.cfg,
+            self.shared.as_ref(),
+            presentation.theme.as_deref(),
+        )?;
+        let coloured;
+        let cfg = match palette {
+            Some(p) => {
+                coloured = Config {
+                    colors: p.colors.clone(),
+                    ..self.cfg.clone()
+                };
+                &coloured
+            }
+            None => self.cfg,
+        };
+        let mut ctx = self.ctx(cfg, palette, &fonts);
         ctx.overflow = overflow;
         render_with(&ctx, presentation)
     }
@@ -237,6 +275,24 @@ fn render_with(ctx: &Ctx, presentation: &Presentation) -> Result<(Vec<u8>, Vec<S
     for (i, ops) in layouts.into_iter().enumerate() {
         let mut page = doc.start_page_with(PageSettings::new(page_size));
         let mut surface = page.surface();
+        // The page background, when it is not the paper's own white. Drawn
+        // here rather than as an op: it is not content, so it must not count
+        // for the overflow checks that read the ops.
+        if ctx.cfg.colors.background != Color(0xff, 0xff, 0xff) {
+            draw_ops(
+                &mut surface,
+                ctx,
+                vec![Op::Rect {
+                    x: 0.0,
+                    y: 0.0,
+                    w: ctx.width,
+                    h: ctx.height,
+                    radius: 0.0,
+                    color: ctx.cfg.colors.background,
+                }],
+            )
+            .with_context(|| format!("slide {}/{} background", i + 1, total))?;
+        }
         draw_ops(&mut surface, ctx, ops).with_context(|| format!("slide {}/{}", i + 1, total))?;
         surface.finish();
         page.finish();
@@ -1526,6 +1582,16 @@ fn parse_svg(ctx: &Ctx, svg: &str) -> Result<usvg::Tree> {
         font_family: "sans-serif".into(),
         ..Default::default()
     };
+    // In a page palette, a diagram installed from a diagram theme takes the
+    // palette's variant of it before its variables are resolved.
+    let rethemed;
+    let svg = match ctx.palette {
+        Some(palette) => {
+            rethemed = crate::theme::retheme_svg(svg, palette);
+            rethemed.as_str()
+        }
+        None => svg,
+    };
     let flattened;
     let bytes: &[u8] = if ctx.cfg.svg.flatten_css_vars {
         flattened = crate::utils::css_vars::flatten(svg);
@@ -1851,7 +1917,7 @@ mod tests {
     fn with_ctx<R>(cfg: &Config, f: impl FnOnce(&Ctx) -> R) -> R {
         let engine = engine(cfg);
         let fonts = engine.bytes.load().unwrap();
-        let ctx = engine.ctx(&fonts);
+        let ctx = engine.ctx(engine.cfg, None, &fonts);
         f(&ctx)
     }
 

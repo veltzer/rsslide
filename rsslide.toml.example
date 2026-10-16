@@ -37,7 +37,13 @@ title = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 body  = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 code  = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 
+[theme]
+# A shared-themes checkout; lets a deck's `theme:` name a page palette.
+# shared_themes = "shared/shared-themes"
+
 [colors]
+# The page background; the slide is filled with it when it is not white.
+background = "#ffffff"
 text            = "#000000"
 bullet          = "#000000"
 title_rule      = "#000000"
