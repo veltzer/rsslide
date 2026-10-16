@@ -9,7 +9,6 @@ Findings from a code scan on 2026-10-04.
 ## Medium
 
 - `README.md` (Output formats, Architecture) - says PDF is produced "via `printpdf`" and describes HTML and PPTX renderers that are stubs; the code uses `krilla`/`krilla-svg`/`usvg` (`Cargo.toml`); update the Output formats and Architecture sections.
-- `Cargo.toml:18` - `serde_yaml` 0.9 is deprecated/unmaintained upstream; migrate to a maintained YAML crate (e.g. `serde_yml` / `serde_norway`).
 
 ## Low
 

@@ -10,7 +10,7 @@ repository = "https://github.com/veltzer/rsslide"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.9"
+serde_norway = "0.9"
 krilla = "0.8"
 krilla-svg = "0.8"
 # usvg also provides the font database (`usvg::fontdb`): the one handed to

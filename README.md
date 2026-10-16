@@ -201,7 +201,7 @@ Supply your own with `--theme-set my-theme.css`.
 
 ```text
 YAML file
-  └─► Parser (serde_yaml)
+  └─► Parser (serde_norway)
         └─► Slide model (Presentation + Vec<Slide>)
               ├─► HTML Renderer  ──► .html
               ├─► PDF Exporter   ──► .pdf
@@ -213,7 +213,7 @@ YAML file
 | Crate           | Purpose                        |
 |-----------------|--------------------------------|
 | `clap`          | CLI argument parsing           |
-| `serde_yaml`    | YAML input parsing             |
+| `serde_norway`  | YAML input parsing             |
 | `toml`          | `rsslide.toml` configuration   |
 | `krilla`        | Pure-Rust PDF generation       |
 | `krilla-svg` / `usvg` | SVG rendering into the PDF |
