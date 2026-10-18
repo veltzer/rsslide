@@ -12,7 +12,10 @@
 //!
 //! Without `[theme] shared_themes`, a theme name is ignored as it always
 //! was; with it, a name that is neither a built-in nor a palette is an
-//! error naming the palettes there are.
+//! error naming the palettes there are. `[theme] default` names the palette
+//! for a deck whose front matter names none, so a repository renders every
+//! deck in one palette; a deck's own `theme:` wins, and `theme: default`
+//! opts it back out to marp's look.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -142,7 +145,7 @@ pub fn resolve<'a>(
     shared: Option<&'a SharedThemes>,
     theme: Option<&str>,
 ) -> Result<Option<&'a Palette>> {
-    let Some(name) = theme else {
+    let Some(name) = theme.or(cfg.theme.default.as_deref()) else {
         return Ok(None);
     };
     if MARP_BUILTINS.contains(&name) {
@@ -164,6 +167,23 @@ pub fn resolve<'a>(
             shared.names().join(", "),
         ),
     }
+}
+
+/// Check `[theme] default` once, when the engine starts, so a misspelt
+/// palette or a default without `shared_themes` is reported before any deck
+/// renders instead of once per deck.
+pub fn check_default(cfg: &Config, shared: Option<&SharedThemes>) -> Result<()> {
+    let Some(name) = cfg.theme.default.as_deref() else {
+        return Ok(());
+    };
+    if shared.is_none() {
+        bail!(
+            "[theme] default = {name:?} needs [theme] shared_themes, the directory the palettes come from"
+        );
+    }
+    resolve(cfg, shared, Some(name))
+        .with_context(|| format!("[theme] default = {name:?}"))
+        .map(|_| ())
 }
 
 /// The slide colours a palette's tokens give: each role of [`Colors`] from
@@ -323,6 +343,15 @@ fn attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
 mod tests {
     use super::*;
 
+    /// A palette named `code`, with no colours or diagram variants of note.
+    fn palette_named(code: &str) -> Palette {
+        Palette {
+            code: code.into(),
+            colors: Colors::default(),
+            diagram_vars: BTreeMap::new(),
+        }
+    }
+
     fn palette_with(theme: &str, vars: &[(&str, &str)]) -> Palette {
         let mut diagram_vars = BTreeMap::new();
         diagram_vars.insert(
@@ -463,5 +492,48 @@ mod tests {
             resolve(&cfg, Some(&shared), Some("nope")).unwrap_err()
         );
         assert!(err.contains("nope") && err.contains("midnight"), "{err}");
+    }
+
+    /// `[theme] default` is the palette of a deck that names none; a deck's
+    /// own name wins, and `theme: default` opts it out.
+    #[test]
+    fn the_default_palette_applies_when_a_deck_names_none() {
+        let shared = SharedThemes {
+            dir: PathBuf::from("/shared"),
+            palettes: vec![palette_named("azure"), palette_named("midnight")],
+        };
+        let mut cfg = Config::default();
+        cfg.theme.shared_themes = Some(PathBuf::from("/shared"));
+        cfg.theme.default = Some("azure".to_string());
+        let code = |theme: Option<&str>| {
+            resolve(&cfg, Some(&shared), theme)
+                .unwrap()
+                .map(|p| p.code.clone())
+        };
+        assert_eq!(code(None).as_deref(), Some("azure"));
+        assert_eq!(code(Some("midnight")).as_deref(), Some("midnight"));
+        assert_eq!(code(Some("default")), None, "a marp built-in opts out");
+        assert!(check_default(&cfg, Some(&shared)).is_ok());
+    }
+
+    #[test]
+    fn a_bad_default_palette_is_reported_at_startup() {
+        let shared = SharedThemes {
+            dir: PathBuf::from("/shared"),
+            palettes: vec![palette_named("azure")],
+        };
+        let mut cfg = Config::default();
+        cfg.theme.shared_themes = Some(PathBuf::from("/shared"));
+        cfg.theme.default = Some("nope".to_string());
+        let err = format!("{:#}", check_default(&cfg, Some(&shared)).unwrap_err());
+        assert!(
+            err.contains("[theme] default") && err.contains("azure"),
+            "{err}"
+        );
+
+        let mut cfg = Config::default();
+        cfg.theme.default = Some("azure".to_string());
+        let err = format!("{:#}", check_default(&cfg, None).unwrap_err());
+        assert!(err.contains("shared_themes"), "{err}");
     }
 }

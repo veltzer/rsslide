@@ -220,6 +220,11 @@ mono = [
 # marp's own theme names (default, gaia, uncover) keep the look below. A name
 # that is neither is an error. Unset, a theme name is ignored.
 # shared_themes = "shared/shared-themes"
+# The palette for a deck whose front matter names no theme, so every deck of
+# a repository renders in one palette without each file saying so. A deck's
+# own `theme:` wins; `theme: default` opts a deck back out. Needs
+# shared_themes.
+# default = "azure"
 
 [colors]
 # Colors as CSS-style hex strings.
@@ -267,6 +272,10 @@ pub struct ThemeCfg {
     /// The shared-themes directory (themes.json, diagram-themes.json),
     /// relative to the working directory. None: deck theme names are ignored.
     pub shared_themes: Option<PathBuf>,
+    /// The palette for a deck whose front matter names no theme, so a
+    /// repository renders every deck in one palette without repeating it in
+    /// each file. A deck's own `theme:` wins. Needs `shared_themes`.
+    pub default: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

@@ -146,6 +146,7 @@ impl<'c> Engine<'c> {
             ),
             None => None,
         };
+        crate::theme::check_default(cfg, shared.as_ref())?;
         Ok(Self {
             cfg,
             bytes,

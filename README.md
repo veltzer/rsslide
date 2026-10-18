@@ -212,7 +212,15 @@ checkout of [shared-themes](https://github.com/veltzer/shared-themes):
 ```toml
 [theme]
 shared_themes = "shared/shared-themes"
+# The palette for a deck whose front matter names none
+default = "azure"
 ```
+
+`default` renders every deck of a repository in one palette without each
+file saying so. A deck's own `theme:` wins, and `theme: default` (or any
+marp built-in) opts a deck back out to marp's look. A default that is not a
+palette, or one set without `shared_themes`, is an error when rsslide
+starts.
 
 The palette's tokens become the slide colours (text, links, code boxes,
 table borders, pagination) and the page background, from `themes.json`.
