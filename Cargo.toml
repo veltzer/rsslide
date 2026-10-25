@@ -29,6 +29,8 @@ toml = "1"
 dirs = "7"
 # The HTML5 named character references, for `&name;` in text.
 htmlize = { version = "1", features = ["entities"] }
+# The local date the credit line names (`credit.rs`).
+jiff = "0.2"
 
 # Dev builds favour compile speed: line tables keep file:line in backtraces
 # at a fraction of full debug info's link cost, and dependencies get light

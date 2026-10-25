@@ -70,6 +70,8 @@ struct Ctx<'a> {
     /// Base font size (1 em) in points.
     em: f32,
     overflow: Overflow,
+    /// The first slide's credit line, None when `[credit]` is disabled.
+    credit: Option<&'a str>,
     /// Overflow warnings of the slide being laid out (see `Overflow::Warn`).
     warnings: RefCell<Vec<String>>,
 }
@@ -118,10 +120,14 @@ pub struct Engine<'c> {
     dark_theme: Theme,
     /// The page palettes, when `[theme] shared_themes` is configured.
     shared: Option<SharedThemes>,
+    /// The credit line every deck of the run carries (`credit::for_run`).
+    credit: Option<String>,
 }
 
 impl<'c> Engine<'c> {
-    pub fn new(cfg: &'c Config) -> Result<Self> {
+    /// `credit` is the run's credit line (`credit::for_run`), resolved by
+    /// the caller so the engine itself reads neither git nor the clock.
+    pub fn new(cfg: &'c Config, credit: Option<String>) -> Result<Self> {
         let mut theme_set = ThemeSet::load_defaults();
         let github = ThemeSet::load_from_reader(&mut std::io::Cursor::new(include_str!(
             "../../assets/themes/github.tmTheme"
@@ -155,6 +161,7 @@ impl<'c> Engine<'c> {
             theme,
             dark_theme,
             shared,
+            credit,
         })
     }
 
@@ -200,6 +207,7 @@ impl<'c> Engine<'c> {
             height,
             em: width * cfg.slide.font_size_ratio,
             overflow: Overflow::Error,
+            credit: self.credit.as_deref(),
             warnings: RefCell::new(Vec::new()),
         }
     }
@@ -262,8 +270,10 @@ fn render_with(ctx: &Ctx, presentation: &Presentation) -> Result<(Vec<u8>, Vec<S
     let mut warnings = Vec::new();
     for (i, slide) in slides.iter().enumerate() {
         let laid_out = layout_slide(ctx, slide, paginate.then_some(i + 1)).and_then(|mut ops| {
-            if i == 0 && ctx.cfg.credit.enabled {
-                ops.push(credit_op(ctx)?);
+            if i == 0
+                && let Some(text) = ctx.credit
+            {
+                ops.push(credit_op(ctx, text)?);
             }
             Ok(ops)
         });
@@ -1683,16 +1693,12 @@ fn page_number_op(ctx: &Ctx, n: usize, region_right: f32) -> Op {
     }
 }
 
-/// The line crediting rsslide, at the bottom-left of the page, mirroring
-/// the page number's position at the bottom-right.
-fn credit_op(ctx: &Ctx) -> Result<Op> {
+/// The credit line `text`, at the bottom-left of the page, mirroring the
+/// page number's position at the bottom-right.
+fn credit_op(ctx: &Ctx, text: &str) -> Result<Op> {
     let cfg = ctx.cfg;
     let size = ctx.em * cfg.credit.font_size_em;
-    let text = format!(
-        "Created by rsslide {} by Mark Veltzer <mark.veltzer@gmail.com>",
-        env!("CARGO_PKG_VERSION")
-    );
-    ctx.fonts.get(FontKind::Regular).runs(&text)?;
+    ctx.fonts.get(FontKind::Regular).runs(text)?;
     let box_bottom = ctx.height * (1.0 - cfg.credit.bottom_ratio);
     let lh = cfg.slide.line_height;
     let baseline = box_bottom - lh * size + baseline_offset(ctx, FontKind::Regular, size, lh);
@@ -1702,7 +1708,7 @@ fn credit_op(ctx: &Ctx) -> Result<Op> {
         font: FontKind::Regular,
         size,
         color: cfg.colors.credit,
-        text,
+        text: text.to_string(),
     })
 }
 
@@ -1930,8 +1936,12 @@ mod tests {
 
     // ── layout, with the configured fonts ─────────────────────────────────
 
+    /// The credit line of the test engine: fixed, so tests read neither git
+    /// nor the clock.
+    const CREDIT: &str = "Compiled on 2026-10-25 by Jane Doe <jane@example.com> with rsslide";
+
     fn engine(cfg: &Config) -> Engine<'_> {
-        Engine::new(cfg)
+        Engine::new(cfg, Some(CREDIT.to_string()))
             .expect("the default fonts must be installed (see scripts/ci-install-tools.repo.sh)")
     }
 
@@ -2857,13 +2867,14 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
     }
 
     #[test]
-    fn credit_names_the_version_at_the_bottom_left() {
+    fn credit_draws_the_run_line_at_the_bottom_left() {
         let cfg = Config::default();
         with_ctx(&cfg, |ctx| {
-            let Op::Text { x, y, text, .. } = credit_op(ctx).unwrap() else {
+            let line = ctx.credit.expect("the test engine has a credit line");
+            let Op::Text { x, y, text, .. } = credit_op(ctx, line).unwrap() else {
                 panic!("the credit is text")
             };
-            assert!(text.contains(env!("CARGO_PKG_VERSION")), "{text}");
+            assert_eq!(text, CREDIT);
             assert!((x - ctx.width * cfg.credit.left_ratio).abs() < 1e-3);
             assert!(y > ctx.height * (1.0 - cfg.slide.padding_y_ratio) && y < ctx.height);
         });
@@ -2997,7 +3008,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
     fn unknown_code_theme_is_an_error() {
         let mut cfg = Config::default();
         cfg.code.theme = "NoSuchTheme".into();
-        let err = Engine::new(&cfg).err().expect("must fail");
+        let err = Engine::new(&cfg, None).err().expect("must fail");
         assert!(err.to_string().contains("NoSuchTheme"), "{err}");
     }
 

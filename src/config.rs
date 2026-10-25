@@ -123,10 +123,16 @@ right_ratio = 0.0234375
 bottom_ratio = 0.029167
 
 [credit]
-# A small "created by rsslide" line at the bottom-left of the first slide,
-# mirroring the page number's position on the other side. Set enabled =
-# false to leave it out.
+# A small line at the bottom-left of the first slide, mirroring the page
+# number's position on the other side: the date the deck was compiled, who
+# compiled it, and the rsslide version (and its author) that did. Set
+# enabled = false to leave it out.
 enabled = true
+# Who compiled the deck. Set both or neither: unset, they are read from
+# `git config user.name` and `git config user.email`, and rsslide fails if
+# git has no identity either.
+# name = "Jane Doe"
+# email = "jane@example.com"
 font_size_em = 0.5
 left_ratio = 0.0234375
 bottom_ratio = 0.029167
@@ -375,6 +381,9 @@ pub struct Pagination {
 #[serde(default, deny_unknown_fields)]
 pub struct Credit {
     pub enabled: bool,
+    /// Who compiles the deck; see `credit.rs` for the git fallback.
+    pub name: Option<String>,
+    pub email: Option<String>,
     pub font_size_em: f32,
     pub left_ratio: f32,
     pub bottom_ratio: f32,
@@ -586,6 +595,8 @@ impl Default for Credit {
     fn default() -> Self {
         Self {
             enabled: true,
+            name: None,
+            email: None,
             font_size_em: 0.5,
             left_ratio: 0.0234375,
             bottom_ratio: 0.029167,

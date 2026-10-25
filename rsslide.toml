@@ -12,3 +12,9 @@
 size = "fill"
 margin_x_ratio = 0.0
 margin_bottom_ratio = 0.005
+
+[credit]
+# Who compiles this repository's decks, named on each deck's first slide.
+# Set here rather than taken from git, which CI's runner has no identity in.
+name = "Mark Veltzer"
+email = "mark.veltzer@gmail.com"

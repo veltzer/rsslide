@@ -1,5 +1,6 @@
 mod assets;
 mod config;
+mod credit;
 mod exporter;
 mod importer;
 mod model;
@@ -207,7 +208,7 @@ fn convert_all(
         }
         Format::Pdf => {}
     }
-    let engine = exporter::pdf::Engine::new(cfg)?;
+    let engine = exporter::pdf::Engine::new(cfg, credit::for_run(&cfg.credit)?)?;
     let results: Vec<OnceLock<Result<Vec<String>>>> =
         pairs.iter().map(|_| OnceLock::new()).collect();
     let next = AtomicUsize::new(0);
