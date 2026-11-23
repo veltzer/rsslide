@@ -18,6 +18,7 @@
 //! opts it back out to marp's look.
 
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
@@ -65,7 +66,7 @@ impl Palette {
     /// Decides the code theme and the tint of monochrome icons.
     pub fn is_dark(&self) -> bool {
         let Color(r, g, b) = self.colors.background;
-        let lum = 0.2126 * r as f32 + 0.7152 * g as f32 + 0.0722 * b as f32;
+        let lum = 0.2126 * f32::from(r) + 0.7152 * f32::from(g) + 0.0722 * f32::from(b);
         lum < 128.0
     }
 
@@ -226,7 +227,7 @@ pub fn parse_css_color(s: &str, over: Option<Color>) -> Result<Color> {
     if let Some(hex) = s.strip_prefix('#') {
         let digits: Vec<u8> = hex
             .chars()
-            .map(|c| c.to_digit(16).map(|d| d as u8))
+            .map(|c| c.to_digit(16).and_then(|d| u8::try_from(d).ok()))
             .collect::<Option<_>>()
             .with_context(|| format!("bad hex colour {s:?}"))?;
         return match digits.as_slice() {
@@ -247,18 +248,18 @@ pub fn parse_css_color(s: &str, over: Option<Color>) -> Result<Color> {
         p.parse::<f32>()
             .ok()
             .filter(|v| (0.0..=255.0).contains(v))
-            .map(|v| v.round() as u8)
+            .map(|v| crate::numeric::round_u8(v.round()))
             .with_context(|| format!("bad channel {p:?} in {s:?}"))
     };
     let (rgb, alpha) = match parts.as_slice() {
-        [r, g, b] => ((channel(r)?, channel(g)?, channel(b)?), 1.0),
-        [r, g, b, a] => {
-            let a: f32 = a
+        [red, green, blue] => ((channel(red)?, channel(green)?, channel(blue)?), 1.0),
+        [red, green, blue, alpha_text] => {
+            let alpha: f32 = alpha_text
                 .parse()
                 .ok()
                 .filter(|v| (0.0..=1.0).contains(v))
-                .with_context(|| format!("bad alpha {a:?} in {s:?}"))?;
-            ((channel(r)?, channel(g)?, channel(b)?), a)
+                .with_context(|| format!("bad alpha {alpha_text:?} in {s:?}"))?;
+            ((channel(red)?, channel(green)?, channel(blue)?), alpha)
         }
         _ => bail!("unsupported colour {s:?}"),
     };
@@ -268,7 +269,9 @@ pub fn parse_css_color(s: &str, over: Option<Color>) -> Result<Color> {
     let Some(bg) = over else {
         bail!("translucent colour {s:?} where an opaque one is needed");
     };
-    let blend = |fg: u8, bg: u8| (alpha * fg as f32 + (1.0 - alpha) * bg as f32).round() as u8;
+    let blend = |fg: u8, bg: u8| {
+        crate::numeric::round_u8(alpha * f32::from(fg) + (1.0 - alpha) * f32::from(bg))
+    };
     Ok(Color(
         blend(rgb.0, bg.0),
         blend(rgb.1, bg.1),
@@ -301,7 +304,7 @@ pub fn retheme_svg(svg: &str, palette: &Palette) -> String {
     };
     let mut block = String::from("\n      :root, svg {\n");
     for (name, value) in vars {
-        block.push_str(&format!("        --{name}: {value};\n"));
+        let _ = writeln!(block, "        --{name}: {value};");
     }
     block.push_str("      }\n    ");
     let mut out = String::with_capacity(svg.len() + block.len());

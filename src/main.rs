@@ -4,6 +4,7 @@ mod credit;
 mod exporter;
 mod importer;
 mod model;
+mod numeric;
 mod parser;
 mod theme;
 mod utils;
@@ -13,7 +14,7 @@ use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use std::fs;
 use std::path::PathBuf;
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone, Copy, ValueEnum)]
 enum Format {
     Html,
     Pdf,
@@ -106,15 +107,27 @@ fn main() -> Result<()> {
             format,
             config,
             warn_overflow,
-        }) => run_process(input, output, format, config, overflow(warn_overflow)),
-        Some(Command::Import { paths }) => run_import(paths),
+        }) => run_process(
+            &input,
+            output,
+            format,
+            config.as_deref(),
+            overflow(warn_overflow),
+        ),
+        Some(Command::Import { paths }) => run_import(&paths),
         Some(Command::Generate {
             format,
             config,
             warn_overflow,
             jobs,
             paths,
-        }) => run_generate(format, config, overflow(warn_overflow), jobs, paths),
+        }) => run_generate(
+            format,
+            config.as_deref(),
+            overflow(warn_overflow),
+            jobs,
+            &paths,
+        ),
         Some(Command::Version) => {
             print_version();
             Ok(())
@@ -137,10 +150,10 @@ fn overflow(warn: bool) -> exporter::pdf::Overflow {
 }
 
 fn run_process(
-    input: PathBuf,
+    input: &std::path::Path,
     output: Option<PathBuf>,
     format: Format,
-    config_path: Option<PathBuf>,
+    config_path: Option<&std::path::Path>,
     overflow: exporter::pdf::Overflow,
 ) -> Result<()> {
     let output_path = output.unwrap_or_else(|| {
@@ -152,16 +165,16 @@ fn run_process(
         };
         PathBuf::from(stem).with_extension(ext)
     });
-    let cfg = config::Config::load(config_path.as_deref())?;
-    convert_all(&[(&input, &output_path)], format, &cfg, overflow, 1)
+    let cfg = config::Config::load(config_path)?;
+    convert_all(&[(input, &output_path)], format, &cfg, overflow, 1)
 }
 
 fn run_generate(
     format: Format,
-    config_path: Option<PathBuf>,
+    config_path: Option<&std::path::Path>,
     overflow: exporter::pdf::Overflow,
     jobs: Option<usize>,
-    paths: Vec<PathBuf>,
+    paths: &[PathBuf],
 ) -> Result<()> {
     if !paths.len().is_multiple_of(2) {
         anyhow::bail!(
@@ -172,9 +185,9 @@ fn run_generate(
     let jobs = match jobs {
         Some(0) => anyhow::bail!("--jobs must be at least 1"),
         Some(n) => n,
-        None => std::thread::available_parallelism().map_or(1, |n| n.get()),
+        None => std::thread::available_parallelism().map_or(1, std::num::NonZero::get),
     };
-    let cfg = config::Config::load(config_path.as_deref())?;
+    let cfg = config::Config::load(config_path)?;
     let (chunks, _) = paths.as_chunks::<2>();
     let pairs: Vec<(&std::path::Path, &std::path::Path)> = chunks
         .iter()
@@ -305,7 +318,7 @@ fn print_version() {
     println!("BUILD_TIMESTAMP: {}", env!("BUILD_TIMESTAMP"));
 }
 
-fn run_import(paths: Vec<PathBuf>) -> Result<()> {
+fn run_import(paths: &[PathBuf]) -> Result<()> {
     if !paths.len().is_multiple_of(2) {
         anyhow::bail!(
             "import requires an even number of arguments (input/output pairs), got {}",

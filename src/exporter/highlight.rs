@@ -126,11 +126,11 @@ impl Highlighter {
         language: Option<&str>,
         theme: &Theme,
     ) -> Result<Vec<Vec<Run>>> {
-        let plan = self.plan(language)?;
+        let mode = self.plan(language)?;
         let colors = ThemeHighlighter::new(theme);
         let plain = to_color(colors.get_default().foreground);
         let lines: Vec<&str> = LinesWithEndings::from(source).collect();
-        match plan {
+        match mode {
             Plan::Plain => Ok(lines.iter().map(|l| plain_run(plain, l)).collect()),
             Plan::Syntax(set, syntax) => {
                 let mut h = HighlightLines::new(syntax, theme);
@@ -393,7 +393,7 @@ mod tests {
     fn bundled_syntaxes_colour_like_highlight_js() {
         let t = theme();
         let colors_of = |lang: &str, src: &str| colors(lang, src).concat();
-        let color_of = |runs: &[Run], text: &str| {
+        let find_color = |runs: &[Run], text: &str| {
             runs.iter()
                 .find(|(_, t)| t.contains(text))
                 .unwrap_or_else(|| panic!("{text:?} in {runs:?}"))
@@ -404,17 +404,17 @@ mod tests {
             "dts",
             "/ {\n    reg = <0x10>; // c\n    node@1 {\n    };\n};\n",
         );
-        assert_ne!(color_of(&dts, "reg"), plain);
-        assert_ne!(color_of(&dts, "node@1"), plain);
-        assert_ne!(color_of(&dts, "// c"), plain);
+        assert_ne!(find_color(&dts, "reg"), plain);
+        assert_ne!(find_color(&dts, "node@1"), plain);
+        assert_ne!(find_color(&dts, "// c"), plain);
         let arm = colors_of("arm", "_start:\n    mov r0, #1 @ c\n");
-        assert_ne!(color_of(&arm, "mov"), plain);
-        assert_ne!(color_of(&arm, "r0"), plain);
-        assert_ne!(color_of(&arm, "@ c"), plain);
+        assert_ne!(find_color(&arm, "mov"), plain);
+        assert_ne!(find_color(&arm, "r0"), plain);
+        assert_ne!(find_color(&arm, "@ c"), plain);
         let mips = colors_of("mips", "main:\n    li $v0, 4 # c\n    syscall\n");
-        assert_ne!(color_of(&mips, "syscall"), plain);
-        assert_eq!(color_of(&mips, "li"), plain);
-        assert_ne!(color_of(&mips, "# c"), plain);
+        assert_ne!(find_color(&mips, "syscall"), plain);
+        assert_eq!(find_color(&mips, "li"), plain);
+        assert_ne!(find_color(&mips, "# c"), plain);
     }
 
     #[test]

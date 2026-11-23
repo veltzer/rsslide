@@ -10,7 +10,7 @@
 //! - declarations inside `<style>` (any selector — `:root`, `svg`, `*`);
 //! - usage in attribute values or inline styles.
 //!
-//! Not supported: cascade by element, @supports, calc(), nested vars.
+//! Not supported: cascade by element, @supports, `calc()`, nested vars.
 //! Those aren't worth implementing here; the inputs we care about use a
 //! single flat palette.
 
@@ -94,18 +94,15 @@ fn replace_vars(svg: &str, decls: &HashMap<String, String>) -> String {
     let bytes = svg.as_bytes();
     while i < bytes.len() {
         if svg[i..].starts_with("var(") {
-            let close = match find_matching_close_paren(&svg[i + 4..]) {
-                Some(n) => n,
-                None => {
-                    out.push_str(&svg[i..]);
-                    return out;
-                }
+            let Some(close) = find_matching_close_paren(&svg[i + 4..]) else {
+                out.push_str(&svg[i..]);
+                return out;
             };
             let inner = &svg[i + 4..i + 4 + close];
             if let Some(replacement) = resolve_var(inner, decls) {
                 out.push_str(&replacement);
             } else {
-                out.push_str(&svg[i..i + 4 + close + 1]);
+                out.push_str(&svg[i..=(i + 4 + close)]);
             }
             i += 4 + close + 1;
         } else {
@@ -151,7 +148,7 @@ fn resolve_var(inner: &str, decls: &HashMap<String, String>) -> Option<String> {
     if let Some(v) = decls.get(name) {
         return Some(v.clone());
     }
-    fallback.map(|s| s.to_string())
+    fallback.map(std::string::ToString::to_string)
 }
 
 #[cfg(test)]
@@ -160,7 +157,7 @@ mod tests {
 
     #[test]
     fn flattens_basic_var() {
-        let svg = r##"<svg><style>:root { --c: #ff0000; }</style><rect fill="var(--c)"/></svg>"##;
+        let svg = r#"<svg><style>:root { --c: #ff0000; }</style><rect fill="var(--c)"/></svg>"#;
         let out = flatten(svg);
         assert!(out.contains(r##"fill="#ff0000""##));
         assert!(!out.contains("var(--c)"));
@@ -168,7 +165,7 @@ mod tests {
 
     #[test]
     fn falls_back_when_undefined() {
-        let svg = r##"<svg><rect fill="var(--missing, #00ff00)"/></svg>"##;
+        let svg = r#"<svg><rect fill="var(--missing, #00ff00)"/></svg>"#;
         let out = flatten(svg);
         assert!(out.contains(r##"fill="#00ff00""##));
     }
@@ -212,13 +209,13 @@ mod tests {
 
     #[test]
     fn resolves_many_vars_in_one_pass() {
-        let svg = r##"<svg>
+        let svg = r#"<svg>
             <style>:root {
                 --bg: #fff;
                 --fg: #000;
             }</style>
             <rect fill="var(--bg)" stroke="var(--fg)"/>
-        </svg>"##;
+        </svg>"#;
         let out = flatten(svg);
         assert!(out.contains(r##"fill="#fff""##));
         assert!(out.contains(r##"stroke="#000""##));

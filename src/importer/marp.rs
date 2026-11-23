@@ -1,4 +1,5 @@
 use anyhow::{Result, anyhow};
+use std::fmt::Write as _;
 
 #[derive(Debug, Default)]
 pub struct OutPresentation {
@@ -97,7 +98,7 @@ fn parse_marp(input: &str) -> Result<OutPresentation> {
     let slide_blocks = split_slides(body);
     let mut slides: Vec<OutSlide> = Vec::with_capacity(slide_blocks.len());
     for (i, block) in slide_blocks.into_iter().enumerate() {
-        slides.push(parse_slide(block).map_err(|e| anyhow!("slide {}: {e}", i + 1))?);
+        slides.push(parse_slide(&block).map_err(|e| anyhow!("slide {}: {e}", i + 1))?);
     }
 
     Ok(OutPresentation {
@@ -189,7 +190,7 @@ fn is_slide_separator(line: &str) -> bool {
     t == "---" || t == "***" || t == "___"
 }
 
-fn parse_slide(block: String) -> Result<OutSlide> {
+fn parse_slide(block: &str) -> Result<OutSlide> {
     let lines: Vec<&str> = block.lines().collect();
     let mut top = Top::default();
     let body = parse_body(&lines, Some(&mut top))?;
@@ -200,6 +201,51 @@ fn parse_slide(block: String) -> Result<OutSlide> {
         body,
         background: top.background,
     })
+}
+
+/// The raw HTML block starting at `lines[start]` (`trimmed` is that line,
+/// trimmed): marp decks use three idioms, each mapped onto the model
+/// (`None` for a stylesheet, which has no element); anything else is
+/// rejected rather than leaked as text. Also the index of the line after it.
+fn parse_raw_html(
+    lines: &[&str],
+    start: usize,
+    trimmed: &str,
+) -> Result<(Option<OutElement>, usize)> {
+    if trimmed.starts_with("<style") {
+        // The stylesheet only defines the `.columns` grid, which the
+        // `columns` element replaces; rsslide applies no custom CSS.
+        Ok((None, skip_past(lines, start, "</style>")?))
+    } else if trimmed.starts_with("<svg") {
+        let end = skip_past(lines, start, "</svg>")?;
+        Ok((Some(OutElement::Svg(lines[start..end].join("\n"))), end))
+    } else if trimmed == "<div class=\"columns\">" {
+        let end = skip_past_div(lines, start)?;
+        let columns = parse_columns(&lines[start + 1..end - 1])?;
+        Ok((Some(OutElement::Columns(columns)), end))
+    } else {
+        Err(anyhow!("unsupported raw HTML: {trimmed:?}"))
+    }
+}
+
+/// A line that is one image: an element, or (for a `bg` image) the slide's
+/// background, recorded in `top` and yielding no element.
+fn image_element(alt: &str, path: String, top: Option<&mut Top>) -> Result<Option<OutElement>> {
+    let Some(background) = parse_background(alt, &path)? else {
+        return Ok(Some(OutElement::Image(path)));
+    };
+    let Some(top) = top else {
+        return Err(anyhow!(
+            "background image {path:?} inside a column or quote"
+        ));
+    };
+    if top.background.is_some() {
+        return Err(anyhow!(
+            "a second background image {path:?}: only one is supported"
+        ));
+    }
+    top.background = Some(background);
+    Ok(None)
 }
 
 /// The elements of `lines`, in order. With `top` (a slide's top level),
@@ -236,22 +282,9 @@ fn parse_body(lines: &[&str], mut top: Option<&mut Top>) -> Result<Vec<OutElemen
         // model; anything else is rejected rather than leaked as text.
         if trimmed.starts_with('<') {
             flush_paragraph(&mut paragraph, &mut body);
-            if trimmed.starts_with("<style") {
-                // The stylesheet only defines the `.columns` grid, which
-                // the `columns` element below replaces; rsslide applies no
-                // custom CSS.
-                i = skip_past(lines, i, "</style>")?;
-            } else if trimmed.starts_with("<svg") {
-                let end = skip_past(lines, i, "</svg>")?;
-                body.push(OutElement::Svg(lines[i..end].join("\n")));
-                i = end;
-            } else if trimmed == "<div class=\"columns\">" {
-                let end = skip_past_div(lines, i)?;
-                body.push(OutElement::Columns(parse_columns(&lines[i + 1..end - 1])?));
-                i = end;
-            } else {
-                return Err(anyhow!("unsupported raw HTML: {trimmed:?}"));
-            }
+            let (element, next) = parse_raw_html(lines, i, trimmed)?;
+            body.extend(element);
+            i = next;
             continue;
         }
 
@@ -284,8 +317,7 @@ fn parse_body(lines: &[&str], mut top: Option<&mut Top>) -> Result<Vec<OutElemen
                 body.push(OutElement::Heading(heading.to_string(), level));
             } else {
                 return Err(anyhow!(
-                    "second `# ` heading {:?} on a slide that already has a title — only one title is allowed",
-                    heading
+                    "second `# ` heading {heading:?} on a slide that already has a title — only one title is allowed"
                 ));
             }
             i += 1;
@@ -294,28 +326,9 @@ fn parse_body(lines: &[&str], mut top: Option<&mut Top>) -> Result<Vec<OutElemen
 
         if let Some((fence, info)) = Fence::open(trimmed) {
             flush_paragraph(&mut paragraph, &mut body);
-            let language = (!info.is_empty()).then(|| info.to_string());
-            let mut source = String::new();
-            let start = i;
-            i += 1;
-            loop {
-                let Some(inner) = lines.get(i) else {
-                    return Err(anyhow!(
-                        "code fence {:?} is never closed",
-                        lines[start].trim()
-                    ));
-                };
-                i += 1;
-                if fence.closed_by(inner) {
-                    break;
-                }
-                source.push_str(inner);
-                source.push('\n');
-            }
-            while source.ends_with('\n') {
-                source.pop();
-            }
-            body.push(OutElement::Code(OutCode { language, source }));
+            let (code, next) = parse_fenced_code(lines, i, &fence, info)?;
+            body.push(OutElement::Code(code));
+            i = next;
             continue;
         }
 
@@ -325,38 +338,9 @@ fn parse_body(lines: &[&str], mut top: Option<&mut Top>) -> Result<Vec<OutElemen
             && let Some(aligns) = parse_table_separator(lines[i + 1].trim())
         {
             flush_paragraph(&mut paragraph, &mut body);
-            let headers = split_table_row(trimmed);
-            if headers.len() != aligns.len() {
-                return Err(anyhow!(
-                    "table header {trimmed:?} has {} cells but its separator row has {}",
-                    headers.len(),
-                    aligns.len()
-                ));
-            }
-            let mut rows: Vec<Vec<String>> = Vec::new();
-            let mut j = i + 2;
-            while j < lines.len() {
-                let r = lines[j].trim();
-                if !is_table_row(r) {
-                    break;
-                }
-                let cells = split_table_row(r);
-                if cells.len() != headers.len() {
-                    return Err(anyhow!(
-                        "table row {r:?} has {} cells but the header has {}",
-                        cells.len(),
-                        headers.len()
-                    ));
-                }
-                rows.push(cells);
-                j += 1;
-            }
-            body.push(OutElement::Table(OutTable {
-                headers,
-                rows,
-                aligns,
-            }));
-            i = j;
+            let (table, next) = parse_table(lines, i, aligns)?;
+            body.push(OutElement::Table(table));
+            i = next;
             continue;
         }
 
@@ -370,22 +354,7 @@ fn parse_body(lines: &[&str], mut top: Option<&mut Top>) -> Result<Vec<OutElemen
 
         if let Some((alt, path)) = parse_image(trimmed) {
             flush_paragraph(&mut paragraph, &mut body);
-            match parse_background(alt, &path)? {
-                None => body.push(OutElement::Image(path)),
-                Some(background) => {
-                    let Some(top) = top.as_deref_mut() else {
-                        return Err(anyhow!(
-                            "background image {path:?} inside a column or quote"
-                        ));
-                    };
-                    if top.background.is_some() {
-                        return Err(anyhow!(
-                            "a second background image {path:?}: only one is supported"
-                        ));
-                    }
-                    top.background = Some(background);
-                }
-            }
+            body.extend(image_element(alt, path, top.as_deref_mut())?);
             i += 1;
             continue;
         }
@@ -397,7 +366,83 @@ fn parse_body(lines: &[&str], mut top: Option<&mut Top>) -> Result<Vec<OutElemen
     Ok(body)
 }
 
-/// An open code fence, as CommonMark defines one: a run of three or more
+/// The fenced code block opened by `fence` on `lines[start]`: the block and
+/// the index of the line after its closing fence.
+fn parse_fenced_code(
+    lines: &[&str],
+    start: usize,
+    fence: &Fence,
+    info: &str,
+) -> Result<(OutCode, usize)> {
+    let language = (!info.is_empty()).then(|| info.to_string());
+    let mut source = String::new();
+    let mut i = start + 1;
+    loop {
+        let Some(inner) = lines.get(i) else {
+            return Err(anyhow!(
+                "code fence {:?} is never closed",
+                lines[start].trim()
+            ));
+        };
+        i += 1;
+        if fence.closed_by(inner) {
+            break;
+        }
+        source.push_str(inner);
+        source.push('\n');
+    }
+    while source.ends_with('\n') {
+        source.pop();
+    }
+    Ok((OutCode { language, source }, i))
+}
+
+/// The GFM table whose header row is `lines[start]` and whose separator row
+/// (already parsed into `aligns`) follows: the table and the index of the
+/// line after its last body row.
+fn parse_table(
+    lines: &[&str],
+    start: usize,
+    aligns: Vec<&'static str>,
+) -> Result<(OutTable, usize)> {
+    let trimmed = lines[start].trim();
+    let headers = split_table_row(trimmed);
+    if headers.len() != aligns.len() {
+        return Err(anyhow!(
+            "table header {trimmed:?} has {} cells but its separator row has {}",
+            headers.len(),
+            aligns.len()
+        ));
+    }
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    let mut j = start + 2;
+    while j < lines.len() {
+        let r = lines[j].trim();
+        if !is_table_row(r) {
+            break;
+        }
+        let cells = split_table_row(r);
+        if cells.len() != headers.len() {
+            return Err(anyhow!(
+                "table row {r:?} has {} cells but the header has {}",
+                cells.len(),
+                headers.len()
+            ));
+        }
+        rows.push(cells);
+        j += 1;
+    }
+    Ok((
+        OutTable {
+            headers,
+            rows,
+            aligns,
+        },
+        j,
+    ))
+}
+
+/// An open code fence, as `CommonMark` defines one: a run of three or more
 /// backticks or tildes.
 #[derive(Clone, Copy)]
 struct Fence {
@@ -459,7 +504,7 @@ fn list_item_number(line: &str) -> Option<(usize, Option<u32>, &str)> {
 /// index of the first line after it. Deeper-indented items nest under the
 /// item before them. Blank lines between items do not end the list; a
 /// plain line straight after an item continues that item's text, as in
-/// CommonMark. A top-level item of the other kind (bullets after numbers or
+/// `CommonMark`. A top-level item of the other kind (bullets after numbers or
 /// the reverse) starts a new list, so it ends this one.
 fn parse_list(lines: &[&str], start: usize) -> Result<(OutList, usize)> {
     // Open lists, outermost first, each with the indentation of its items.
@@ -711,7 +756,7 @@ fn parse_heading(line: &str) -> Option<(u8, &str)> {
     if !rest.starts_with(' ') {
         return None;
     }
-    Some((hashes as u8, rest.trim()))
+    Some((u8::try_from(hashes).ok()?, rest.trim()))
 }
 
 /// A line that is one image: its alt text and path.
@@ -737,10 +782,10 @@ fn parse_background(alt: &str, path: &str) -> Result<Option<OutBackground>> {
     let mut split_size = None;
     let mut size = None;
     for word in words {
-        let (side, share) = word.split_once(':').unwrap_or((word, ""));
+        let (edge, share) = word.split_once(':').unwrap_or((word, ""));
         if word == "bg" {
-        } else if side == "left" || side == "right" {
-            split = Some(side.to_string());
+        } else if edge == "left" || edge == "right" {
+            split = Some(edge.to_string());
             if !share.is_empty() {
                 if crate::model::parse_percent(share).is_none() {
                     return Err(anyhow!("background {path:?}: bad split size {share:?}"));
@@ -774,13 +819,13 @@ fn emit_yaml(pres: &OutPresentation) -> String {
     let mut out = String::new();
     out.push_str("---\n");
     if let Some(title) = &pres.title {
-        out.push_str(&format!("title: {}\n", scalar(title)));
+        let _ = writeln!(out, "title: {}", scalar(title));
     }
     if let Some(theme) = &pres.theme {
-        out.push_str(&format!("theme: {}\n", scalar(theme)));
+        let _ = writeln!(out, "theme: {}", scalar(theme));
     }
     if let Some(paginate) = pres.paginate {
-        out.push_str(&format!("paginate: {paginate}\n"));
+        let _ = writeln!(out, "paginate: {paginate}");
     }
     out.push('\n');
     out.push_str("slides:\n");
@@ -800,28 +845,28 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
     }
     let mut lead = "  - ";
     if let Some(title) = &slide.title {
-        out.push_str(&format!("{lead}title: {}\n", scalar(title)));
+        let _ = writeln!(out, "{lead}title: {}", scalar(title));
         if slide.title_level != 1 {
-            out.push_str(&format!("    title_level: {}\n", slide.title_level));
+            let _ = writeln!(out, "    title_level: {}", slide.title_level);
         }
         lead = "    ";
     }
     if let Some(bg) = &slide.background {
-        out.push_str(&format!("{lead}background:\n"));
-        out.push_str(&format!("      image: {}\n", scalar(&bg.image)));
-        out.push_str(&format!("      split: {}\n", bg.split));
+        let _ = writeln!(out, "{lead}background:");
+        let _ = writeln!(out, "      image: {}", scalar(&bg.image));
+        let _ = writeln!(out, "      split: {}", bg.split);
         if let Some(share) = &bg.split_size {
-            out.push_str(&format!("      split_size: {}\n", scalar(share)));
+            let _ = writeln!(out, "      split_size: {}", scalar(share));
         }
         if let Some(size) = &bg.size {
-            out.push_str(&format!("      size: {}\n", scalar(size)));
+            let _ = writeln!(out, "      size: {}", scalar(size));
         }
         lead = "    ";
     }
     if slide.body.is_empty() {
         return;
     }
-    out.push_str(&format!("{lead}body:\n"));
+    let _ = writeln!(out, "{lead}body:");
     for element in &slide.body {
         emit_element(out, element, 6);
     }
@@ -835,49 +880,49 @@ fn emit_element(out: &mut String, element: &OutElement, col: usize) {
     match element {
         OutElement::Text(lines) => {
             if lines.len() == 1 && !needs_block_scalar(&lines[0]) {
-                out.push_str(&format!("{pad}- text: {}\n", scalar(&lines[0])));
+                let _ = writeln!(out, "{pad}- text: {}", scalar(&lines[0]));
             } else {
-                out.push_str(&format!("{pad}- text: |-\n"));
+                let _ = writeln!(out, "{pad}- text: |-");
                 push_block_lines(out, lines, &value);
             }
         }
         OutElement::Heading(text, level) => {
-            out.push_str(&format!("{pad}- heading:\n"));
-            out.push_str(&format!("{value}text: {}\n", scalar(text)));
-            out.push_str(&format!("{value}level: {level}\n"));
+            let _ = writeln!(out, "{pad}- heading:");
+            let _ = writeln!(out, "{value}text: {}", scalar(text));
+            let _ = writeln!(out, "{value}level: {level}");
         }
         OutElement::List(list) => {
             let key = if list.ordered { "numbered" } else { "bullets" };
-            out.push_str(&format!("{pad}- {key}:\n"));
+            let _ = writeln!(out, "{pad}- {key}:");
             emit_items(out, &list.items, col + 4);
             if list.start != 1 {
-                out.push_str(&format!("{pad}  start: {}\n", list.start));
+                let _ = writeln!(out, "{pad}  start: {}", list.start);
             }
         }
         OutElement::Code(code) => {
-            out.push_str(&format!("{pad}- code:\n"));
+            let _ = writeln!(out, "{pad}- code:");
             emit_code(out, code, &value, &value);
         }
         OutElement::Table(table) => {
-            out.push_str(&format!("{pad}- table:\n"));
+            let _ = writeln!(out, "{pad}- table:");
             emit_table(out, table, col + 4);
         }
         OutElement::Image(path) => {
-            out.push_str(&format!("{pad}- image: {}\n", scalar(path)));
+            let _ = writeln!(out, "{pad}- image: {}", scalar(path));
         }
         OutElement::Svg(svg) => {
-            out.push_str(&format!("{pad}- svg: {}\n", block_header(svg)));
+            let _ = writeln!(out, "{pad}- svg: {}", block_header(svg));
             let lines: Vec<String> = svg.lines().map(str::to_string).collect();
             push_block_lines(out, &lines, &value);
         }
         OutElement::Columns(columns) => {
-            out.push_str(&format!("{pad}- columns:\n"));
+            let _ = writeln!(out, "{pad}- columns:");
             for column in columns {
                 if column.body.is_empty() {
-                    out.push_str(&format!("{value}- body: []\n"));
+                    let _ = writeln!(out, "{value}- body: []");
                     continue;
                 }
-                out.push_str(&format!("{value}- body:\n"));
+                let _ = writeln!(out, "{value}- body:");
                 for element in &column.body {
                     emit_element(out, element, col + 8);
                 }
@@ -885,10 +930,10 @@ fn emit_element(out: &mut String, element: &OutElement, col: usize) {
         }
         OutElement::Quote(body) => {
             if body.is_empty() {
-                out.push_str(&format!("{pad}- quote: []\n"));
+                let _ = writeln!(out, "{pad}- quote: []");
                 return;
             }
-            out.push_str(&format!("{pad}- quote:\n"));
+            let _ = writeln!(out, "{pad}- quote:");
             for element in body {
                 emit_element(out, element, col + 4);
             }
@@ -902,18 +947,20 @@ fn emit_items(out: &mut String, items: &[OutItem], col: usize) {
     let pad = " ".repeat(col);
     for item in items {
         match &item.children {
-            None => out.push_str(&format!("{pad}- {}\n", scalar(&item.text))),
+            None => {
+                let _ = writeln!(out, "{pad}- {}", scalar(&item.text));
+            }
             Some(children) => {
                 let key = if children.ordered {
                     "numbered"
                 } else {
                     "bullets"
                 };
-                out.push_str(&format!("{pad}- text: {}\n", scalar(&item.text)));
-                out.push_str(&format!("{pad}  {key}:\n"));
+                let _ = writeln!(out, "{pad}- text: {}", scalar(&item.text));
+                let _ = writeln!(out, "{pad}  {key}:");
                 emit_items(out, &children.items, col + 4);
                 if children.start != 1 {
-                    out.push_str(&format!("{pad}  start: {}\n", children.start));
+                    let _ = writeln!(out, "{pad}  start: {}", children.start);
                 }
             }
         }
@@ -923,21 +970,21 @@ fn emit_items(out: &mut String, items: &[OutItem], col: usize) {
 /// A table's fields as a mapping at column `col`.
 fn emit_table(out: &mut String, table: &OutTable, col: usize) {
     let pad = " ".repeat(col);
-    out.push_str(&format!("{pad}headers:\n"));
+    let _ = writeln!(out, "{pad}headers:");
     for h in &table.headers {
-        out.push_str(&format!("{pad}  - {}\n", scalar(h)));
+        let _ = writeln!(out, "{pad}  - {}", scalar(h));
     }
     if table.aligns.iter().any(|a| *a != "auto") {
-        out.push_str(&format!("{pad}aligns:\n"));
+        let _ = writeln!(out, "{pad}aligns:");
         for a in &table.aligns {
-            out.push_str(&format!("{pad}  - {a}\n"));
+            let _ = writeln!(out, "{pad}  - {a}");
         }
     }
-    out.push_str(&format!("{pad}rows:\n"));
+    let _ = writeln!(out, "{pad}rows:");
     for row in &table.rows {
-        out.push_str(&format!("{pad}  -\n"));
+        let _ = writeln!(out, "{pad}  -");
         for cell in row {
-            out.push_str(&format!("{pad}    - {}\n", scalar(cell)));
+            let _ = writeln!(out, "{pad}    - {}", scalar(cell));
         }
     }
 }
@@ -954,7 +1001,7 @@ fn emit_code(out: &mut String, code: &OutCode, first: &str, indent: &str) {
         lead = indent;
     }
     out.push_str(lead);
-    out.push_str(&format!("source: {}\n", block_header(&code.source)));
+    let _ = writeln!(out, "source: {}", block_header(&code.source));
     for line in code.source.lines() {
         let trimmed = line.trim_end();
         if trimmed.is_empty() {
@@ -1064,7 +1111,7 @@ mod tests {
     }
 
     fn text(lines: &[&str]) -> OutElement {
-        OutElement::Text(lines.iter().map(|l| l.to_string()).collect())
+        OutElement::Text(lines.iter().map(ToString::to_string).collect())
     }
 
     fn item(text: &str) -> OutItem {
@@ -1391,7 +1438,7 @@ mod tests {
     fn style_block_is_skipped() {
         let s = slide("<style>\n.columns { display: grid; }\n</style>\n\n# T\n");
         assert_eq!(s.title.as_deref(), Some("T"));
-        assert!(s.body.is_empty());
+        assert_eq!(s.body, Vec::<OutElement>::new());
     }
 
     fn heading(text: &str, level: u8) -> OutElement {

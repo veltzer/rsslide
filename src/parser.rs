@@ -141,7 +141,7 @@ slides:
 
     #[test]
     fn body_keeps_its_order() {
-        let yaml = r#"
+        let yaml = r"
 slides:
   - title: T
     body:
@@ -152,7 +152,7 @@ slides:
       - bullets: [x]
       - table: {headers: [A], rows: [[1]]}
       - image: a.svg
-"#;
+";
         assert_eq!(
             kinds(&body(yaml)),
             [
@@ -163,7 +163,7 @@ slides:
 
     #[test]
     fn list_items_nest() {
-        let yaml = r#"
+        let yaml = r"
 slides:
   - body:
       - bullets:
@@ -173,7 +173,7 @@ slides:
               - child
               - text: grandchild parent
                 bullets: [grandchild]
-"#;
+";
         let b = body(yaml);
         let Element::List(l) = &b[0] else {
             panic!("list")

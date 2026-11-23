@@ -2,7 +2,7 @@
 //!
 //! syntect's own loader needs its `yaml-load` feature, which pulls in the
 //! unmaintained `yaml-rust` (RUSTSEC-2024-0320). The bundled syntaxes use a
-//! small subset of the format, which this reads with serde_norway and builds
+//! small subset of the format, which this reads with `serde_norway` and builds
 //! into syntect's structures the way its loader does: `__start`/`__main`
 //! contexts around `main`, anonymous contexts for inline `push` lists, and
 //! `$` rewritten to match before the newline that each line keeps. Any key
@@ -21,7 +21,8 @@ use syntect::parsing::{Regex, Scope, SyntaxDefinition};
 struct File {
     name: String,
     scope: String,
-    file_extensions: Vec<String>,
+    #[serde(rename = "file_extensions")]
+    extensions: Vec<String>,
     contexts: BTreeMap<String, Vec<Entry>>,
 }
 
@@ -96,7 +97,7 @@ pub fn load(source: &str) -> Result<SyntaxDefinition> {
     contexts.insert("__main".into(), main);
     Ok(SyntaxDefinition {
         name: file.name,
-        file_extensions: file.file_extensions,
+        file_extensions: file.extensions,
         scope: scope(&file.scope)?,
         first_line_match: None,
         hidden: false,
@@ -117,7 +118,7 @@ fn build_context(
     for entry in entries {
         match entry {
             Entry::MetaScope(MetaScope { meta_scope }) => {
-                context.meta_scope = vec![scope(meta_scope)?]
+                context.meta_scope = vec![scope(meta_scope)?];
             }
             Entry::Include(Include { include }) => context
                 .patterns
@@ -179,7 +180,7 @@ fn build_context(
 
 /// A reference to the context `name`. syntect marks the variant
 /// non-exhaustive, so it cannot be built outside the crate; it is built
-/// through its serde form instead (in serde_norway, the tagged `!Named name`).
+/// through its serde form instead (in `serde_norway`, the tagged `!Named name`).
 fn named(name: &str) -> Result<ContextReference> {
     let value = serde_norway::Value::Tagged(Box::new(serde_norway::value::TaggedValue {
         tag: serde_norway::value::Tag::new("Named"),

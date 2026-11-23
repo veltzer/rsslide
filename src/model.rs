@@ -121,46 +121,42 @@ impl<'de> Deserialize<'de> for Slide {
             || raw.columns.is_some()
             || raw.bullets_first
             || raw.table.is_some();
-        let body = match raw.body {
-            Some(body) => {
-                if has_fields {
-                    return Err(D::Error::custom(
-                        "a slide with `body` cannot also use subtitle(s), content, bullets, \
-                         columns, bullets_first, table, code, image or svg",
-                    ));
-                }
-                body
+        let body = if let Some(body) = raw.body {
+            if has_fields {
+                return Err(D::Error::custom(
+                    "a slide with `body` cannot also use subtitle(s), content, bullets, \
+                     columns, bullets_first, table, code, image or svg",
+                ));
             }
-            None => {
-                if raw.image.is_some() && raw.svg.is_some() {
-                    return Err(D::Error::custom(
-                        "a slide cannot have both `image` and `svg`",
-                    ));
-                }
-                let mut body: Vec<Element> =
-                    raw.subtitles.into_iter().map(Element::Heading).collect();
-                body.extend(raw.content.map(Element::Text));
-                let bullets = raw.bullets.map(|items| {
-                    Element::List(List {
-                        ordered: false,
-                        start: 1,
-                        items,
-                    })
-                });
-                let columns = raw.columns.map(Element::Columns);
-                if raw.bullets_first {
-                    body.extend(bullets);
-                    body.extend(columns);
-                } else {
-                    body.extend(columns);
-                    body.extend(bullets);
-                }
-                body.extend(raw.table.map(Element::Table));
-                body.extend(raw.code.into_iter().map(Element::Code));
-                body.extend(raw.image.map(Element::Image));
-                body.extend(raw.svg.map(Element::Svg));
-                body
+            body
+        } else {
+            if raw.image.is_some() && raw.svg.is_some() {
+                return Err(D::Error::custom(
+                    "a slide cannot have both `image` and `svg`",
+                ));
             }
+            let mut body: Vec<Element> = raw.subtitles.into_iter().map(Element::Heading).collect();
+            body.extend(raw.content.map(Element::Text));
+            let bullets = raw.bullets.map(|items| {
+                Element::List(List {
+                    ordered: false,
+                    start: 1,
+                    items,
+                })
+            });
+            let columns = raw.columns.map(Element::Columns);
+            if raw.bullets_first {
+                body.extend(bullets);
+                body.extend(columns);
+            } else {
+                body.extend(columns);
+                body.extend(bullets);
+            }
+            body.extend(raw.table.map(Element::Table));
+            body.extend(raw.code.into_iter().map(Element::Code));
+            body.extend(raw.image.map(Element::Image));
+            body.extend(raw.svg.map(Element::Svg));
+            body
         };
         Ok(Slide {
             title: raw.title,

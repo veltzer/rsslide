@@ -317,12 +317,18 @@ pub struct Block {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct List {
-    pub indent_em: f32,
-    pub item_gap_em: f32,
-    pub disc_size_em: f32,
-    pub disc_offset_em: f32,
-    pub disc_rise_em: f32,
-    pub ring_stroke_em: f32,
+    #[serde(rename = "indent_em")]
+    pub indent: f32,
+    #[serde(rename = "item_gap_em")]
+    pub item_gap: f32,
+    #[serde(rename = "disc_size_em")]
+    pub disc_size: f32,
+    #[serde(rename = "disc_offset_em")]
+    pub disc_offset: f32,
+    #[serde(rename = "disc_rise_em")]
+    pub disc_rise: f32,
+    #[serde(rename = "ring_stroke_em")]
+    pub ring_stroke: f32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -355,18 +361,25 @@ pub struct Code {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct InlineCode {
-    pub font_size_em: f32,
-    pub padding_x_em: f32,
-    pub padding_y_em: f32,
-    pub radius_em: f32,
+    #[serde(rename = "font_size_em")]
+    pub font_size: f32,
+    #[serde(rename = "padding_x_em")]
+    pub padding_x: f32,
+    #[serde(rename = "padding_y_em")]
+    pub padding_y: f32,
+    #[serde(rename = "radius_em")]
+    pub radius: f32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Table {
-    pub cell_padding_x_em: f32,
-    pub cell_padding_y_em: f32,
-    pub border_em: f32,
+    #[serde(rename = "cell_padding_x_em")]
+    pub cell_padding_x: f32,
+    #[serde(rename = "cell_padding_y_em")]
+    pub cell_padding_y: f32,
+    #[serde(rename = "border_em")]
+    pub border: f32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -455,7 +468,7 @@ pub struct Colors {
 pub struct Color(pub u8, pub u8, pub u8);
 
 impl Color {
-    pub fn rgb(&self) -> (u8, u8, u8) {
+    pub fn rgb(self) -> (u8, u8, u8) {
         (self.0, self.1, self.2)
     }
 }
@@ -487,9 +500,9 @@ impl Default for Slide {
         Self {
             width_mm: 338.667,
             height_mm: 190.5,
-            font_size_ratio: 0.02265625,
-            padding_x_ratio: 0.061328125,
-            padding_y_ratio: 0.109028,
+            font_size_ratio: 0.022_656_25,
+            padding_x_ratio: 0.061_328_125,
+            padding_y_ratio: 0.109_028,
             line_height: 1.5,
             valign: VAlign::Middle,
         }
@@ -502,8 +515,8 @@ impl Default for Heading {
             font_sizes_em: [1.6, 1.3, 1.1, 1.05, 1.0, 0.9],
             line_height: 1.25,
             padding_bottom_em: [0.3, 0.3, 0.0, 0.0, 0.0, 0.0],
-            margin_top_em: 0.827586,
-            margin_bottom_em: 0.551724,
+            margin_top_em: 0.827_586,
+            margin_bottom_em: 0.551_724,
         }
     }
 }
@@ -511,7 +524,7 @@ impl Default for Heading {
 impl Default for Block {
     fn default() -> Self {
         Self {
-            margin_bottom_em: 0.551724,
+            margin_bottom_em: 0.551_724,
         }
     }
 }
@@ -519,12 +532,12 @@ impl Default for Block {
 impl Default for List {
     fn default() -> Self {
         Self {
-            indent_em: 2.0,
-            item_gap_em: 0.25,
-            disc_size_em: 0.345,
-            disc_offset_em: 0.741,
-            disc_rise_em: 0.345,
-            ring_stroke_em: 0.037,
+            indent: 2.0,
+            item_gap: 0.25,
+            disc_size: 0.345,
+            disc_offset: 0.741,
+            disc_rise: 0.345,
+            ring_stroke: 0.037,
         }
     }
 }
@@ -549,9 +562,9 @@ impl Default for Code {
         Self {
             font_size_em: 0.85,
             line_height: 1.15,
-            padding_em: 0.551724,
-            radius_em: 0.206897,
-            border_em: 0.034483,
+            padding_em: 0.551_724,
+            radius_em: 0.206_897,
+            border_em: 0.034_483,
             icon_size_em: 1.2,
             icon_inset_em: 0.3,
             theme: "GitHub".into(),
@@ -563,10 +576,10 @@ impl Default for Code {
 impl Default for InlineCode {
     fn default() -> Self {
         Self {
-            font_size_em: 0.85,
-            padding_x_em: 0.4,
-            padding_y_em: 0.2,
-            radius_em: 0.206897,
+            font_size: 0.85,
+            padding_x: 0.4,
+            padding_y: 0.2,
+            radius: 0.206_897,
         }
     }
 }
@@ -574,9 +587,9 @@ impl Default for InlineCode {
 impl Default for Table {
     fn default() -> Self {
         Self {
-            cell_padding_x_em: 0.448276,
-            cell_padding_y_em: 0.206897,
-            border_em: 0.034483,
+            cell_padding_x: 0.448_276,
+            cell_padding_y: 0.206_897,
+            border: 0.034_483,
         }
     }
 }
@@ -584,9 +597,9 @@ impl Default for Table {
 impl Default for Pagination {
     fn default() -> Self {
         Self {
-            font_size_em: 0.827586,
-            right_ratio: 0.0234375,
-            bottom_ratio: 0.029167,
+            font_size_em: 0.827_586,
+            right_ratio: 0.023_437_5,
+            bottom_ratio: 0.029_167,
         }
     }
 }
@@ -598,8 +611,8 @@ impl Default for Credit {
             name: None,
             email: None,
             font_size_em: 0.5,
-            left_ratio: 0.0234375,
-            bottom_ratio: 0.029167,
+            left_ratio: 0.023_437_5,
+            bottom_ratio: 0.029_167,
         }
     }
 }
@@ -611,9 +624,9 @@ impl Default for Svg {
             flatten_css_vars: true,
             size: SvgSize::Width,
             slide_width_px: 1280.0,
-            top_gap_em: 0.551724,
-            margin_x_ratio: 0.061328125,
-            margin_bottom_ratio: 0.109028,
+            top_gap_em: 0.551_724,
+            margin_x_ratio: 0.061_328_125,
+            margin_bottom_ratio: 0.109_028,
         }
     }
 }
@@ -725,7 +738,7 @@ impl Config {
                 .unwrap_or_else(|| PathBuf::from("."))
                 .join("rsslide/config.toml"),
         ];
-        for path in candidates.iter() {
+        for path in &candidates {
             if path.exists() {
                 return Self::from_file(path);
             }
@@ -746,10 +759,10 @@ mod tests {
 
     #[test]
     fn partial_override_keeps_other_defaults() {
-        let toml = r#"
+        let toml = r"
             [heading]
             line_height = 1.4
-        "#;
+        ";
         let cfg: Config = toml::from_str(toml).unwrap();
         assert!((cfg.heading.line_height - 1.4).abs() < 1e-6);
         // Unchanged defaults survive.
@@ -803,10 +816,10 @@ mod tests {
 
     #[test]
     fn unknown_field_is_rejected() {
-        let toml = r#"
+        let toml = r"
             [slide]
             widht_mm = 100
-        "#;
+        ";
         assert!(toml::from_str::<Config>(toml).is_err());
     }
 }

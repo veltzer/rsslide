@@ -40,10 +40,10 @@ pub struct LoadedFont<'a> {
 impl<'a> LoadedFont<'a> {
     fn new(faces: Vec<ChainFont<'a>>) -> Self {
         let primary = &faces[0].face;
-        let upem = primary.units_per_em() as f32;
+        let upem = crate::numeric::i32_f32(primary.units_per_em());
         Self {
-            ascent: primary.ascender() as f32 / upem,
-            descent: primary.descender() as f32 / upem,
+            ascent: f32::from(primary.ascender()) / upem,
+            descent: f32::from(primary.descender()) / upem,
             faces,
         }
     }
@@ -119,7 +119,7 @@ fn shaped_width(face: &Face, text: &str, size: f32) -> f32 {
     buffer.guess_segment_properties();
     let shaped = rustybuzz::shape(face, &[], buffer);
     let units: i32 = shaped.glyph_positions().iter().map(|p| p.x_advance).sum();
-    units as f32 / face.units_per_em() as f32 * size
+    crate::numeric::i32_f32(units) / crate::numeric::i32_f32(face.units_per_em()) * size
 }
 
 /// Whether `c` is a default-ignorable character (a zero-width space or
@@ -180,14 +180,13 @@ impl FontBytes {
         let mut roles: [Vec<usize>; 5] = Default::default();
         for (role, (what, own, fallback)) in roles.iter_mut().zip(chains) {
             for path in std::iter::once(own).chain(fallback) {
-                let index = match files.iter().position(|(p, _)| p == path) {
-                    Some(index) => index,
-                    None => {
-                        let bytes = std::fs::read(path)
-                            .with_context(|| format!("reading {what} font {}", path.display()))?;
-                        files.push((path.clone(), Arc::new(bytes)));
-                        files.len() - 1
-                    }
+                let index = if let Some(index) = files.iter().position(|(p, _)| p == path) {
+                    index
+                } else {
+                    let bytes = std::fs::read(path)
+                        .with_context(|| format!("reading {what} font {}", path.display()))?;
+                    files.push((path.clone(), Arc::new(bytes)));
+                    files.len() - 1
                 };
                 if role.contains(&index) {
                     bail!("font {} appears twice in the {what} fonts", path.display());
@@ -278,15 +277,13 @@ impl<'a> FontSet<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Span {
     pub text: String,
-    pub bold: bool,
-    pub italic: bool,
+    pub style: InlineState,
     pub code: bool,
-    pub link: bool,
 }
 
 impl Span {
     pub fn font(&self) -> FontKind {
-        match (self.code, self.bold, self.italic) {
+        match (self.code, self.style.bold, self.style.italic) {
             (true, _, _) => FontKind::Mono,
             (false, true, true) => FontKind::BoldItalic,
             (false, true, false) => FontKind::Bold,
@@ -296,11 +293,12 @@ impl Span {
     }
 }
 
-#[derive(Clone, Copy, Default)]
-struct InlineState {
-    bold: bool,
-    italic: bool,
-    link: bool,
+/// The emphasis and link state a span of inline text is set in.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct InlineState {
+    pub bold: bool,
+    pub italic: bool,
+    pub link: bool,
 }
 
 /// Parse the inline markdown marp renders inside a line of text: `code`,
@@ -308,7 +306,7 @@ struct InlineState {
 /// escapes, character references (`&theta;`, `&#8321;`, `&#x2192;`), and
 /// bare URLs and e-mail addresses (marp autolinks them).
 /// A delimiter with no matching closer is kept as literal text, as in
-/// CommonMark.
+/// `CommonMark`.
 pub fn parse_inline(text: &str) -> Vec<Span> {
     let chars: Vec<char> = text.chars().collect();
     let mut out = Vec::new();
@@ -323,10 +321,8 @@ fn push(out: &mut Vec<Span>, text: &str, st: InlineState, code: bool) {
     }
     out.push(Span {
         text: text.to_string(),
-        bold: st.bold,
-        italic: st.italic,
+        style: st,
         code,
-        link: st.link,
     });
 }
 
@@ -409,7 +405,7 @@ fn parse_range(chars: &[char], st: InlineState, out: &mut Vec<Span>) {
     push(out, &buf, st, false);
 }
 
-/// The character reference `chars` starts with, as CommonMark reads one,
+/// The character reference `chars` starts with, as `CommonMark` reads one,
 /// and its length: `&#` and 1-7 decimal digits, `&#x` and 1-6 hex digits
 /// (an invalid code point or 0 is U+FFFD), or an HTML5 entity name, each
 /// ended by `;`. Anything else, an unknown name included, is not one.
@@ -550,7 +546,7 @@ fn is_autolink(word: &str) -> bool {
 fn autolink(spans: Vec<Span>) -> Vec<Span> {
     let mut out = Vec::new();
     for span in spans {
-        if span.code || span.link {
+        if span.code || span.style.link {
             out.push(span);
             continue;
         }
@@ -574,7 +570,10 @@ fn autolink(spans: Vec<Span>) -> Vec<Span> {
                 }
                 out.push(Span {
                     text: core.to_string(),
-                    link: true,
+                    style: InlineState {
+                        link: true,
+                        ..span.style
+                    },
                     ..span.clone()
                 });
                 plain.push_str(&word[core.len()..]);
@@ -599,7 +598,7 @@ fn merge_adjacent(spans: Vec<Span>) -> Vec<Span> {
         if let Some(last) = out.last_mut()
             && !s.code
             && !last.code
-            && (last.bold, last.italic, last.link) == (s.bold, s.italic, s.link)
+            && last.style == s.style
         {
             last.text.push_str(&s.text);
             continue;
@@ -810,7 +809,7 @@ fn wrap_with(
         }
         if break_words && line.pieces.is_empty() && atom.width > limit {
             for frag in atom.parts {
-                break_frag(frag, limit, &mut line, &mut lines, fonts, m);
+                break_frag(&frag, limit, &mut line, &mut lines, fonts, m);
             }
         } else {
             for frag in atom.parts {
@@ -829,7 +828,7 @@ fn wrap_with(
 /// to fill lines no wider than `limit`; finished lines go to `lines`. Code
 /// padding stays on the fragment's outer edges.
 fn break_frag(
-    frag: Frag,
+    frag: &Frag,
     limit: f32,
     line: &mut Line,
     lines: &mut Vec<Line>,
@@ -934,10 +933,8 @@ mod tests {
         fn plain(text: &str) -> Self {
             Span {
                 text: text.to_string(),
-                bold: false,
-                italic: false,
+                style: InlineState::default(),
                 code: false,
-                link: false,
             }
         }
     }
@@ -945,7 +942,15 @@ mod tests {
     fn texts(spans: &[Span]) -> Vec<(&str, bool, bool, bool, bool)> {
         spans
             .iter()
-            .map(|s| (s.text.as_str(), s.bold, s.italic, s.code, s.link))
+            .map(|s| {
+                (
+                    s.text.as_str(),
+                    s.style.bold,
+                    s.style.italic,
+                    s.code,
+                    s.style.link,
+                )
+            })
             .collect()
     }
 
