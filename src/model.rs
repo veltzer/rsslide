@@ -3,7 +3,6 @@ use serde::{Deserialize, Deserializer};
 #[derive(Debug, Deserialize)]
 pub struct Presentation {
     pub title: Option<String>,
-    #[allow(dead_code)]
     pub theme: Option<String>,
     pub paginate: Option<bool>,
     pub slides: Vec<Slide>,
@@ -18,8 +17,6 @@ pub struct Slide {
     pub title_level: u8,
     /// Everything below the title, top to bottom.
     pub body: Vec<Element>,
-    #[allow(dead_code)]
-    pub class: Option<String>,
     /// A picture filling one side of the slide, the content laid out in
     /// the other side (marp's `![bg left]`).
     pub background: Option<Background>,
@@ -100,7 +97,9 @@ struct RawSlide {
     #[serde(default)]
     bullets_first: bool,
     table: Option<Table>,
-    class: Option<String>,
+    /// Accepted for marp compatibility; slides are not styled by class.
+    #[serde(rename = "class")]
+    _class: Option<String>,
     background: Option<Background>,
     align: Option<Align>,
     title_align: Option<Align>,
@@ -162,7 +161,6 @@ impl<'de> Deserialize<'de> for Slide {
             title: raw.title,
             title_level: raw.title_level,
             body,
-            class: raw.class,
             background: raw.background,
             align: raw.align,
             title_align: raw.title_align,
