@@ -11,14 +11,14 @@ pub fn usize_f32(n: usize) -> f32 {
 pub fn u32_f32(n: u32) -> f32 {
     let hi = u16::try_from(n >> 16).unwrap_or(u16::MAX);
     let lo = u16::try_from(n & 0xffff).unwrap_or(u16::MAX);
-    f32::from(hi) * 65_536.0 + f32::from(lo)
+    f32::from(hi).mul_add(65_536.0, f32::from(lo))
 }
 
 /// An `i32` as an `f32`, rounded to nearest like an `as` cast.
 pub fn i32_f32(n: i32) -> f32 {
     let hi = i16::try_from(n >> 16).unwrap_or(i16::MAX);
     let lo = u16::try_from(n & 0xffff).unwrap_or(u16::MAX);
-    f32::from(hi) * 65_536.0 + f32::from(lo)
+    f32::from(hi).mul_add(65_536.0, f32::from(lo))
 }
 
 /// `v` rounded half away from zero to the nearest `u8`, clamped to `0..=255`.

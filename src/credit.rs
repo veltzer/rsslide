@@ -7,7 +7,7 @@ use anyhow::{Context, Result, bail};
 use std::process::Command;
 
 /// The person compiling the deck.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Compiler {
     pub name: String,
     pub email: String,

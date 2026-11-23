@@ -247,7 +247,7 @@ fn syntax_runs(h: &mut HighlightLines, set: &SyntaxSet, i: usize, line: &str) ->
         .collect())
 }
 
-fn to_color(c: syntect::highlighting::Color) -> Color {
+const fn to_color(c: syntect::highlighting::Color) -> Color {
     Color(c.r, c.g, c.b)
 }
 

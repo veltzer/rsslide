@@ -468,7 +468,7 @@ pub struct Colors {
 pub struct Color(pub u8, pub u8, pub u8);
 
 impl Color {
-    pub fn rgb(self) -> (u8, u8, u8) {
+    pub const fn rgb(self) -> (u8, u8, u8) {
         (self.0, self.1, self.2)
     }
 }

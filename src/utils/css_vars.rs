@@ -84,7 +84,7 @@ fn parse_decls(css: &str) -> Vec<(String, String)> {
     out
 }
 
-fn is_ident_byte(b: u8) -> bool {
+const fn is_ident_byte(b: u8) -> bool {
     b.is_ascii_alphanumeric() || b == b'-' || b == b'_'
 }
 
@@ -114,7 +114,7 @@ fn replace_vars(svg: &str, decls: &HashMap<String, String>) -> String {
     out
 }
 
-fn next_char_boundary(bytes: &[u8], i: usize) -> usize {
+const fn next_char_boundary(bytes: &[u8], i: usize) -> usize {
     let mut j = i + 1;
     while j < bytes.len() && (bytes[j] & 0xC0) == 0x80 {
         j += 1;
@@ -141,10 +141,9 @@ fn find_matching_close_paren(s: &str) -> Option<usize> {
 
 fn resolve_var(inner: &str, decls: &HashMap<String, String>) -> Option<String> {
     let inner = inner.trim();
-    let (name, fallback) = match inner.find(',') {
-        Some(idx) => (inner[..idx].trim(), Some(inner[idx + 1..].trim())),
-        None => (inner, None),
-    };
+    let (name, fallback) = inner.find(',').map_or((inner, None), |idx| {
+        (inner[..idx].trim(), Some(inner[idx + 1..].trim()))
+    });
     if let Some(v) = decls.get(name) {
         return Some(v.clone());
     }

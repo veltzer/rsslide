@@ -141,7 +141,7 @@ fn main() -> Result<()> {
     }
 }
 
-fn overflow(warn: bool) -> exporter::pdf::Overflow {
+const fn overflow(warn: bool) -> exporter::pdf::Overflow {
     if warn {
         exporter::pdf::Overflow::Warn
     } else {

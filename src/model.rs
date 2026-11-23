@@ -46,7 +46,7 @@ pub enum Element {
     Svg(String),
     Columns(Vec<Column>),
     /// A blockquote, holding its own elements.
-    Quote(Vec<Element>),
+    Quote(Vec<Self>),
 }
 
 /// A bulleted (`ordered: false`) or numbered list.
@@ -157,7 +157,7 @@ impl<'de> Deserialize<'de> for Slide {
             body.extend(raw.svg.map(Element::Svg));
             body
         };
-        Ok(Slide {
+        Ok(Self {
             title: raw.title,
             title_level: raw.title_level,
             body,
@@ -194,18 +194,18 @@ impl<'de> Deserialize<'de> for Element {
         if raw.start.is_some() && raw.numbered.is_none() {
             return Err(D::Error::custom("`start` belongs to a `numbered` list"));
         }
-        let mut found: Vec<Element> = Vec::new();
+        let mut found: Vec<Self> = Vec::new();
         found.extend(raw.text.map(Element::Text));
         found.extend(raw.heading.map(Element::Heading));
         found.extend(raw.bullets.map(|items| {
-            Element::List(List {
+            Self::List(List {
                 ordered: false,
                 start: 1,
                 items,
             })
         }));
         found.extend(raw.numbered.map(|items| {
-            Element::List(List {
+            Self::List(List {
                 ordered: true,
                 start: raw.start.unwrap_or(1),
                 items,
@@ -224,7 +224,7 @@ impl<'de> Deserialize<'de> for Element {
                 found.len()
             )));
         }
-        if let Some(Element::List(list)) = found.first()
+        if let Some(Self::List(list)) = found.first()
             && list.items.is_empty()
         {
             return Err(D::Error::custom("a list must have at least one item"));
@@ -253,7 +253,7 @@ impl<'de> Deserialize<'de> for ListItem {
             start: Option<u32>,
         }
         Ok(match Raw::deserialize(d)? {
-            Raw::Plain(text) => ListItem {
+            Raw::Plain(text) => Self {
                 text,
                 children: None,
             },
@@ -284,7 +284,7 @@ impl<'de> Deserialize<'de> for ListItem {
                         "a nested list must have at least one item",
                     ));
                 }
-                ListItem {
+                Self {
                     text: full.text,
                     children,
                 }
@@ -311,7 +311,7 @@ pub enum VAlign {
     Bottom,
 }
 
-fn default_title_level() -> u8 {
+const fn default_title_level() -> u8 {
     1
 }
 
@@ -391,7 +391,7 @@ impl<'de> Deserialize<'de> for Background {
                 }
             },
         };
-        Ok(Background {
+        Ok(Self {
             image: raw.image,
             side: raw.split,
             split,
@@ -430,7 +430,7 @@ impl<'de> Deserialize<'de> for Column {
         }
         let raw = Raw::deserialize(d)?;
         match (raw.body, raw.header, raw.bullets) {
-            (Some(body), None, None) => Ok(Column { body }),
+            (Some(body), None, None) => Ok(Self { body }),
             (Some(_), ..) => Err(D::Error::custom(
                 "a column has either `body` or `header`/`bullets`, not both",
             )),
@@ -449,7 +449,7 @@ impl<'de> Deserialize<'de> for Column {
                         "a column needs `body`, `header` or `bullets`",
                     ));
                 }
-                Ok(Column { body })
+                Ok(Self { body })
             }
         }
     }
@@ -507,7 +507,7 @@ impl<'de> Deserialize<'de> for Subtitle {
                 level: u8,
             },
         }
-        fn default_subtitle_level() -> u8 {
+        const fn default_subtitle_level() -> u8 {
             2
         }
         let raw = Raw::deserialize(d)?;
@@ -520,7 +520,7 @@ impl<'de> Deserialize<'de> for Subtitle {
                 "subtitle.level must be in 2..=6, got {level}"
             )));
         }
-        Ok(Subtitle { text, level })
+        Ok(Self { text, level })
     }
 }
 
@@ -539,10 +539,10 @@ impl<'de> Deserialize<'de> for TableAlign {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let s = String::deserialize(d)?;
         match s.as_str() {
-            "auto" => Ok(TableAlign::Auto),
-            "left" => Ok(TableAlign::Left),
-            "center" => Ok(TableAlign::Center),
-            "right" => Ok(TableAlign::Right),
+            "auto" => Ok(Self::Auto),
+            "left" => Ok(Self::Left),
+            "center" => Ok(Self::Center),
+            "right" => Ok(Self::Right),
             other => Err(serde::de::Error::custom(format!(
                 "table align must be one of auto|left|center|right, got {other:?}"
             ))),
@@ -598,7 +598,7 @@ impl<'de> Deserialize<'de> for Table {
             }
             None => vec![TableAlign::Auto; n],
         };
-        Ok(Table {
+        Ok(Self {
             headers: raw.headers,
             rows: raw.rows,
             aligns,

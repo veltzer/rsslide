@@ -98,13 +98,14 @@ impl<'a> LoadedFont<'a> {
     /// A character no font has is measured in the role's own font (and
     /// reported by `runs` when the text is checked).
     pub fn width(&self, text: &str, size: f32) -> f32 {
-        match self.runs(text) {
-            Ok(runs) => runs
-                .into_iter()
-                .map(|(face, run)| shaped_width(&self.faces[face].face, run, size))
-                .sum(),
-            Err(_) => shaped_width(&self.faces[0].face, text, size),
-        }
+        self.runs(text).map_or_else(
+            |_| shaped_width(&self.faces[0].face, text, size),
+            |runs| {
+                runs.into_iter()
+                    .map(|(face, run)| shaped_width(&self.faces[face].face, run, size))
+                    .sum()
+            },
+        )
     }
 
     /// Advance width of a run `runs` returned for face `index`.
@@ -125,7 +126,7 @@ fn shaped_width(face: &Face, text: &str, size: f32) -> f32 {
 /// Whether `c` is a default-ignorable character (a zero-width space or
 /// joiner, a direction mark, a soft hyphen, a byte-order mark): drawn as
 /// nothing, so it needs no glyph.
-fn is_ignorable(c: char) -> bool {
+const fn is_ignorable(c: char) -> bool {
     matches!(c as u32,
         0x00AD | 0x034F | 0x061C | 0x180E
         | 0x200B..=0x200F
@@ -137,7 +138,7 @@ fn is_ignorable(c: char) -> bool {
 
 /// Whether `c` belongs with the character before it rather than starting
 /// a run of its own.
-fn modifies_previous(c: char) -> bool {
+const fn modifies_previous(c: char) -> bool {
     matches!(c as u32,
         0x0300..=0x036F      // combining diacritical marks
         | 0x200D             // zero-width joiner
@@ -260,7 +261,7 @@ pub struct FontSet<'a> {
 }
 
 impl<'a> FontSet<'a> {
-    pub fn get(&self, kind: FontKind) -> &LoadedFont<'a> {
+    pub const fn get(&self, kind: FontKind) -> &LoadedFont<'a> {
         match kind {
             FontKind::Regular => &self.regular,
             FontKind::Bold => &self.bold,
@@ -282,7 +283,7 @@ pub struct Span {
 }
 
 impl Span {
-    pub fn font(&self) -> FontKind {
+    pub const fn font(&self) -> FontKind {
         match (self.code, self.style.bold, self.style.italic) {
             (true, _, _) => FontKind::Mono,
             (false, true, true) => FontKind::BoldItalic,
@@ -931,7 +932,7 @@ mod tests {
 
     impl Span {
         fn plain(text: &str) -> Self {
-            Span {
+            Self {
                 text: text.to_string(),
                 style: InlineState::default(),
                 code: false,
@@ -1064,7 +1065,7 @@ mod tests {
         let w10 = fonts.regular.width("Hello, world", 10.0);
         let w30 = fonts.regular.width("Hello, world", 30.0);
         assert!(w10 > 0.0);
-        assert!((w30 - 3.0 * w10).abs() < 1e-3, "{w10} {w30}");
+        assert!(3.0f32.mul_add(-w10, w30).abs() < 1e-3, "{w10} {w30}");
     }
 
     #[test]
@@ -1147,7 +1148,10 @@ mod tests {
         // Unwrapped: one line, mono text plus padding on both sides only.
         let one = wrap(&spans, f32::INFINITY, &fonts, M);
         assert_eq!(one.len(), 1);
-        let expected = fonts.mono.width("alpha beta gamma", M.code_size) + 2.0 * M.code_pad;
+        let expected = 2.0f32.mul_add(
+            M.code_pad,
+            fonts.mono.width("alpha beta gamma", M.code_size),
+        );
         assert!(
             (one[0].width - expected).abs() < 1e-3,
             "{} vs {expected}",
@@ -1208,7 +1212,7 @@ mod tests {
         let fonts = bytes.load().unwrap();
         let spans = parse_inline("`sort=-created`");
         let whole = wrap(&spans, f32::INFINITY, &fonts, M);
-        let natural = fonts.mono.width("sort=-created", M.code_size) + 2.0 * M.code_pad;
+        let natural = 2.0f32.mul_add(M.code_pad, fonts.mono.width("sort=-created", M.code_size));
         assert!(
             (whole[0].width - natural).abs() < 1e-3,
             "{} vs {natural}",
@@ -1228,12 +1232,12 @@ mod tests {
         for text in ["value -5", "use --verbose", "x - y"] {
             let lines = wrap(&parse_inline(text), 0.0, &fonts, M);
             let texts: Vec<String> = lines.iter().map(line_text).collect();
-            let words: Vec<&str> = text.split(' ').filter(|w| *w != "-").collect();
+            let words = text.split(' ').filter(|w| *w != "-").count();
             assert!(
                 texts.iter().all(|t| !t.ends_with('-') || t == "-"),
                 "{text}: {texts:?}"
             );
-            assert!(texts.len() >= words.len(), "{text}: {texts:?}");
+            assert!(texts.len() >= words, "{text}: {texts:?}");
         }
     }
 

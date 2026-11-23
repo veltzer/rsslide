@@ -21,7 +21,7 @@ pub struct OutSlide {
 
 /// A split background image (`![bg left:40% 80%](path)`), its keywords as
 /// written.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct OutBackground {
     pub image: String,
     /// `left` or `right`.
@@ -50,7 +50,7 @@ pub enum OutElement {
     Image(String),
     Svg(String),
     Columns(Vec<OutColumn>),
-    Quote(Vec<OutElement>),
+    Quote(Vec<Self>),
 }
 
 #[derive(Debug, Default, PartialEq)]
@@ -72,13 +72,13 @@ pub struct OutColumn {
     pub body: Vec<OutElement>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct OutCode {
     pub language: Option<String>,
     pub source: String,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct OutTable {
     pub headers: Vec<String>,
     pub rows: Vec<Vec<String>>,
@@ -453,14 +453,14 @@ struct Fence {
 impl Fence {
     /// The fence `trimmed` opens, and its info string (the language). A
     /// backtick fence's info string cannot hold a backtick.
-    fn open(trimmed: &str) -> Option<(Fence, &str)> {
+    fn open(trimmed: &str) -> Option<(Self, &str)> {
         let marker = trimmed.chars().next().filter(|c| *c == '`' || *c == '~')?;
         let len = trimmed.chars().take_while(|c| *c == marker).count();
         let info = trimmed[len..].trim();
         if len < 3 || (marker == '`' && info.contains('`')) {
             return None;
         }
-        Some((Fence { marker, len }, info))
+        Some((Self { marker, len }, info))
     }
 
     /// Whether `line` closes this fence: a run of the same character at
@@ -1004,14 +1004,12 @@ fn emit_code(out: &mut String, code: &OutCode, first: &str, indent: &str) {
     let _ = writeln!(out, "source: {}", block_header(&code.source));
     for line in code.source.lines() {
         let trimmed = line.trim_end();
-        if trimmed.is_empty() {
-            out.push('\n');
-        } else {
+        if !trimmed.is_empty() {
             out.push_str(indent);
             out.push_str("  ");
             out.push_str(trimmed);
-            out.push('\n');
         }
+        out.push('\n');
     }
 }
 
@@ -1034,13 +1032,11 @@ fn block_header(text: &str) -> &'static str {
 fn push_block_lines(out: &mut String, lines: &[String], indent: &str) {
     for line in lines {
         let trimmed = line.trim_end();
-        if trimmed.is_empty() {
-            out.push('\n');
-        } else {
+        if !trimmed.is_empty() {
             out.push_str(indent);
             out.push_str(trimmed);
-            out.push('\n');
         }
+        out.push('\n');
     }
 }
 

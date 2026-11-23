@@ -66,7 +66,10 @@ impl Palette {
     /// Decides the code theme and the tint of monochrome icons.
     pub fn is_dark(&self) -> bool {
         let Color(r, g, b) = self.colors.background;
-        let lum = 0.2126 * f32::from(r) + 0.7152 * f32::from(g) + 0.0722 * f32::from(b);
+        let lum = 0.0722f32.mul_add(
+            f32::from(b),
+            0.7152f32.mul_add(f32::from(g), 0.2126 * f32::from(r)),
+        );
         lum < 128.0
     }
 
@@ -270,7 +273,7 @@ pub fn parse_css_color(s: &str, over: Option<Color>) -> Result<Color> {
         bail!("translucent colour {s:?} where an opaque one is needed");
     };
     let blend = |fg: u8, bg: u8| {
-        crate::numeric::round_u8(alpha * f32::from(fg) + (1.0 - alpha) * f32::from(bg))
+        crate::numeric::round_u8((1.0 - alpha).mul_add(f32::from(bg), alpha * f32::from(fg)))
     };
     Ok(Color(
         blend(rgb.0, bg.0),
@@ -322,15 +325,17 @@ pub fn hex(color: Color) -> String {
 /// A monochrome icon (no fill of its own, so black) given `color` as the
 /// fill of its root element, which its paths inherit.
 pub fn tint_icon(svg: &str, color: Color) -> String {
-    match svg.find("<svg") {
-        Some(at) => format!(
-            "{}<svg fill=\"{}\"{}",
-            &svg[..at],
-            hex(color),
-            &svg[at + 4..]
-        ),
-        None => svg.to_string(),
-    }
+    svg.find("<svg").map_or_else(
+        || svg.to_string(),
+        |at| {
+            format!(
+                "{}<svg fill=\"{}\"{}",
+                &svg[..at],
+                hex(color),
+                &svg[at + 4..]
+            )
+        },
+    )
 }
 
 /// The value of `name="..."` in an opening tag.
@@ -431,7 +436,7 @@ mod tests {
         assert_eq!(c.link, Color(0x6c, 0x8c, 0xff));
         assert_eq!(c.code_background, Color(0x16, 0x19, 0x22));
         assert_eq!(c.pagination, Color(0x5c, 0x60, 0x70));
-        let mut fewer = tokens.clone();
+        let mut fewer = tokens;
         fewer.remove("accent");
         let err = format!("{:#}", colors_from_tokens(&fewer).unwrap_err());
         assert!(err.contains("accent"), "{err}");

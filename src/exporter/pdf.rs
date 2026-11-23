@@ -92,7 +92,7 @@ impl Ctx<'_> {
     }
     /// The width inside the paddings of a region `region_w` wide.
     fn content_width_in(&self, region_w: f32) -> f32 {
-        region_w - 2.0 * self.pad_x()
+        2.0f32.mul_add(-self.pad_x(), region_w)
     }
     fn body_metrics(&self) -> TextMetrics {
         self.metrics(self.em)
@@ -228,17 +228,11 @@ impl<'c> Engine<'c> {
             self.shared.as_ref(),
             presentation.theme.as_deref(),
         )?;
-        let coloured;
-        let cfg = match palette {
-            Some(p) => {
-                coloured = Config {
-                    colors: p.colors.clone(),
-                    ..self.cfg.clone()
-                };
-                &coloured
-            }
-            None => self.cfg,
-        };
+        let coloured = palette.map(|p| Config {
+            colors: p.colors.clone(),
+            ..self.cfg.clone()
+        });
+        let cfg = coloured.as_ref().unwrap_or(self.cfg);
         let mut ctx = self.ctx(cfg, palette, &fonts);
         ctx.overflow = overflow;
         render_with(&ctx, presentation)
@@ -411,11 +405,11 @@ impl Picture {
     /// Natural size: pixels for a raster, the SVG's size for an SVG.
     fn size(&self) -> (f32, f32) {
         match self {
-            Picture::Raster(image) => {
+            Self::Raster(image) => {
                 let (w, h) = image.size();
                 (u32_f32(w), u32_f32(h))
             }
-            Picture::Svg(tree) => (tree.size().width(), tree.size().height()),
+            Self::Svg(tree) => (tree.size().width(), tree.size().height()),
         }
     }
 }
@@ -423,14 +417,14 @@ impl Picture {
 impl Op {
     fn shift(&mut self, dx: f32, dy: f32) {
         match self {
-            Op::Text { x, y, .. }
-            | Op::Rect { x, y, .. }
-            | Op::Ring { x, y, .. }
-            | Op::Svg { x, y, .. } => {
+            Self::Text { x, y, .. }
+            | Self::Rect { x, y, .. }
+            | Self::Ring { x, y, .. }
+            | Self::Svg { x, y, .. } => {
                 *x += dx;
                 *y += dy;
             }
-            Op::Background { x, y, clip, .. } => {
+            Self::Background { x, y, clip, .. } => {
                 *x += dx;
                 *y += dy;
                 clip[0] += dx;
@@ -487,15 +481,13 @@ fn place(blocks: Vec<Block>, top: f32, out: &mut Vec<Op>) -> f32 {
 /// The slide's content runs across the page, or beside its background:
 /// the region's left edge and width.
 fn content_region(ctx: &Ctx, slide: &Slide) -> (f32, f32) {
-    match &slide.background {
-        None => (0.0, ctx.width),
-        Some(bg) => {
-            let content_w = ctx.width * (1.0 - bg.split);
-            match bg.side {
-                Side::Left => (ctx.width - content_w, content_w),
-                Side::Right => (0.0, content_w),
-            }
-        }
+    let Some(bg) = &slide.background else {
+        return (0.0, ctx.width);
+    };
+    let content_w = ctx.width * (1.0 - bg.split);
+    match bg.side {
+        Side::Left => (ctx.width - content_w, content_w),
+        Side::Right => (0.0, content_w),
     }
 }
 
@@ -506,7 +498,7 @@ fn content_region(ctx: &Ctx, slide: &Slide) -> (f32, f32) {
 /// line may hang past the edge.
 fn place_aligned(ctx: &Ctx, slide: &Slide, blocks: Vec<Block>, ops: &mut Vec<Op>) -> Result<()> {
     let top = ctx.pad_y();
-    let available = ctx.height - 2.0 * top;
+    let available = 2.0f32.mul_add(-top, ctx.height);
     let stack = stack_height(&blocks);
     let spare = (available - stack).max(0.0);
     let y = match slide.valign.unwrap_or(ctx.cfg.slide.valign) {
@@ -541,7 +533,7 @@ fn shrink_code_to_fit(
     scale: f32,
     top: f32,
 ) -> Result<(Vec<Block>, f32)> {
-    let available = ctx.height - 2.0 * top;
+    let available = 2.0f32.mul_add(-top, ctx.height);
     let runs_off = |blocks: Vec<Block>| {
         let mut placed = Vec::new();
         place(blocks, top, &mut placed);
@@ -556,7 +548,7 @@ fn shrink_code_to_fit(
     let full = stack_height(&blocks);
     let half = stack_height(&build(scale / 2.0)?);
     let per_unit = 2.0 * (full - half) / scale;
-    let fixed = full - per_unit * scale;
+    let fixed = per_unit.mul_add(-scale, full);
     let fit = (available - fixed) / per_unit;
     if fit > 0.0 {
         let scale = fit.min(scale);
@@ -962,7 +954,8 @@ struct TextStyle {
 fn baseline_offset(ctx: &Ctx, font: FontKind, size: f32, line_height: f32) -> f32 {
     let f = ctx.fonts.get(font);
     let content = (f.ascent - f.descent) * size;
-    (line_height * size - content) / 2.0 + f.ascent * size
+    f.ascent
+        .mul_add(size, line_height.mul_add(size, -content) / 2.0)
 }
 
 fn line_x(x0: f32, width: f32, line_width: f32, align: Align) -> f32 {
@@ -992,8 +985,8 @@ fn line_ops(ctx: &Ctx, line: &Line, x: f32, y: f32, style: &TextStyle, ops: &mut
         let end = &line.pieces[i];
         let mono = &ctx.fonts.mono;
         let pad_y = m.code_size * cfg.inline_code.padding_y;
-        let box_top = y - mono.ascent * m.code_size - pad_y;
-        let box_bottom = y - mono.descent * m.code_size + pad_y;
+        let box_top = mono.ascent.mul_add(-m.code_size, y) - pad_y;
+        let box_bottom = mono.descent.mul_add(-m.code_size, y) + pad_y;
         ops.push(Op::Rect {
             x: x + start.x,
             y: box_top,
@@ -1047,7 +1040,14 @@ fn text_lines(
     let lines = wrap_within(spans, width, ctx.fonts, style.metrics)?;
     for (i, line) in lines.iter().enumerate() {
         let x = line_x(x0, width, line.width, align);
-        line_ops(ctx, line, x, usize_f32(i) * lh + base, style, &mut ops);
+        line_ops(
+            ctx,
+            line,
+            x,
+            usize_f32(i).mul_add(lh, base),
+            style,
+            &mut ops,
+        );
     }
     Ok((ops, usize_f32(lines.len()) * lh))
 }
@@ -1087,7 +1087,10 @@ fn heading_block(
     let (ops, height) = text_lines(ctx, &spans, x0, width, align, &style)?;
     Ok(Block {
         ops,
-        height: height + size * cfg.heading.padding_bottom_em[usize::from(level - 1)],
+        height: size.mul_add(
+            cfg.heading.padding_bottom_em[usize::from(level - 1)],
+            height,
+        ),
         margin_top: cfg.heading.margin_top_em * ctx.em,
         margin_bottom: cfg.heading.margin_bottom_em * ctx.em,
     })
@@ -1172,7 +1175,7 @@ fn list_ops(
     let base = baseline_offset(ctx, FontKind::Regular, ctx.em, style.line_height);
     for (i, item) in list.items.iter().enumerate() {
         if i > 0 {
-            y += cfg.list.item_gap * ctx.em;
+            y = cfg.list.item_gap.mul_add(ctx.em, y);
         }
         let lines = wrap_within(&parse_inline(&item.text), text_w, ctx.fonts, style.metrics)?;
         let first_x = lines
@@ -1237,8 +1240,8 @@ fn marker_ops(
         return;
     }
     let size = cfg.list.disc_size * ctx.em;
-    let cx = x - cfg.list.disc_offset * ctx.em;
-    let cy = baseline - cfg.list.disc_rise * ctx.em;
+    let cx = cfg.list.disc_offset.mul_add(-ctx.em, x);
+    let cy = cfg.list.disc_rise.mul_add(-ctx.em, baseline);
     match depth {
         1 => ops.push(Op::Rect {
             x: cx - size / 2.0,
@@ -1308,7 +1311,7 @@ fn alpha(mut n: usize) -> String {
 /// The width of each of `n` columns sharing `width`.
 fn column_width(ctx: &Ctx, n: usize, width: f32) -> f32 {
     let gap = ctx.cfg.columns.gap_em * ctx.em;
-    (width - gap * (usize_f32(n) - 1.0)) / usize_f32(n)
+    gap.mul_add(-(usize_f32(n) - 1.0), width) / usize_f32(n)
 }
 
 /// Side-by-side columns of equal width, each laying out its own body. As
@@ -1326,7 +1329,7 @@ fn columns_block(ctx: &Ctx, columns: &[Column], area: Area, code_scale: f32) -> 
     let mut height: f32 = 0.0;
     for (i, col) in columns.iter().enumerate() {
         let inner = Area {
-            x0: area.x0 + usize_f32(i) * (col_w + gap),
+            x0: usize_f32(i).mul_add(col_w + gap, area.x0),
             width: col_w,
             align: area.align,
         };
@@ -1351,7 +1354,9 @@ fn columns_block(ctx: &Ctx, columns: &[Column], area: Area, code_scale: f32) -> 
 /// the padding on both sides.
 fn quote_inner_width(ctx: &Ctx, width: f32) -> f32 {
     let q = &ctx.cfg.quote;
-    width - (q.border_em + 2.0 * q.padding_em) * ctx.em
+    2.0f32
+        .mul_add(q.padding_em, q.border_em)
+        .mul_add(-ctx.em, width)
 }
 
 /// A blockquote as marp draws it: its content in the muted text color,
@@ -1360,7 +1365,7 @@ fn quote_block(ctx: &Ctx, body: &[Element], area: Area, code_scale: f32) -> Resu
     let cfg = ctx.cfg;
     let border = cfg.quote.border_em * ctx.em;
     let inner = Area {
-        x0: area.x0 + border + cfg.quote.padding_em * ctx.em,
+        x0: cfg.quote.padding_em.mul_add(ctx.em, area.x0 + border),
         width: quote_inner_width(ctx, area.width),
         align: area.align,
     };
@@ -1417,8 +1422,8 @@ fn table_column_widths(
             let full = widest(wrap(spans, f32::INFINITY, ctx.fonts, style.metrics));
             // A zero width puts every unbreakable word on its own line.
             let word = widest(wrap(spans, 0.0, ctx.fonts, style.metrics));
-            max_w[c] = max_w[c].max(full + 2.0 * pad_x);
-            min_w[c] = min_w[c].max(word + 2.0 * pad_x);
+            max_w[c] = max_w[c].max(2.0f32.mul_add(pad_x, full));
+            min_w[c] = min_w[c].max(2.0f32.mul_add(pad_x, word));
         }
     }
     let avail = width - border;
@@ -1443,18 +1448,9 @@ fn table_column_widths(
     Ok(col_w)
 }
 
-/// A GFM table, sized to its content like marp's `width: max-content`.
-/// When that is wider than the slide, columns shrink as in the CSS
-/// automatic table layout: each keeps its longest word and shares the
-/// remaining width in proportion to how much it would need to fit
-/// unwrapped. Cells then wrap.
-fn table_block(ctx: &Ctx, table: &Table, x0: f32, width: f32, align: Align) -> Result<Block> {
-    let cfg = ctx.cfg;
-    let style = body_style(ctx);
-    let pad_x = cfg.table.cell_padding_x * ctx.em;
-    let pad_y = cfg.table.cell_padding_y * ctx.em;
-    let border = cfg.table.border * ctx.em;
-
+/// The parsed inline spans of every cell of `table`, header row first with
+/// its text bold.
+fn table_cells(table: &Table) -> Vec<Vec<Vec<Span>>> {
     let header_row: Vec<Vec<Span>> = table
         .headers
         .iter()
@@ -1471,14 +1467,29 @@ fn table_block(ctx: &Ctx, table: &Table, x0: f32, width: f32, align: Align) -> R
                 .collect()
         })
         .collect();
-    let cells: Vec<Vec<Vec<Span>>> = std::iter::once(header_row)
+    std::iter::once(header_row)
         .chain(
             table
                 .rows
                 .iter()
                 .map(|r| r.iter().map(|c| parse_inline(c)).collect()),
         )
-        .collect();
+        .collect()
+}
+
+/// A GFM table, sized to its content like marp's `width: max-content`.
+/// When that is wider than the slide, columns shrink as in the CSS
+/// automatic table layout: each keeps its longest word and shares the
+/// remaining width in proportion to how much it would need to fit
+/// unwrapped. Cells then wrap.
+fn table_block(ctx: &Ctx, table: &Table, x0: f32, width: f32, align: Align) -> Result<Block> {
+    let cfg = ctx.cfg;
+    let style = body_style(ctx);
+    let pad_x = cfg.table.cell_padding_x * ctx.em;
+    let pad_y = cfg.table.cell_padding_y * ctx.em;
+    let border = cfg.table.border * ctx.em;
+
+    let cells = table_cells(table);
 
     let col_w = table_column_widths(ctx, &style, &cells, table, (pad_x, border, width))?;
     let table_w = col_w.iter().sum::<f32>() + border;
@@ -1490,7 +1501,14 @@ fn table_block(ctx: &Ctx, table: &Table, x0: f32, width: f32, align: Align) -> R
         .map(|row| {
             row.iter()
                 .enumerate()
-                .map(|(c, spans)| wrap(spans, col_w[c] - 2.0 * pad_x, ctx.fonts, style.metrics))
+                .map(|(c, spans)| {
+                    wrap(
+                        spans,
+                        2.0f32.mul_add(-pad_x, col_w[c]),
+                        ctx.fonts,
+                        style.metrics,
+                    )
+                })
                 .collect()
         })
         .collect();
@@ -1498,7 +1516,7 @@ fn table_block(ctx: &Ctx, table: &Table, x0: f32, width: f32, align: Align) -> R
         .iter()
         .map(|row| {
             let lines = row.iter().map(Vec::len).max().unwrap_or(0).max(1);
-            usize_f32(lines) * lh + 2.0 * pad_y + border
+            usize_f32(lines).mul_add(lh, 2.0 * pad_y) + border
         })
         .collect();
     let table_h = row_h.iter().sum::<f32>() + border;
@@ -1539,12 +1557,13 @@ fn table_block(ctx: &Ctx, table: &Table, x0: f32, width: f32, align: Align) -> R
                 (TableAlign::Right, _) => Align::Right,
             };
             let inner_x = cell_left + border / 2.0 + pad_x;
-            let inner_w = col_w[c] - 2.0 * pad_x;
+            let inner_w = 2.0f32.mul_add(-pad_x, col_w[c]);
             // Cells are vertically centered in their row (CSS `<td>` default).
-            let slack = row_h[r] - border - 2.0 * pad_y - usize_f32(lines.len()) * lh;
+            let slack =
+                usize_f32(lines.len()).mul_add(-lh, 2.0f32.mul_add(-pad_y, row_h[r] - border));
             for (k, line) in lines.iter().enumerate() {
                 let tx = line_x(inner_x, inner_w, line.width, cell_align);
-                let y = top + border + pad_y + slack / 2.0 + usize_f32(k) * lh + base;
+                let y = usize_f32(k).mul_add(lh, top + border + pad_y + slack / 2.0) + base;
                 line_ops(ctx, line, tx, y, &style, &mut ops);
             }
             cell_left += col_w[c];
@@ -1581,7 +1600,7 @@ fn code_block(
     if line_count == 0 {
         bail!("code block is empty");
     }
-    let height = 2.0 * (border + pad) + usize_f32(line_count) * lh;
+    let height = usize_f32(line_count).mul_add(lh, 2.0 * (border + pad));
 
     let mut ops = vec![
         Op::Rect {
@@ -1595,8 +1614,8 @@ fn code_block(
         Op::Rect {
             x: x0 + border,
             y: border,
-            w: width - 2.0 * border,
-            h: height - 2.0 * border,
+            w: 2.0f32.mul_add(-border, width),
+            h: 2.0f32.mul_add(-border, height),
             radius: (radius - border).max(0.0),
             color: cfg.colors.code_background,
         },
@@ -1632,7 +1651,7 @@ fn code_block(
     let lines = ctx.highlighter.highlight(source, language, ctx.theme)?;
     for (i, runs) in lines.into_iter().enumerate() {
         let mut x = x0 + border + pad;
-        let y = border + pad + usize_f32(i) * lh + base;
+        let y = usize_f32(i).mul_add(lh, border + pad) + base;
         for (color, text) in runs {
             let width = mono.width(&text, size);
             ops.push(Op::Text {
@@ -1681,14 +1700,10 @@ fn parse_svg(ctx: &Ctx, svg: &str) -> Result<usvg::Tree> {
     };
     // In a page palette, a diagram installed from a diagram theme takes the
     // palette's variant of it before its variables are resolved.
-    let rethemed;
-    let svg = match ctx.palette {
-        Some(palette) => {
-            rethemed = crate::theme::retheme_svg(svg, palette);
-            rethemed.as_str()
-        }
-        None => svg,
-    };
+    let rethemed = ctx
+        .palette
+        .map(|palette| crate::theme::retheme_svg(svg, palette));
+    let svg = rethemed.as_deref().unwrap_or(svg);
     let flattened;
     let bytes: &[u8] = if ctx.cfg.svg.flatten_css_vars {
         flattened = crate::utils::css_vars::flatten(svg);
@@ -1722,8 +1737,10 @@ fn svg_op(
 ) -> Result<(Op, f32)> {
     let cfg = ctx.cfg;
     let margin_x = ctx.width * cfg.svg.margin_x_ratio;
-    let bottom = ctx.height * (1.0 - cfg.svg.margin_bottom_ratio) - reserved;
-    let avail_w = region_w - 2.0 * margin_x;
+    let bottom = ctx
+        .height
+        .mul_add(1.0 - cfg.svg.margin_bottom_ratio, -reserved);
+    let avail_w = 2.0f32.mul_add(-margin_x, region_w);
     let avail_h = bottom - top;
     if avail_h <= 0.0 {
         bail!("no room left for the SVG between the slide's other content");
@@ -1745,10 +1762,11 @@ fn page_number_op(ctx: &Ctx, n: usize, region_right: f32) -> Op {
     let cfg = ctx.cfg;
     let size = ctx.em * cfg.pagination.font_size_em;
     let text = n.to_string();
-    let right = region_right - ctx.width * cfg.pagination.right_ratio;
+    let right = ctx.width.mul_add(-cfg.pagination.right_ratio, region_right);
     let box_bottom = ctx.height * (1.0 - cfg.pagination.bottom_ratio);
     let lh = cfg.slide.line_height;
-    let baseline = box_bottom - lh * size + baseline_offset(ctx, FontKind::Regular, size, lh);
+    let baseline =
+        lh.mul_add(-size, box_bottom) + baseline_offset(ctx, FontKind::Regular, size, lh);
     Op::Text {
         x: right - ctx.fonts.regular.width(&text, size),
         y: baseline,
@@ -1767,7 +1785,8 @@ fn credit_op(ctx: &Ctx, text: &str) -> Result<Op> {
     ctx.fonts.get(FontKind::Regular).runs(text)?;
     let box_bottom = ctx.height * (1.0 - cfg.credit.bottom_ratio);
     let lh = cfg.slide.line_height;
-    let baseline = box_bottom - lh * size + baseline_offset(ctx, FontKind::Regular, size, lh);
+    let baseline =
+        lh.mul_add(-size, box_bottom) + baseline_offset(ctx, FontKind::Regular, size, lh);
     Ok(Op::Text {
         x: ctx.width * cfg.credit.left_ratio,
         y: baseline,
@@ -2181,7 +2200,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
     fn assert_op_scaled(op: &Op, scaled: &Op, factor: f32) {
         let close = |x: f32, y: f32, what: &str| {
             assert!(
-                (y - factor * x).abs() <= 1e-3 * y.abs().max(1.0),
+                factor.mul_add(-x, y).abs() <= 1e-3 * y.abs().max(1.0),
                 "{what}: {y} is not {factor} x {x}"
             );
         };
@@ -2540,7 +2559,11 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
                 .fonts
                 .mono
                 .width(&line, ctx.em * cfg.code.font_size_em * s);
-            let chrome = 2.0 * (cfg.code.padding_em * ctx.em * s + cfg.code.border_em * ctx.em);
+            let chrome = 2.0
+                * cfg
+                    .code
+                    .border_em
+                    .mul_add(ctx.em, cfg.code.padding_em * ctx.em * s);
             assert!(
                 (text + chrome - width).abs() < 1e-2,
                 "{} vs {width}",
@@ -2853,7 +2876,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
                 })
                 .expect("the quote bar");
             assert!((bar.0 - ctx.pad_x()).abs() < 1e-3 && (bar.2 - border).abs() < 1e-3);
-            let text_x = ctx.pad_x() + border + cfg.quote.padding_em * ctx.em;
+            let text_x = cfg.quote.padding_em.mul_add(ctx.em, ctx.pad_x() + border);
             for op in &ops {
                 match op {
                     Op::Text {
@@ -2971,7 +2994,8 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
                 "above, picture, below"
             );
             assert!(
-                ink_bottom(ctx, &ops) <= ctx.height * (1.0 - cfg.svg.margin_bottom_ratio) + 1e-2
+                ink_bottom(ctx, &ops)
+                    <= ctx.height.mul_add(1.0 - cfg.svg.margin_bottom_ratio, 1e-2)
             );
 
             let two = one_slide(&format!("body:\n  - svg: \"{svg}\"\n  - svg: \"{svg}\""));
@@ -3003,7 +3027,7 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
                 panic!("the credit is text")
             };
             assert_eq!(text, CREDIT);
-            assert!((x - ctx.width * cfg.credit.left_ratio).abs() < 1e-3);
+            assert!(ctx.width.mul_add(-cfg.credit.left_ratio, x).abs() < 1e-3);
             assert!(y > ctx.height * (1.0 - cfg.slide.padding_y_ratio) && y < ctx.height);
         });
     }
@@ -3189,7 +3213,9 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
             // Cover: the 2x3 picture is as wide as the half at least, as
             // tall as the page at least, and centred on the half.
             let scale = (half / 2.0).max(ctx.height / 3.0);
-            assert!((pw - 2.0 * scale).abs() < 1e-3 && (ph - 3.0 * scale).abs() < 1e-3);
+            assert!(
+                2.0f32.mul_add(-scale, pw).abs() < 1e-3 && 3.0f32.mul_add(-scale, ph).abs() < 1e-3
+            );
             assert!((px + pw / 2.0 - half / 2.0).abs() < 1e-3);
             assert!((py + ph / 2.0 - ctx.height / 2.0).abs() < 1e-3);
             for (text, tx, _) in texts(&ops) {
@@ -3214,8 +3240,8 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
             assert!(matches!(picture, Picture::Svg(_)));
             let side = ctx.width * 0.4;
             assert!((clip[0] - (ctx.width - side)).abs() < 1e-3);
-            assert!((w - side * 0.8).abs() < 1e-3 && (h - w / 2.0).abs() < 1e-3);
-            assert!((x - (ctx.width - side + side * 0.1)).abs() < 1e-3);
+            assert!(side.mul_add(-0.8, w).abs() < 1e-3 && (h - w / 2.0).abs() < 1e-3);
+            assert!((x - side.mul_add(0.1, ctx.width - side)).abs() < 1e-3);
             let (_, tx, _) = texts(&ops)[0];
             assert!((tx - ctx.pad_x()).abs() < 1e-3);
         });
