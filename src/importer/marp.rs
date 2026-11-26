@@ -819,7 +819,7 @@ fn emit_yaml(pres: &OutPresentation) -> String {
     let mut out = String::new();
     out.push_str("---\n");
     if let Some(title) = &pres.title {
-        let _ = writeln!(out, "title: {}", scalar(title));
+        emit_string(&mut out, "title: ", title, 2);
     }
     if let Some(theme) = &pres.theme {
         let _ = writeln!(out, "theme: {}", scalar(theme));
@@ -845,7 +845,7 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
     }
     let mut lead = "  - ";
     if let Some(title) = &slide.title {
-        let _ = writeln!(out, "{lead}title: {}", scalar(title));
+        emit_string(out, &format!("{lead}title: "), title, 6);
         if slide.title_level != 1 {
             let _ = writeln!(out, "    title_level: {}", slide.title_level);
         }
@@ -853,7 +853,7 @@ fn emit_slide(out: &mut String, slide: &OutSlide) {
     }
     if let Some(bg) = &slide.background {
         let _ = writeln!(out, "{lead}background:");
-        let _ = writeln!(out, "      image: {}", scalar(&bg.image));
+        emit_string(out, "      image: ", &bg.image, 8);
         let _ = writeln!(out, "      split: {}", bg.split);
         if let Some(share) = &bg.split_size {
             let _ = writeln!(out, "      split_size: {}", scalar(share));
@@ -882,13 +882,12 @@ fn emit_element(out: &mut String, element: &OutElement, col: usize) {
             if lines.len() == 1 && !needs_block_scalar(&lines[0]) {
                 let _ = writeln!(out, "{pad}- text: {}", scalar(&lines[0]));
             } else {
-                let _ = writeln!(out, "{pad}- text: |-");
-                push_block_lines(out, lines, &value);
+                emit_text_block(out, &format!("{pad}- text: "), lines, col + 4);
             }
         }
         OutElement::Heading(text, level) => {
             let _ = writeln!(out, "{pad}- heading:");
-            let _ = writeln!(out, "{value}text: {}", scalar(text));
+            emit_string(out, &format!("{value}text: "), text, col + 6);
             let _ = writeln!(out, "{value}level: {level}");
         }
         OutElement::List(list) => {
@@ -908,7 +907,7 @@ fn emit_element(out: &mut String, element: &OutElement, col: usize) {
             emit_table(out, table, col + 4);
         }
         OutElement::Image(path) => {
-            let _ = writeln!(out, "{pad}- image: {}", scalar(path));
+            emit_string(out, &format!("{pad}- image: "), path, col + 4);
         }
         OutElement::Svg(svg) => {
             let _ = writeln!(out, "{pad}- svg: {}", block_header(svg));
@@ -948,7 +947,7 @@ fn emit_items(out: &mut String, items: &[OutItem], col: usize) {
     for item in items {
         match &item.children {
             None => {
-                let _ = writeln!(out, "{pad}- {}", scalar(&item.text));
+                emit_string(out, &format!("{pad}- "), &item.text, col + 2);
             }
             Some(children) => {
                 let key = if children.ordered {
@@ -956,7 +955,7 @@ fn emit_items(out: &mut String, items: &[OutItem], col: usize) {
                 } else {
                     "bullets"
                 };
-                let _ = writeln!(out, "{pad}- text: {}", scalar(&item.text));
+                emit_string(out, &format!("{pad}- text: "), &item.text, col + 4);
                 let _ = writeln!(out, "{pad}  {key}:");
                 emit_items(out, &children.items, col + 4);
                 if children.start != 1 {
@@ -972,7 +971,7 @@ fn emit_table(out: &mut String, table: &OutTable, col: usize) {
     let pad = " ".repeat(col);
     let _ = writeln!(out, "{pad}headers:");
     for h in &table.headers {
-        let _ = writeln!(out, "{pad}  - {}", scalar(h));
+        emit_string(out, &format!("{pad}  - "), h, col + 4);
     }
     if table.aligns.iter().any(|a| *a != "auto") {
         let _ = writeln!(out, "{pad}aligns:");
@@ -984,7 +983,7 @@ fn emit_table(out: &mut String, table: &OutTable, col: usize) {
     for row in &table.rows {
         let _ = writeln!(out, "{pad}  -");
         for cell in row {
-            let _ = writeln!(out, "{pad}    - {}", scalar(cell));
+            emit_string(out, &format!("{pad}    - "), cell, col + 6);
         }
     }
 }
@@ -1037,6 +1036,115 @@ fn push_block_lines(out: &mut String, lines: &[String], indent: &str) {
             out.push_str(trimmed);
         }
         out.push('\n');
+    }
+}
+
+/// The longest line the emitter writes when the content lets it: the line
+/// length the fleet's yamllint config allows.
+const MAX_LINE: usize = 120;
+
+/// Whether `s` can be written as a folded block scalar and read back
+/// unchanged: one line, no space at either end. Folding turns each line
+/// break into one space, so the breaks go where a single space stands.
+fn is_foldable(s: &str) -> bool {
+    !s.is_empty() && !s.contains('\n') && !s.starts_with([' ', '\t']) && !s.ends_with([' ', '\t'])
+}
+
+/// `s` cut into lines of at most `width` characters, broken only at a
+/// single space between two words (a run of spaces stays inside a line, and
+/// no line starts with one, which YAML would read as a more-indented line
+/// and keep the break before). A word longer than `width` is a line.
+fn fold(s: &str, width: usize) -> Vec<String> {
+    let chars: Vec<char> = s.chars().collect();
+    let mut words: Vec<String> = Vec::new();
+    let mut cur = String::new();
+    for (i, &c) in chars.iter().enumerate() {
+        let single = c == ' '
+            && i > 0
+            && i + 1 < chars.len()
+            && !chars[i - 1].is_whitespace()
+            && !chars[i + 1].is_whitespace();
+        if single {
+            words.push(std::mem::take(&mut cur));
+        } else {
+            cur.push(c);
+        }
+    }
+    words.push(cur);
+    let mut lines: Vec<String> = Vec::new();
+    let mut line = String::new();
+    let mut len = 0;
+    for word in words {
+        let n = word.chars().count();
+        if !line.is_empty() && len + 1 + n > width {
+            lines.push(std::mem::take(&mut line));
+            len = 0;
+        }
+        if !line.is_empty() {
+            line.push(' ');
+            len += 1;
+        }
+        line.push_str(&word);
+        len += n;
+    }
+    lines.push(line);
+    lines
+}
+
+/// `prefix` (indentation, then `- ` or `key: `) and the string `s` after
+/// it. On one line when that fits in `MAX_LINE`; otherwise as a folded
+/// block scalar indented to column `indent`, or, for a string with no
+/// space to break at (a path, a URL), alone on the next line.
+fn emit_string(out: &mut String, prefix: &str, s: &str, indent: usize) {
+    let plain = scalar(s);
+    let pad = " ".repeat(indent);
+    if prefix.chars().count() + plain.chars().count() <= MAX_LINE {
+        let _ = writeln!(out, "{prefix}{plain}");
+    } else if !s.contains(char::is_whitespace) {
+        let _ = writeln!(out, "{}\n{pad}{plain}", prefix.trim_end());
+    } else if is_foldable(s) {
+        let _ = writeln!(out, "{prefix}>-");
+        for line in fold(s, MAX_LINE - indent) {
+            let _ = writeln!(out, "{pad}{line}");
+        }
+    } else {
+        let _ = writeln!(out, "{prefix}{plain}");
+    }
+}
+
+/// The lines of a text element as a block scalar at column `indent`: a
+/// literal one (`|-`) when every line fits in `MAX_LINE`, else a folded one
+/// (`>-`), where an empty line stands for each line break of the text and
+/// the long lines are folded.
+fn emit_text_block(out: &mut String, prefix: &str, lines: &[String], indent: usize) {
+    let pad = " ".repeat(indent);
+    let fits = lines
+        .iter()
+        .all(|l| indent + l.trim_end().chars().count() <= MAX_LINE);
+    let foldable = lines
+        .iter()
+        .all(|l| l.trim_end().is_empty() || is_foldable(l.trim_end()));
+    // folding helps only a long line that has a space to break at
+    let helps = lines.iter().any(|l| {
+        let l = l.trim_end();
+        indent + l.chars().count() > MAX_LINE && l.contains(' ')
+    });
+    if fits || !foldable || !helps {
+        let _ = writeln!(out, "{prefix}|-");
+        push_block_lines(out, lines, &pad);
+        return;
+    }
+    let _ = writeln!(out, "{prefix}>-");
+    for (i, line) in lines.iter().enumerate() {
+        if i > 0 {
+            out.push('\n');
+        }
+        let trimmed = line.trim_end();
+        if !trimmed.is_empty() {
+            for piece in fold(trimmed, MAX_LINE - indent) {
+                let _ = writeln!(out, "{pad}{piece}");
+            }
+        }
     }
 }
 
@@ -1174,6 +1282,43 @@ mod tests {
     fn hr_inside_code_fence_is_not_a_separator() {
         let pres = parse_marp("# A\n\n```\nx\n---\ny\n```\n").unwrap();
         assert_eq!(pres.slides.len(), 1);
+    }
+
+    #[test]
+    fn fold_breaks_only_at_single_spaces() {
+        assert_eq!(fold("aa bb cc", 5), vec!["aa bb", "cc"]);
+        assert_eq!(fold("aa  bb cc", 5), vec!["aa  bb", "cc"]);
+        assert_eq!(fold("abcdefgh ij", 5), vec!["abcdefgh", "ij"]);
+        assert_eq!(fold("aa bb", 80), vec!["aa bb"]);
+    }
+
+    /// A long title, paragraph, list item, table cell and image path are
+    /// written within `MAX_LINE` and read back as they were.
+    #[test]
+    fn long_strings_are_folded_and_read_back_unchanged() {
+        let words = "word ".repeat(40);
+        let long = words.trim_end();
+        let path = format!("svg/{}.svg", "x".repeat(130));
+        let md = format!(
+            "# {long}\n\n{long}\nsecond line: with a colon\n\n- {long}\n- short\n\n| h |\n| - |\n| {long} |\n\n![alt]({path})\n"
+        );
+        let yaml = import(&md).unwrap();
+        for line in yaml.lines() {
+            assert!(
+                line.chars().count() <= MAX_LINE || !line.trim().contains(' '),
+                "long line: {line}"
+            );
+        }
+        let pres = crate::parser::parse(&yaml).unwrap_or_else(|e| panic!("{e}\n---\n{yaml}"));
+        let slide = &pres.slides[0];
+        assert_eq!(slide.title.as_deref(), Some(long));
+        let dump = format!("{:?}", slide.body);
+        assert!(
+            dump.contains(&format!("{long}\\nsecond line: with a colon")),
+            "{dump}"
+        );
+        assert_eq!(dump.matches(long).count(), 3, "{dump}");
+        assert!(dump.contains(&path), "{dump}");
     }
 
     #[test]

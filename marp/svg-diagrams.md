@@ -11,7 +11,8 @@ paginate: true
   <text x="70" y="45" text-anchor="middle" fill="white" font-size="16" font-family="sans-serif">Input</text>
   <line x1="130" y1="40" x2="180" y2="40" stroke="#333" stroke-width="2" marker-end="url(#arr)"/>
   <rect x="180" y="10" width="120" height="60" rx="8" fill="#7ED321"/>
-  <text x="240" y="45" text-anchor="middle" fill="white" font-size="16" font-family="sans-serif">Process</text>
+  <text x="240" y="45" text-anchor="middle" fill="white"
+        font-size="16" font-family="sans-serif">Process</text>
   <line x1="300" y1="40" x2="350" y2="40" stroke="#333" stroke-width="2" marker-end="url(#arr)"/>
   <rect x="350" y="10" width="40" height="60" rx="8" fill="#D0021B"/>
   <text x="370" y="45" text-anchor="middle" fill="white" font-size="12" font-family="sans-serif">Out</text>
@@ -56,7 +57,8 @@ The Rust logo loaded from assets/icons/rust.svg
   <rect x="130" y="20" width="80" height="40" rx="4" fill="#7ED321"/>
   <text x="170" y="44" text-anchor="middle" fill="white" font-family="sans-serif" font-size="13">Model</text>
   <rect x="250" y="20" width="80" height="40" rx="4" fill="#D0021B"/>
-  <text x="290" y="44" text-anchor="middle" fill="white" font-family="sans-serif" font-size="13">Exporter</text>
+  <text x="290" y="44" text-anchor="middle" fill="white"
+        font-family="sans-serif" font-size="13">Exporter</text>
   <line x1="90"  y1="40" x2="130" y2="40" stroke="#333" stroke-width="2"/>
   <line x1="210" y1="40" x2="250" y2="40" stroke="#333" stroke-width="2"/>
 </svg>

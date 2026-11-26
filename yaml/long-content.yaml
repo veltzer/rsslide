@@ -10,10 +10,14 @@ slides:
   - title: "This is a moderately long title that might just fit on one line"
     content: Short body.
 
-  - title: "This is a very long title that is almost certainly going to overflow the available horizontal space on the slide and cause problems"
+  - title: >-
+      This is a very long title that is almost certainly going to overflow the available horizontal
+      space on the slide and cause problems
     content: Short body.
 
-  - title: "An Extremely Long Title With Many Words That Goes On And On And On And On And Will Definitely Need Wrapping Or Will Overflow"
+  - title: >-
+      An Extremely Long Title With Many Words That Goes On And On And On And On And Will Definitely
+      Need Wrapping Or Will Overflow
     content: Short body.
 
   # ── Long bullets ─────────────────────────────────────────────────────────
@@ -22,8 +26,12 @@ slides:
     bullets:
       - Short bullet
       - A medium-length bullet that takes up a fair amount of horizontal space on the slide
-      - This is a very long bullet point that contains a lot of words and will almost certainly overflow the right margin of the slide without wrapping support
-      - "Another extremely long bullet: The quick brown fox jumps over the lazy dog and then keeps running all the way to the end of the slide and beyond"
+      - >-
+          This is a very long bullet point that contains a lot of words and will almost certainly
+          overflow the right margin of the slide without wrapping support
+      - >-
+          Another extremely long bullet: The quick brown fox jumps over the lazy dog and then keeps
+          running all the way to the end of the slide and beyond
 
   # ── Many bullets: more than one slide holds, continued on a second ─────
 
@@ -63,8 +71,12 @@ slides:
   - title: "A Very Long Title Combined With Several Long Bullet Points That All Need Wrapping"
     bullets:
       - This first bullet is quite long and pushes the right-hand margin considerably
-      - The second bullet is even longer and goes into great detail about a topic that probably deserves its own slide in a real presentation
-      - Third bullet which is also rather long for testing purposes and keeps going to see what happens at the right edge
+      - >-
+          The second bullet is even longer and goes into great detail about a topic that probably
+          deserves its own slide in a real presentation
+      - >-
+          Third bullet which is also rather long for testing purposes and keeps going to see what
+          happens at the right edge
       - Fourth and final long bullet to push the content beyond the bottom of the slide if there are too many lines
 
   # ── Long code block ───────────────────────────────────────────────────────
