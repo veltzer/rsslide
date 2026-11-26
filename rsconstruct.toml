@@ -123,7 +123,8 @@ output_extension = "yaml"
 batch = true
 
 [processor.checker.iyamllint]
-src_dirs = ["out/yaml_from_marp", "yaml"]
+src_files = [".yamllint.yaml"]
+src_dirs = [".github", "out/yaml_from_marp", "yaml"]
 
 # lint the GitHub Actions workflow files with actionlint
 [processor.checker.iactionlint]
