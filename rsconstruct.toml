@@ -129,6 +129,16 @@ src_dirs = ["out/yaml_from_marp", "yaml"]
 [processor.checker.iactionlint]
 src_dirs = [".github/workflows"]
 
+# lint the TOML files of the repo with taplo
+[processor.checker.taplo]
+src_files = [".rumdl.toml", "Cargo.toml", "deny.toml", "pyproject.toml", "release.toml", "rsconstruct.toml", "rsslide.toml", "rust-toolchain.toml"]
+
+# lint the shell scripts with shellcheck (policy: .shellcheckrc)
+[processor.checker.ishellcheck]
+src_dirs = ["scripts"]
+src_extensions = [".sh"]
+shell = "bash"
+
 # audit the GitHub Actions workflow files for security problems with zizmor
 # (policy: .github/zizmor.yml)
 [processor.checker.zizmor]
