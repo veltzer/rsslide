@@ -139,7 +139,7 @@ src_dirs = ["scripts"]
 
 # lint the TOML files of the repo with taplo
 [processor.checker.taplo]
-src_files = [".rumdl.toml", "Cargo.toml", "deny.toml", "pyproject.toml", "release.toml", "rsconstruct.toml", "rsslide.toml", "rust-toolchain.toml"]
+src_files = [".config/nextest.toml", ".ruff.toml", ".rumdl.toml", "Cargo.toml", "deny.toml", "docs/book.toml", "pyproject.toml", "release.toml", "rsconstruct.toml", "rsslide.toml", "rust-toolchain.toml"]
 
 # lint the shell scripts with shellcheck (policy: .shellcheckrc)
 [processor.checker.ishellcheck]
