@@ -129,6 +129,13 @@ src_dirs = ["out/yaml_from_marp", "yaml"]
 [processor.checker.iactionlint]
 src_dirs = [".github/workflows"]
 
+# lint and type-check the Python scripts (policy: .ruff.toml, [tool.pyrefly])
+[processor.checker.ruff]
+src_dirs = ["scripts"]
+
+[processor.checker.pyrefly]
+src_dirs = ["scripts"]
+
 # lint the TOML files of the repo with taplo
 [processor.checker.taplo]
 src_files = [".rumdl.toml", "Cargo.toml", "deny.toml", "pyproject.toml", "release.toml", "rsconstruct.toml", "rsslide.toml", "rust-toolchain.toml"]

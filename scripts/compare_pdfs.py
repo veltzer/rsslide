@@ -69,7 +69,13 @@ def normalize(text: str) -> list[str]:
 
 def page_text(pdf: Path) -> list[list[str]]:
     doc = pymupdf.open(pdf)
-    return [normalize(page.get_text("text")) for page in doc]
+    pages = []
+    for page in doc:
+        text = page.get_text("text")
+        if not isinstance(text, str):
+            raise TypeError(f"{pdf}: get_text('text') returned {type(text).__name__}")
+        pages.append(normalize(text))
+    return pages
 
 
 def compare(rsslide_pdf: Path, marp_pdf: Path) -> tuple[float, list[str]]:
