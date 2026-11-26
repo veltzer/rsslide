@@ -155,3 +155,7 @@ src_dirs = [".github/workflows"]
 # quiet (undocumented permissions, template expansion of any context,
 # unnamed jobs, ...). --offline and --no-progress are the default args.
 args = ["--offline", "--no-progress", "--persona=pedantic"]
+
+# lint the Lua configuration with luacheck (policy: .luacheckrc)
+[processor.checker.iluacheck]
+src_dirs = ["config"]
