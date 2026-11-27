@@ -40,12 +40,12 @@ slides:
 
 ### Presentation fields
 
-| Field      | Type   | Default | Description |
-|------------|--------|---------|-------------|
-| `title`    | string | —       | Presentation title (used in PDF metadata) |
-| `theme`    | string | `default` | Built-in theme name |
-| `paginate` | bool   | `false` | Show the page number in the bottom-right corner of each slide |
-| `slides`   | list   | —       | List of slide objects (see below) |
+| Field      | Type   | Default   | Description                                                   |
+| ---------- | ------ | --------- | ------------------------------------------------------------- |
+| `title`    | string | —         | Presentation title (used in PDF metadata)                     |
+| `theme`    | string | `default` | Built-in theme name                                           |
+| `paginate` | bool   | `false`   | Show the page number in the bottom-right corner of each slide |
+| `slides`   | list   | —         | List of slide objects (see below)                             |
 
 ### Slide fields
 
@@ -87,44 +87,44 @@ marp; that is fine as long as its drawing stays on the page, and an error
 otherwise. With `[svg] size = "fill"` in the config, a slide's one picture
 instead fills the height its other elements leave.
 
-| Field        | Type                              | Description                         |
-|--------------|-----------------------------------|-------------------------------------|
-| `title`      | string                            | Slide heading                       |
-| `body`       | list of elements (see above)      | Everything below the title, in order |
-| `title_level` | 1..6                             | Heading level of the title (default 1, like `#`; `rsslide import` keeps the marp level) |
-| `subtitle` / `subtitles` | string \| `{text, level}` \| list of either | One or more sub-headings rendered stacked under the title (level 2..6, default 2) |
-| `content`    | string                            | Body text                           |
-| `bullets`    | list of items (see above)         | Bullet list, items may nest         |
-| `code`       | `{language, source, trim?}` \| list of them | One or more syntax-highlighted code blocks, stacked in order |
-| `align`      | `left` \| `center` \| `right`    | Horizontal text alignment (default `left`) |
-| `title_align` / `content_align` | `left` \| `center` \| `right` | Override `align` for the title / for everything else |
-| `valign`     | `top` \| `middle` \| `bottom`    | Vertical content alignment (default from config: `middle`, like marp) |
-| `columns`    | list of `{header?, bullets}`      | Side-by-side bullet columns (also a `body` element) |
-| `bullets_first` | bool                           | Draw `bullets` above `columns` (default: below) |
-| `image`      | string                            | Path to an SVG file                 |
-| `svg`        | string                            | Inline SVG markup                   |
-| `table`      | `{headers, rows, aligns?}`        | Grid table with header + body rows  |
-| `class`      | string                            | CSS class (e.g. `lead`)             |
-| `background` | `{image, split, split_size?, size?}` | A picture filling one side (see below) |
+| Field                           | Type                                        | Description                                                                             |
+| ------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `title`                         | string                                      | Slide heading                                                                           |
+| `body`                          | list of elements (see above)                | Everything below the title, in order                                                    |
+| `title_level`                   | 1..6                                        | Heading level of the title (default 1, like `#`; `rsslide import` keeps the marp level) |
+| `subtitle` / `subtitles`        | string \| `{text, level}` \| list of either | One or more sub-headings rendered stacked under the title (level 2..6, default 2)       |
+| `content`                       | string                                      | Body text                                                                               |
+| `bullets`                       | list of items (see above)                   | Bullet list, items may nest                                                             |
+| `code`                          | `{language, source, trim?}` \| list of them | One or more syntax-highlighted code blocks, stacked in order                            |
+| `align`                         | `left` \| `center` \| `right`               | Horizontal text alignment (default `left`)                                              |
+| `title_align` / `content_align` | `left` \| `center` \| `right`               | Override `align` for the title / for everything else                                    |
+| `valign`                        | `top` \| `middle` \| `bottom`               | Vertical content alignment (default from config: `middle`, like marp)                   |
+| `columns`                       | list of `{header?, bullets}`                | Side-by-side bullet columns (also a `body` element)                                     |
+| `bullets_first`                 | bool                                        | Draw `bullets` above `columns` (default: below)                                         |
+| `image`                         | string                                      | Path to an SVG file                                                                     |
+| `svg`                           | string                                      | Inline SVG markup                                                                       |
+| `table`                         | `{headers, rows, aligns?}`                  | Grid table with header + body rows                                                      |
+| `class`                         | string                                      | CSS class (e.g. `lead`)                                                                 |
+| `background`                    | `{image, split, split_size?, size?}`        | A picture filling one side (see below)                                                  |
 
 #### Background fields
 
 A split background, marp's `![bg left:40% 80%](path)`: the picture fills
 one side of the slide and the content is laid out in the other.
 
-| Field        | Type                         | Default | Description |
-|--------------|------------------------------|---------|-------------|
-| `image`      | string                       | —       | Path to an SVG, PNG or JPEG file |
-| `split`      | `left` \| `right`             | —       | The side the picture takes |
-| `split_size` | percentage                   | `50%`   | The picture's share of the slide width |
+| Field        | Type                               | Default | Description                                                                              |
+| ------------ | ---------------------------------- | ------- | ---------------------------------------------------------------------------------------- |
+| `image`      | string                             | —       | Path to an SVG, PNG or JPEG file                                                         |
+| `split`      | `left` \| `right`                  | —       | The side the picture takes                                                               |
+| `split_size` | percentage                         | `50%`   | The picture's share of the slide width                                                   |
 | `size`       | `cover` \| `contain` \| percentage | `cover` | As CSS `background-size`: fill the side and crop, fit inside it, or a share of its width |
 
 #### Table fields
 
-| Field     | Type                            | Default       | Description |
-|-----------|---------------------------------|---------------|-------------|
-| `headers` | list of strings                 | —             | Header-row cells. Must be non-empty. |
-| `rows`    | list of list of strings         | —             | Body rows. Every row must have exactly `len(headers)` cells (hard error otherwise). |
+| Field     | Type                                   | Default    | Description                                                                                                                                                                         |
+| --------- | -------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `headers` | list of strings                        | —          | Header-row cells. Must be non-empty.                                                                                                                                                |
+| `rows`    | list of list of strings                | —          | Body rows. Every row must have exactly `len(headers)` cells (hard error otherwise).                                                                                                 |
 | `aligns`  | list of `auto`/`left`/`center`/`right` | all `auto` | Per-column horizontal alignment. Length must equal `len(headers)`. `auto` centers the header and left-aligns the body, as a browser does for a GFM column without alignment colons. |
 
 GFM tables in `.md` inputs (`| A | B |` / `|:--|--:|`) are translated to this
@@ -138,11 +138,11 @@ URLs and e-mail addresses are shown as links. HTML character references
 
 #### Code block fields
 
-| Field      | Type    | Default | Description |
-|------------|---------|---------|-------------|
-| `language` | string  | —       | Language token for syntax highlighting (e.g. `rust`, `python`) |
-| `source`   | string  | —       | Source code. Use `|-` (YAML strip chomping) to avoid a trailing blank line |
-| `trim`     | bool    | `false` | Strip trailing newlines in code; prefer `|-` in YAML instead |
+| Field      | Type   | Default | Description                                                                |
+| ---------- | ------ | ------- | -------------------------------------------------------------------------- |
+| `language` | string | —       | Language token for syntax highlighting (e.g. `rust`, `python`)             |
+| `source`   | string | —       | Source code. Use `|-` (YAML strip chomping) to avoid a trailing blank line |
+| `trim`     | bool   | `false` | Strip trailing newlines in code; prefer `|-` in YAML instead               |
 
 Several blocks are written as a list:
 
@@ -186,11 +186,11 @@ slide is an error either way.
 
 ## Output formats
 
-| Format | How it works |
-|--------|-------------|
-| HTML   | Tera-templated full-page slide deck |
+| Format | How it works                                                 |
+| ------ | ------------------------------------------------------------ |
+| HTML   | Tera-templated full-page slide deck                          |
 | PDF    | Pure Rust via `printpdf` — no Chromium or wkhtmltopdf needed |
-| PPTX   | Open XML generated from scratch using `zip` |
+| PPTX   | Open XML generated from scratch using `zip`                  |
 
 ## Themes
 
@@ -249,17 +249,17 @@ YAML file
 
 ### Key dependencies
 
-| Crate           | Purpose                        |
-|-----------------|--------------------------------|
-| `clap`          | CLI argument parsing           |
-| `serde_norway`  | YAML input parsing             |
-| `toml`          | `rsslide.toml` configuration   |
-| `krilla`        | Pure-Rust PDF generation       |
-| `krilla-svg` / `usvg` | SVG rendering into the PDF |
-| `rustybuzz`     | Text shaping for measurement   |
-| `syntect`       | Syntax highlighting in PDF     |
-| `two-face`      | bat's syntax definitions       |
-| `anyhow`        | Error handling                 |
+| Crate                 | Purpose                      |
+| --------------------- | ---------------------------- |
+| `clap`                | CLI argument parsing         |
+| `serde_norway`        | YAML input parsing           |
+| `toml`                | `rsslide.toml` configuration |
+| `krilla`              | Pure-Rust PDF generation     |
+| `krilla-svg` / `usvg` | SVG rendering into the PDF   |
+| `rustybuzz`           | Text shaping for measurement |
+| `syntect`             | Syntax highlighting in PDF   |
+| `two-face`            | bat's syntax definitions     |
+| `anyhow`              | Error handling               |
 
 ## PDF rendering
 
@@ -304,22 +304,22 @@ a warning and draws the slide cut off, as marp does.
 
 Some slide fields defined in the YAML schema are not yet rendered by the PDF exporter and are reserved for future use:
 
-| Field        | PDF support |
-|--------------|-------------|
-| `title`      | ✅ rendered  |
-| `subtitle` / `subtitles` | ✅ rendered (font size scales with `level` 2..6; multiple stack vertically) |
-| `content`    | ✅ rendered  |
-| `bullets`    | ✅ rendered (nested; disc/ring/square markers) |
-| `body`       | ✅ rendered (source order; numbered lists 1./i./a.) |
-| `code`       | ✅ rendered (one or more blocks; syntax-highlighted, language icon, shrinks to fit) |
-| `align`      | ✅ rendered (`left` / `center` / `right`) |
-| `valign`     | ✅ rendered (`top` / `middle` / `bottom`) |
-| `columns`    | ✅ rendered  |
-| `table`      | ✅ rendered (per-column alignment; cells wrap; fails hard if even wrapped it is too wide) |
-| `image` / `svg` | ✅ rendered (SVG only; content width like marp, or `size = "fill"`) |
-| `class`      | 🔜 planned   |
-| `background` | ✅ rendered (split backgrounds: SVG, PNG, JPEG) |
-| `theme`      | ✅ rendered (marp built-ins keep the default look; a shared-themes palette recolours slides and diagrams, see Themes) |
+| Field                    | PDF support                                                                                                           |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `title`                  | ✅ rendered                                                                                                           |
+| `subtitle` / `subtitles` | ✅ rendered (font size scales with `level` 2..6; multiple stack vertically)                                           |
+| `content`                | ✅ rendered                                                                                                           |
+| `bullets`                | ✅ rendered (nested; disc/ring/square markers)                                                                        |
+| `body`                   | ✅ rendered (source order; numbered lists 1./i./a.)                                                                   |
+| `code`                   | ✅ rendered (one or more blocks; syntax-highlighted, language icon, shrinks to fit)                                   |
+| `align`                  | ✅ rendered (`left` / `center` / `right`)                                                                             |
+| `valign`                 | ✅ rendered (`top` / `middle` / `bottom`)                                                                             |
+| `columns`                | ✅ rendered                                                                                                           |
+| `table`                  | ✅ rendered (per-column alignment; cells wrap; fails hard if even wrapped it is too wide)                             |
+| `image` / `svg`          | ✅ rendered (SVG only; content width like marp, or `size = "fill"`)                                                   |
+| `class`                  | 🔜 planned                                                                                                            |
+| `background`             | ✅ rendered (split backgrounds: SVG, PNG, JPEG)                                                                       |
+| `theme`                  | ✅ rendered (marp built-ins keep the default look; a shared-themes palette recolours slides and diagrams, see Themes) |
 
 ## Roadmap
 
