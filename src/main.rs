@@ -40,7 +40,7 @@ enum Command {
         /// Input YAML file
         input: PathBuf,
 
-        /// Output file [default: <input stem>.<format>]
+        /// Output file (default: `<input stem>.<format>`)
         #[arg(short, long)]
         output: Option<PathBuf>,
 

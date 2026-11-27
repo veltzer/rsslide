@@ -303,7 +303,7 @@ pub struct InlineState {
 }
 
 /// Parse the inline markdown marp renders inside a line of text: `code`,
-/// **bold** / __bold__, *italic* / _italic_, [links](url), backslash
+/// `**bold**` / `__bold__`, `*italic*` / `_italic_`, `[links](url)`, backslash
 /// escapes, character references (`&theta;`, `&#8321;`, `&#x2192;`), and
 /// bare URLs and e-mail addresses (marp autolinks them).
 /// A delimiter with no matching closer is kept as literal text, as in
