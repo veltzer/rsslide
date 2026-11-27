@@ -1,3 +1,5 @@
+//! rsslide: The ultimate slide builder.
+
 mod assets;
 mod config;
 mod credit;
