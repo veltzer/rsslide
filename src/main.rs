@@ -8,6 +8,8 @@ mod importer;
 mod model;
 mod numeric;
 mod parser;
+#[cfg(test)]
+mod test_support;
 mod theme;
 mod utils;
 
@@ -347,28 +349,25 @@ fn import_one(input: &std::path::Path, output: &std::path::Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::TempFile;
 
-    fn temp_file(name: &str, text: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("rsslide-main-test-{}", std::process::id()));
-        fs::create_dir_all(&dir).unwrap();
-        let path = dir.join(name);
-        fs::write(&path, text).unwrap();
-        path
+    fn temp_file(name: &str, text: &str) -> TempFile {
+        TempFile::new(name, text.as_bytes())
     }
 
     #[test]
     fn a_marp_deck_loads_like_its_import() {
         let md = "---\ntitle: Deck\n---\n\n# One\n\n- a\n\n---\n\n## Two\n\ntext\n";
-        let from_md = load_presentation(&temp_file("deck.md", md)).unwrap();
+        let from_md = load_presentation(temp_file("deck.md", md).path()).unwrap();
         let yaml = importer::marp::import(md).unwrap();
-        let from_yaml = load_presentation(&temp_file("deck.yaml", &yaml)).unwrap();
+        let from_yaml = load_presentation(temp_file("deck.yaml", &yaml).path()).unwrap();
         assert_eq!(format!("{from_md:?}"), format!("{from_yaml:?}"));
         assert_eq!(from_md.slides.len(), 2);
     }
 
     #[test]
     fn an_unknown_input_type_is_an_error() {
-        let err = load_presentation(&temp_file("deck.txt", "slides: []")).unwrap_err();
+        let err = load_presentation(temp_file("deck.txt", "slides: []").path()).unwrap_err();
         assert!(err.to_string().contains("unknown input type"), "{err}");
     }
 }

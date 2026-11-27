@@ -2016,6 +2016,7 @@ fn rounded_rect(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::TempFile;
     use std::fmt::Write as _;
 
     fn block(height: f32, margin_top: f32, margin_bottom: f32) -> Block {
@@ -3175,12 +3176,8 @@ svg: <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40
     ];
 
     /// `bytes` written to a fresh file named `name` in the temp directory.
-    fn temp_file(name: &str, bytes: &[u8]) -> String {
-        let dir = std::env::temp_dir().join(format!("rsslide-test-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join(name);
-        std::fs::write(&path, bytes).unwrap();
-        path.to_str().unwrap().to_string()
+    fn temp_file(name: &str, bytes: &[u8]) -> TempFile {
+        TempFile::new(name, bytes)
     }
 
     fn background(ops: &[Op]) -> (&Picture, f32, f32, f32, f32, [f32; 4]) {
